@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors"; 
 import cookieParser from "cookie-parser"; 
 import mongoose from "mongoose"; 
+import authRoutes from "./routes/authRoutes.js";
 // This loads variables from a .env file into process.env
 dotenv.config();
 // app: Initializes an Express application.
@@ -11,7 +12,6 @@ const port = process.env.PORT || 3001;
 const databaseURL = process.env.DATABASE_URL;
 app.use(
     cors({
-    //    origin: ["https://chat-app-frontend-rho-ruby.vercel.app"],
      origin: [process.env.ORIGIN], // Only allow requests from this origin (e.g., frontend at localhost:5173).
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],  // Allow specified HTTP methods.
     credentials: true,  // Include cookies in cross-origin requests
@@ -25,7 +25,7 @@ app.use(
     // app.use("/api/contacts",contactsRoutes);
     // app.use("/api/messages",messagesRoutes);
     // app.use("/api/channel",channelRoutes);
-    // app.use('/api/auth',authRoutes)
+    app.use('/api/auth',authRoutes);
 
 const server = app.listen(port, () =>{
     console.log(`Server is running at http://localhost:${port}`);
