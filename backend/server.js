@@ -38,3 +38,9 @@ const server = app.listen(port, () =>{
     mongoose.connection.on("connected", () => {
         console.log("Connected to database:", mongoose.connection.db.databaseName);
       });
+
+
+// Importing the chatbot routes
+// This assumes you have a file named chatbot.js in the routes directory
+      const chatbotRoutes = require('./routes/chatbot');
+app.use('/api/chatbot', chatbotRoutes);
