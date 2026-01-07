@@ -1,9 +1,11 @@
+// backend/server.js
 import express from "express";
 import dotenv from "dotenv"; 
 import cors from "cors"; 
 import cookieParser from "cookie-parser"; 
 import mongoose from "mongoose"; 
 import authRoutes from "./routes/authRoutes.js";
+import chatbotRoutes from "./routes/chatbot.js";
 // This loads variables from a .env file into process.env
 dotenv.config();
 // app: Initializes an Express application.
@@ -42,5 +44,10 @@ const server = app.listen(port, () =>{
 
 // Importing the chatbot routes
 // This assumes you have a file named chatbot.js in the routes directory
-      const chatbotRoutes = require('./routes/chatbot');
-app.use('/api/chatbot', chatbotRoutes);
+    const chatbotRoutes = require('./routes/chatbot');
+    app.use('/api/chatbot', chatbotRoutes);
+
+    const chatbotTrainRoutes = require('./routes/chatbotTrain');
+    app.use('/api/dev', chatbotTrainRoutes);
+
+
