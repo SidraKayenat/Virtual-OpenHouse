@@ -5,11 +5,12 @@ import re
 import sys
 
 from flask import Flask, request, jsonify
-from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from langchain_community.vectorstores import Chroma
+from langchain_groq import ChatGroq
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.chains import RetrievalQA
+from langchain_core.prompts import PromptTemplate
+
 
 from generate_embeddings import process_project
 
@@ -17,9 +18,8 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 REQUIRED_ENV_VARS = [
-    "OPENAI_API_KEY",
-    "OPENAI_CHAT_MODEL",
-    "OPENAI_EMBEDDING_MODEL",
+    "GROQ_API_KEY",
+    "GROQ_CHAT_MODEL",
 ]
 DEFAULT_TOP_K = 4
 DEFAULT_SEARCH_TYPE = "similarity"
@@ -50,7 +50,7 @@ def validate_env():
         logging.error("Missing required environment variables: %s", ", ".join(missing))
         logging.error(
             "Set them before starting. Example: "
-            "export OPENAI_API_KEY=... OPENAI_CHAT_MODEL=... OPENAI_EMBEDDING_MODEL=..."
+            "export GROQ_API_KEY=... GROQ_CHAT_MODEL=..."
         )
         sys.exit(1)
 
@@ -59,10 +59,10 @@ def sanitize_error_message(message):
     if not message:
         return "Unknown error"
     sanitized = message
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if api_key:
         sanitized = sanitized.replace(api_key, "[REDACTED]")
-    sanitized = re.sub(r"sk-[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
+        sanitized = re.sub(r"gsk_[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
     return sanitized
 
 
@@ -84,7 +84,6 @@ def validate_project_db(project_id):
 
 @app.route('/chat', methods=['POST'])
 def chat():
-
     try:
         data = request.get_json(force=True)
         query = data.get("query")
@@ -104,21 +103,21 @@ def chat():
         if not is_valid:
             return jsonify({"error": error_message}), 404
 
-        embedding_model = os.getenv("OPENAI_EMBEDDING_MODEL")
-        chat_model = os.getenv("OPENAI_CHAT_MODEL")
+        chat_model = os.getenv("GROQ_CHAT_MODEL")
         top_k = data.get("top_k", DEFAULT_TOP_K)
         search_type = data.get("search_type", DEFAULT_SEARCH_TYPE)
         score_threshold = data.get("score_threshold", DEFAULT_SCORE_THRESHOLD)
+
         db = Chroma(
             persist_directory=f"./db/{project_id}",
-            embedding_function=OpenAIEmbeddings(model=embedding_model),
+            embedding_function=HuggingFaceEmbeddings(),
         )
         retriever = db.as_retriever(
             search_type=search_type,
             search_kwargs={"k": top_k, "score_threshold": score_threshold},
         )
         qa = RetrievalQA.from_chain_type(
-            llm=ChatOpenAI(model_name=chat_model),
+            llm=ChatGroq(model=chat_model),
             retriever=retriever,
             return_source_documents=True,
             chain_type_kwargs={"prompt": QA_PROMPT, "document_prompt": DOCUMENT_PROMPT},
@@ -134,7 +133,7 @@ def chat():
                     "error": "Chatbot request failed.",
                     "details": sanitize_error_message(str(exc)),
                     "hint": (
-                        "Verify OpenAI credentials/models and confirm embeddings exist for the project."
+                        "Verify Groq credentials/models and confirm embeddings exist for the project."
                     ),
                 }
             ),
@@ -167,7 +166,7 @@ def ingest():
                 {
                     "error": "Embedding ingestion failed.",
                     "details": sanitize_error_message(str(exc)),
-                    "hint": "Verify the upload folder and OpenAI embedding configuration.",
+                    "hint": "Verify the upload folder and embeddings configuration.",
                 }
             ),
             500,

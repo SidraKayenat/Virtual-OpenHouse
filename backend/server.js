@@ -5,7 +5,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser"; 
 import mongoose from "mongoose"; 
 import authRoutes from "./routes/authRoutes.js";
+import uploadsRoutes from "./routes/uploads.js";
 import chatbotRoutes from "./routes/chatbot.js";
+import chatbotTrainRoutes from "./routes/chatbotTrain.js";
 // This loads variables from a .env file into process.env
 dotenv.config();
 // app: Initializes an Express application.
@@ -28,6 +30,9 @@ app.use(
     // app.use("/api/messages",messagesRoutes);
     // app.use("/api/channel",channelRoutes);
     app.use('/api/auth',authRoutes);
+    app.use('/api/chatbot', chatbotRoutes);
+    app.use('/api/dev', chatbotTrainRoutes);
+    app.use('/api/uploads', uploadsRoutes);
 
 const server = app.listen(port, () =>{
     console.log(`Server is running at http://localhost:${port}`);
@@ -42,12 +47,5 @@ const server = app.listen(port, () =>{
       });
 
 
-// Importing the chatbot routes
-// This assumes you have a file named chatbot.js in the routes directory
-    const chatbotRoutes = require('./routes/chatbot');
-    app.use('/api/chatbot', chatbotRoutes);
-
-    const chatbotTrainRoutes = require('./routes/chatbotTrain');
-    app.use('/api/dev', chatbotTrainRoutes);
 
 

@@ -1,18 +1,38 @@
 const { exec } = require("child_process");
 const path = require("path");
+const { downloadEventFiles, getEventIngestFolder } = require("../chatbotIngest.js");
 
-function trainChatbot(stallId) {
-  const folderPath = path.join(__dirname, "..", "..", "uploads", stallId);
+function trainChatbot(eventId) {
+  const ingestFolder = getEventIngestFolder(eventId);
 
-  const command = `python ../ai-chatbot/generate_embeddings.py "${folderPath}" "${stallId}"`;
+  return downloadEventFiles(eventId, ingestFolder).then(
+    ({ projectCount, downloadedCount }) => {
+      if (projectCount === 0) {
+        throw new Error(`No stalls found for event ${eventId}`);
+      }
+      if (downloadedCount === 0) {
+        throw new Error(`No PDF files found for event ${eventId}`);
+      }
 
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Chatbot training failed for ${stallId}:`, error.message);
-      return;
+      const scriptPath = path.resolve(
+        process.cwd(),
+        "..",
+        "ai-chatbot",
+        "generate_embeddings.py"
+      );
+      const command = `python "${scriptPath}" "${ingestFolder}" "${eventId}"`;
+
+      return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(stdout || stderr);
+        });
+      });
     }
-    console.log(`✅ Chatbot trained for ${stallId}:\n`, stdout);
-  });
+  );
 }
 
 module.exports = trainChatbot;

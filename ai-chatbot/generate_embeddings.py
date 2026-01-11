@@ -5,18 +5,16 @@ import re
 import shutil
 import sys
 
-from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 REQUIRED_ENV_VARS = [
-    "OPENAI_API_KEY",
-    "OPENAI_EMBEDDING_MODEL",
+    "GROQ_API_KEY",
 ]
-
 
 def validate_env():
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
@@ -25,17 +23,15 @@ def validate_env():
         logging.error("Set them before running embeddings generation.")
         sys.exit(1)
 
-
 def sanitize_error_message(message):
     if not message:
         return "Unknown error"
     sanitized = message
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if api_key:
         sanitized = sanitized.replace(api_key, "[REDACTED]")
-    sanitized = re.sub(r"sk-[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
+    sanitized = re.sub(r"gsk_[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
     return sanitized
-
 
 def process_project(folder, project_id):
     if not os.path.isdir(folder):
@@ -57,10 +53,9 @@ def process_project(folder, project_id):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
 
-    embedding_model = os.getenv("OPENAI_EMBEDDING_MODEL")
     Chroma.from_documents(
         chunks,
-        OpenAIEmbeddings(model=embedding_model),
+        HuggingFaceEmbeddings(),
         persist_directory=persist_directory,
     ).persist()
     return {
