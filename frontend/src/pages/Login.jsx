@@ -32,7 +32,7 @@ export default function Login() {
         body: JSON.stringify(form),
       });
 
-      navigate("/"); // later: dashboard
+      navigate("/user/dashboard"); // later: dashboard
     } catch (err) {
       setError(err.message);
     } finally {
