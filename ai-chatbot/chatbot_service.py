@@ -1,4 +1,11 @@
 # ai-chatbot/chatbot_service.py
+from dotenv import load_dotenv
+load_dotenv()
+
+print("MODEL:", os.getenv("GROQ_CHAT_MODEL"))
+print("KEY SET:", bool(os.getenv("GROQ_API_KEY")))
+
+
 import logging
 import os
 import re
@@ -8,9 +15,8 @@ from flask import Flask, request, jsonify
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
-
+from langchain_classic.chains import RetrievalQA
 
 from generate_embeddings import process_project
 
@@ -21,14 +27,13 @@ REQUIRED_ENV_VARS = [
     "GROQ_API_KEY",
     "GROQ_CHAT_MODEL",
 ]
+
 DEFAULT_TOP_K = 4
+# Keep default as plain similarity (most compatible)
 DEFAULT_SEARCH_TYPE = "similarity"
+# Only used when search_type == "similarity_score_threshold"
 DEFAULT_SCORE_THRESHOLD = 0.0
 
-DOCUMENT_PROMPT = PromptTemplate(
-    input_variables=["page_content", "metadata"],
-    template="Source metadata: {metadata}\nContent:\n{page_content}",
-)
 
 QA_PROMPT = PromptTemplate(
     input_variables=["context", "question"],
@@ -48,14 +53,11 @@ def validate_env():
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
     if missing:
         logging.error("Missing required environment variables: %s", ", ".join(missing))
-        logging.error(
-            "Set them before starting. Example: "
-            "export GROQ_API_KEY=... GROQ_CHAT_MODEL=..."
-        )
+        logging.error("Set them before starting. Example: set GROQ_API_KEY=... GROQ_CHAT_MODEL=...")
         sys.exit(1)
 
 
-def sanitize_error_message(message):
+def sanitize_error_message(message: str) -> str:
     if not message:
         return "Unknown error"
     sanitized = message
@@ -69,7 +71,7 @@ def sanitize_error_message(message):
 validate_env()
 
 
-def validate_project_db(project_id):
+def validate_project_db(project_id: str):
     persist_directory = f"./db/{project_id}"
     sqlite_path = os.path.join(persist_directory, "chroma.sqlite3")
 
@@ -82,12 +84,13 @@ def validate_project_db(project_id):
     return True, None
 
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
     try:
         data = request.get_json(force=True)
         query = data.get("query")
         project_id = data.get("project_id")
+
         if not query or not project_id:
             return (
                 jsonify(
@@ -112,19 +115,29 @@ def chat():
             persist_directory=f"./db/{project_id}",
             embedding_function=HuggingFaceEmbeddings(),
         )
+
+        # FIX: Only pass score_threshold when the retriever type supports it.
+        # Some Chroma versions error if score_threshold is passed for plain similarity search.
+        search_kwargs = {"k": top_k}
+        if search_type == "similarity_score_threshold":
+            search_kwargs["score_threshold"] = score_threshold
+
         retriever = db.as_retriever(
             search_type=search_type,
-            search_kwargs={"k": top_k, "score_threshold": score_threshold},
+            search_kwargs=search_kwargs,
         )
+
         qa = RetrievalQA.from_chain_type(
             llm=ChatGroq(model=chat_model),
             retriever=retriever,
             return_source_documents=True,
-            chain_type_kwargs={"prompt": QA_PROMPT, "document_prompt": DOCUMENT_PROMPT},
+            chain_type_kwargs={"prompt": QA_PROMPT},
         )
+
         result = qa({"query": query})
         sources = [doc.metadata for doc in result.get("source_documents", [])]
         return jsonify({"response": result.get("result"), "sources": sources})
+
     except Exception as exc:
         logging.exception("Chatbot request failed")
         return (
@@ -132,21 +145,20 @@ def chat():
                 {
                     "error": "Chatbot request failed.",
                     "details": sanitize_error_message(str(exc)),
-                    "hint": (
-                        "Verify Groq credentials/models and confirm embeddings exist for the project."
-                    ),
+                    "hint": "Verify Groq credentials/models and confirm embeddings exist for the project.",
                 }
             ),
             500,
         )
 
 
-@app.route('/ingest', methods=['POST'])
+@app.route("/ingest", methods=["POST"])
 def ingest():
     try:
         data = request.get_json(force=True)
         project_id = data.get("project_id")
         folder_path = data.get("folder_path")
+
         if not project_id or not folder_path:
             return (
                 jsonify(
@@ -157,8 +169,10 @@ def ingest():
                 ),
                 400,
             )
+
         result = process_project(folder_path, project_id)
         return jsonify(result)
+
     except Exception as exc:
         logging.exception("Embedding ingestion failed")
         return (
@@ -173,5 +187,5 @@ def ingest():
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(port=5000)

@@ -1,38 +1,27 @@
-const { exec } = require("child_process");
-const path = require("path");
-const { downloadEventFiles, getEventIngestFolder } = require("../chatbotIngest.js");
+import { exec } from "child_process";
+import path from "path";
+import { downloadEventFiles, getEventIngestFolder } from "./chatbotIngest.js";
 
-function trainChatbot(eventId) {
+export default async function trainChatbot(eventId) {
   const ingestFolder = getEventIngestFolder(eventId);
+  const { projectCount, downloadedCount } =
+    await downloadEventFiles(eventId, ingestFolder);
 
-  return downloadEventFiles(eventId, ingestFolder).then(
-    ({ projectCount, downloadedCount }) => {
-      if (projectCount === 0) {
-        throw new Error(`No stalls found for event ${eventId}`);
-      }
-      if (downloadedCount === 0) {
-        throw new Error(`No PDF files found for event ${eventId}`);
-      }
+  if (!projectCount || !downloadedCount) {
+    throw new Error("Nothing to ingest");
+  }
 
-      const scriptPath = path.resolve(
-        process.cwd(),
-        "..",
-        "ai-chatbot",
-        "generate_embeddings.py"
-      );
-      const command = `python "${scriptPath}" "${ingestFolder}" "${eventId}"`;
-
-      return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve(stdout || stderr);
-        });
-      });
-    }
+  const scriptPath = path.resolve(
+    process.cwd(),
+    "..",
+    "ai-chatbot",
+    "generate_embeddings.py"
   );
-}
 
-module.exports = trainChatbot;
+  return new Promise((resolve, reject) => {
+    exec(`python "${scriptPath}" "${ingestFolder}" "${eventId}"`, (err, out) => {
+      if (err) reject(err);
+      else resolve(out);
+    });
+  });
+}
