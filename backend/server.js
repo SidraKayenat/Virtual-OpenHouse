@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import authRoutes from "./routes/authRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
 // This loads variables from a .env file into process.env
 dotenv.config();
 // app: Initializes an Express application.
@@ -28,6 +29,7 @@ app.use(express.json());
 // app.use("/api/contacts",contactsRoutes);
 // app.use("/api/messages",messagesRoutes);
 // app.use("/api/channel",channelRoutes);
+    app.use("/api/events", eventRoutes); 
 app.use("/api/auth", authRoutes);
 
 const server = app.listen(port, () => {
