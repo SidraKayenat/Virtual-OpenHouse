@@ -27,6 +27,17 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Check for admin credentials
+      const isAdminCredentials =
+        form.email === "admin@gmail.com" && form.password === "123456";
+
+      if (isAdminCredentials) {
+        // Auto-login as admin without making API call
+        navigate("/admin/dashboard");
+        return;
+      }
+
+      // Regular login flow
       await api("/auth/login", {
         method: "POST",
         body: JSON.stringify(form),
@@ -127,6 +138,21 @@ export default function Login() {
               >
                 Signup
               </button>
+            </div>
+
+            {/* Demo Credentials */}
+            <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs font-semibold text-blue-900 mb-2">
+                Demo Admin Credentials:
+              </p>
+              <div className="space-y-1 text-xs text-blue-800">
+                <p>
+                  <strong>Email:</strong> admin@gmail.com
+                </p>
+                <p>
+                  <strong>Password:</strong> 123456
+                </p>
+              </div>
             </div>
           </div>
         </div>

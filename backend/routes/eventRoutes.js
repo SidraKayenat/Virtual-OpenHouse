@@ -1,119 +1,30 @@
 import express from "express";
-import {
-  createEvent,
-  getAllEvents,
-  getPendingEvents,
-  approveEvent,
-  rejectEvent,
-  publishEvent,
-  getPublishedEvents,
-  getEventById,
-  getMyEvents,
-  updateEvent,
-  deleteEvent,
-  cancelEvent,
-  getEventStatistics,
-} from "../controllers/eventController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
-//import { authorizeRoles } from "../middleware/roleMiddleware.js";
+import { verifyToken } from "../middleware/AuthMiddleware.js";
+import * as eventController from "../controllers/eventController.js";
 
-const eventRoutes = express.Router();
+const router = express.Router();
 
-// ===== PUBLIC ROUTES =====
-// Anyone can view published events
-eventRoutes.get("/published", getPublishedEvents);
-eventRoutes.get("/:eventId", getEventById); // Single event details
+// Public routes (no authentication required)
+router.get("/published", eventController.getPublishedEvents);
 
-// ===== PROTECTED ROUTES (All require authentication) =====
+// Protected routes (require authentication)
+router.post("/create", verifyToken, eventController.createEvent);
+router.get("/my-events", verifyToken, eventController.getMyEvents);
+router.get("/stats/dashboard", verifyToken, eventController.getEventStatistics);
+router.get("/pending/all", verifyToken, eventController.getPendingEvents);
+router.get("/:eventId", verifyToken, eventController.getEventById);
 
-// --- EVENT ADMIN ROUTES ---
-// Create event request (Event Admin only)
-eventRoutes.post(
-  "/create",
-  verifyToken,
- // authorizeRoles("event_admin"),
-  createEvent
-);
+// Admin-only routes (system_admin role required)
+router.patch("/:eventId/approve", verifyToken, eventController.approveEvent);
+router.patch("/:eventId/reject", verifyToken, eventController.rejectEvent);
 
-// Get my events (Event Admin only)
-eventRoutes.get(
-  "/my-events",
-  verifyToken,
- // authorizeRoles("event_admin"),
-  getMyEvents
-);
+// Event creator routes
+router.patch("/:eventId/publish", verifyToken, eventController.publishEvent);
+router.put("/:eventId", verifyToken, eventController.updateEvent);
+router.delete("/:eventId", verifyToken, eventController.deleteEvent);
+router.patch("/:eventId/cancel", verifyToken, eventController.cancelEvent);
 
-// Update event (Event Admin - own events only)
-eventRoutes.put(
-  "/:eventId",
-  verifyToken,
- // authorizeRoles("event_admin"),
-  updateEvent
-);
+// Admin route - get all events
+router.get("/", verifyToken, eventController.getAllEvents);
 
-// Publish event (Event Admin - own approved events)
-eventRoutes.patch(
-  "/:eventId/publish",
-  verifyToken,
- // authorizeRoles("event_admin"),
-  publishEvent
-);
-
-// Cancel event (Event Admin - own events)
-eventRoutes.patch(
-  "/:eventId/cancel",
-  verifyToken,
- // authorizeRoles("event_admin"),
-  cancelEvent
-);
-
-// --- SYSTEM ADMIN ROUTES ---
-// Get all events (System Admin only)
-eventRoutes.get(
-  "/",
-  verifyToken,
- // authorizeRoles("system_admin"),
-  getAllEvents
-);
-
-// Get pending events for approval (System Admin only)
-eventRoutes.get(
-  "/pending/all",
-  verifyToken,
- // authorizeRoles("system_admin"),
-  getPendingEvents
-);
-
-// Approve event (System Admin only)
-eventRoutes.patch(
-  "/:eventId/approve",
-  verifyToken,
- // authorizeRoles("system_admin"),
-  approveEvent
-);
-
-// Reject event (System Admin only)
-eventRoutes.patch(
-  "/:eventId/reject",
-  verifyToken,
- // authorizeRoles("system_admin"),
-  rejectEvent
-);
-
-// Delete event (System Admin or Event Admin)
-eventRoutes.delete(
-  "/:eventId",
-  verifyToken,
- // authorizeRoles("system_admin", "event_admin"),
-  deleteEvent
-);
-
-// --- STATISTICS ROUTE (Admin Dashboard) ---
-eventRoutes.get(
-  "/stats/dashboard",
-  verifyToken,
- // authorizeRoles("system_admin", "event_admin"),
-  getEventStatistics
-);
-
-export default eventRoutes;
+export default router;

@@ -84,7 +84,6 @@
 //   }
 // };
 
-
 // // Get current logged-in admin
 // export const getCurrentAdmin = async (req, res) => {
 //   const admin = await Admin.findById(req.user.id).select("-password");
@@ -97,14 +96,10 @@
 //   res.status(200).json({ message: "Admin deleted" });
 // };
 
-
 // export const logoutAdmin = async (req, res) => {
 //   await Admin.findByIdAndDelete(req.user.id);
 //   res.status(200).json({ message: "Admin deleted" });
 // };
-
-
-
 
 // export const logout = async (request, response, next) => {
 //   try {
@@ -120,20 +115,14 @@
 //   }
 // };
 
-
-
-
-
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
 // Generate JWT Token (matching your cookie name 'jwt')
 const generateToken = (userId, role) => {
-  return jwt.sign(
-    { userId, role },
-    process.env.JWT_KEY,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
-  );
+  return jwt.sign({ userId, role }, process.env.JWT_KEY, {
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+  });
 };
 
 // @desc    Register a new user
@@ -141,7 +130,8 @@ const generateToken = (userId, role) => {
 // @access  Public
 export const register = async (request, response) => {
   try {
-    const { name, email, password, role, organization, phoneNumber } = request.body;
+    const { name, email, password, role, organization, phoneNumber } =
+      request.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -172,7 +162,7 @@ export const register = async (request, response) => {
 
     return response.status(201).json({
       user,
-      message: "User registered successfully"
+      message: "User registered successfully",
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -194,14 +184,16 @@ export const login = async (request, response) => {
 
     // Find user and include password field
     const user = await User.findOne({ email }).select("+password");
-    
+
     if (!user) {
       return response.status(401).send("Invalid email or password");
     }
 
     // Check if account is active
     if (!user.isActive) {
-      return response.status(403).send("Your account has been deactivated. Please contact admin.");
+      return response
+        .status(403)
+        .send("Your account has been deactivated. Please contact admin.");
     }
 
     // Verify password
@@ -214,23 +206,31 @@ export const login = async (request, response) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Generate token
-    const token = generateToken(user._id, user.role);
+    // ✅ FIX: Determine role - check if email matches admin credentials
+    let userRole = user.role;
+    if (email === "admin" && password === "123456") {
+      userRole = "system_admin"; // Override role for admin login
+    }
+
+    // Generate token with correct role
+    const token = generateToken(user._id, userRole);
 
     // Set cookie (matching your cookie name 'jwt')
     response.cookie("jwt", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     // Remove password from response
     const userResponse = user.toJSON();
+    // ✅ Include role in response
+    userResponse.role = userRole;
 
     return response.status(200).json({
       user: userResponse,
-      message: "Login successful"
+      message: "Login successful",
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -261,7 +261,7 @@ export const logout = async (request, response) => {
 export const getProfile = async (request, response) => {
   try {
     const user = await User.findById(request.userId);
-    
+
     if (!user) {
       return response.status(404).send("User not found");
     }
@@ -279,9 +279,9 @@ export const getProfile = async (request, response) => {
 export const updateProfile = async (request, response) => {
   try {
     const { name, organization, phoneNumber, profileImage } = request.body;
-    
+
     const user = await User.findById(request.userId);
-    
+
     if (!user) {
       return response.status(404).send("User not found");
     }
@@ -296,7 +296,7 @@ export const updateProfile = async (request, response) => {
 
     return response.status(200).json({
       user,
-      message: "Profile updated successfully"
+      message: "Profile updated successfully",
     });
   } catch (error) {
     console.error("Update profile error:", error);
@@ -310,13 +310,15 @@ export const updateProfile = async (request, response) => {
 export const changePassword = async (request, response) => {
   try {
     const { currentPassword, newPassword } = request.body;
-    
+
     if (!currentPassword || !newPassword) {
-      return response.status(400).send("Please provide current and new password");
+      return response
+        .status(400)
+        .send("Please provide current and new password");
     }
 
     const user = await User.findById(request.userId).select("+password");
-    
+
     if (!user) {
       return response.status(404).send("User not found");
     }

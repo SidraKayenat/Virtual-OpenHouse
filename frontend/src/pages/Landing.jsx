@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ImageWithFallback } from "@/components/ImagewithFallback";
 import {
   Calendar,
@@ -14,9 +14,35 @@ import {
   Sparkles,
   Headset,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
 
 const Landing = () => {
+  const navigate = useNavigate();
+
+  // Check for admin auto-login on component mount
+  useEffect(() => {
+    const checkAdminLogin = async () => {
+      // Check if user is already logged in
+      try {
+        const response = await api("/auth/profile", { method: "GET" });
+        if (response.user) {
+          // User is already logged in, redirect to their dashboard
+          if (
+            response.user.role === "system_admin" ||
+            response.user.role === "event_admin"
+          ) {
+            navigate("/admin/dashboard");
+          } else {
+            navigate("/user/dashboard");
+          }
+        }
+      } catch (err) {
+        // User not logged in, continue to landing page
+      }
+    };
+    checkAdminLogin();
+  }, [navigate]);
   const features = [
     {
       icon: Boxes,
