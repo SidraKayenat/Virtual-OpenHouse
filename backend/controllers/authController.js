@@ -206,27 +206,19 @@ export const login = async (request, response) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // ✅ FIX: Determine role - check if email matches admin credentials
-    let userRole = user.role;
-    if (email === "admin" && password === "123456") {
-      userRole = "system_admin"; // Override role for admin login
-    }
-
-    // Generate token with correct role
-    const token = generateToken(user._id, userRole);
+    // Generate token
+    const token = generateToken(user._id, user.role);
 
     // Set cookie (matching your cookie name 'jwt')
     response.cookie("jwt", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     // Remove password from response
     const userResponse = user.toJSON();
-    // ✅ Include role in response
-    userResponse.role = userRole;
 
     return response.status(200).json({
       user: userResponse,

@@ -27,23 +27,23 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Check for admin credentials
-      const isAdminCredentials =
-        form.email === "admin@gmail.com" && form.password === "123456";
-
-      if (isAdminCredentials) {
-        // Auto-login as admin without making API call
-        navigate("/admin/dashboard");
-        return;
-      }
-
       // Regular login flow
-      await api("/auth/login", {
+      const response = await api("/auth/login", {
         method: "POST",
         body: JSON.stringify(form),
       });
 
-      navigate("/user/dashboard"); // later: dashboard
+      // Navigate based on user role
+      if (response.user?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (
+        response.user?.role === "user" ||
+        response.user?.role === "attendee"
+      ) {
+        navigate("/user/dashboard");
+      } else {
+        console.log("Neither admin nor user/attendee"); // default fallback
+      }
     } catch (err) {
       setError(err.message);
     } finally {
