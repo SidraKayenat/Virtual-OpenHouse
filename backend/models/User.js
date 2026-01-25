@@ -28,8 +28,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["system_admin", "event_admin", "participant", "attendee"],
-      default: "attendee",
+      enum: ["admin", "user"],
+      default: "user",
     },
     profileImage: {
       type: String,
