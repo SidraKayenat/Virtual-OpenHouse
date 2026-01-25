@@ -144,7 +144,7 @@ export const register = async (request, response) => {
       name,
       email,
       password,
-      role: role || "attendee",
+      role: role || "user",
       organization,
       phoneNumber,
     });

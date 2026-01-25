@@ -36,13 +36,10 @@ export default function Login() {
       // Navigate based on user role
       if (response.user?.role === "admin") {
         navigate("/admin/dashboard");
-      } else if (
-        response.user?.role === "user" ||
-        response.user?.role === "attendee"
-      ) {
+      } else if (response.user?.role === "user") {
         navigate("/user/dashboard");
       } else {
-        console.log("Neither admin nor user/attendee"); // default fallback
+        console.log("Neither admin nor user"); // default fallback
       }
     } catch (err) {
       setError(err.message);
