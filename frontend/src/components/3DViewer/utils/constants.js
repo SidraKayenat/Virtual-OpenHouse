@@ -6,13 +6,15 @@ export const SCENE_CONFIG = {
 };
 
 export const HALL_DIMENSIONS = {
-  WIDTH: 80,
+  WIDTH: 130,
   DEPTH: 140,
 };
 
 export const PLAYER_CONFIG = {
-  SPEED: 8,
+  SPEED: 10,
   SCALE: 2,
+  // for the camera behavior
+  CAMERA_OFFSET: { x: 0, y: 12, z: 20 }, // Y is height, Z is distance back
 };
 
 export const CAMERA_CONFIG = {
@@ -21,6 +23,9 @@ export const CAMERA_CONFIG = {
   FAR: 300,
   MIN_DISTANCE: 5,
   MAX_DISTANCE: 20,
+  MAX_POLAR_ANGLE: Math.PI / 2.5, // Slightly above 90 degrees to hide the horizon seam
+  MIN_POLAR_ANGLE: Math.PI / 6,   // Prevents looking straight up
+  FOCUS_OFFSET: { x: 0, y: 6, z: 10 }
 };
 
 export const STALL_CONFIG = {
@@ -36,7 +41,7 @@ export const ENVIRONMENT_TYPES = {
 };
 
 export const ENVIRONMENT_MODELS = {
-  [ENVIRONMENT_TYPES.PLAIN_GROUND]: "/models/environments/plain_ground.glb",
-  [ENVIRONMENT_TYPES.MCS_HALL]: "/models/environments/mcs_hall.glb",
-  [ENVIRONMENT_TYPES.OUTDOOR_PARK]: "/models/environments/outdoor_park.glb",
+  [ENVIRONMENT_TYPES.PLAIN_GROUND]: "/Environments/HdrOutdoorFieldBaseballDayClear001_HDR_8K.exr",
+  [ENVIRONMENT_TYPES.MCS_HALL]: "/Environments/2.exr",
+  // [ENVIRONMENT_TYPES.OUTDOOR_PARK]: "/models/Environments/outdoor_park.glb",
 };

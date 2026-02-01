@@ -48,6 +48,7 @@ const EventViewerPage = () => {
       <ThreeScene 
         eventData={eventData} 
         onStallClick={handleStallClick}
+        isPopupOpen={!!selectedStall}
       />
       <StallPopup 
         stallData={selectedStall} 
