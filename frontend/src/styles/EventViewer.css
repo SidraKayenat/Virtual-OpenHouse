@@ -1,0 +1,14 @@
+/* src/pages/EventViewerPage.css */
+
+.event-viewer {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.event-viewer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
