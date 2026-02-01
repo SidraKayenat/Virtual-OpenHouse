@@ -1,8 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
+import UserNotifications from "./UserNotifications";
 
-export default function Navbar({ user }) {
+export default function Navbar({
+  user,
+  notifications = [],
+  setNotifications = () => {},
+}) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -19,7 +24,10 @@ export default function Navbar({ user }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
+            <Link
+              to="/user/dashboard"
+              className="text-xl font-bold text-gray-900"
+            >
               OPEN HOUSE
             </Link>
             <div className="hidden sm:block">
@@ -40,6 +48,12 @@ export default function Navbar({ user }) {
             >
               Create Event
             </Link>
+
+            {/* User Notifications */}
+            <UserNotifications
+              notifications={notifications}
+              setNotifications={setNotifications}
+            />
 
             <div className="flex items-center gap-3">
               <div className="text-sm text-gray-700">

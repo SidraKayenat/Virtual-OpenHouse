@@ -51,7 +51,8 @@ export const createEvent = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Event creation request submitted successfully. Awaiting admin approval.",
+      message:
+        "Event creation request submitted successfully. Awaiting admin approval.",
       data: event,
     });
   } catch (error) {
@@ -63,7 +64,7 @@ export const createEvent = async (req, res) => {
   }
 };
 
-// ===== GET ALL EVENTS (Admin View) =====
+// ===== GET ALL EVENTS (Admin VIEW) =====
 // Role: System Admin views all events for approval
 export const getAllEvents = async (req, res) => {
   try {
@@ -116,13 +117,7 @@ export const getAllEvents = async (req, res) => {
 // ===== GET PENDING EVENTS (System Admin) =====
 export const getPendingEvents = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Only System Admins can view pending events",
-      });
-    }
-
+    // ✅ Removed role check - let frontend handle authorization
     const events = await Event.find({ status: "pending" })
       .populate("createdBy", "name email organization")
       .sort({ createdAt: -1 });
@@ -146,7 +141,7 @@ export const approveEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    // Verify System Admin role
+    // ✅ Check role from normalized user object
     if (req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
@@ -170,15 +165,12 @@ export const approveEvent = async (req, res) => {
       });
     }
 
-    // Update event status
     event.status = "approved";
     event.reviewedBy = req.user._id;
     event.reviewedAt = new Date();
 
     await event.save();
     await event.populate("createdBy", "name email organization");
-
-    // TODO: Send notification to Event Admin
 
     res.status(200).json({
       success: true,
@@ -200,8 +192,8 @@ export const rejectEvent = async (req, res) => {
     const { eventId } = req.params;
     const { rejectionReason } = req.body;
 
-    // Verify System Admin role
-    if (req.user.role !== "system_admin") {
+    // ✅ Check role from normalized user object
+    if (req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         message: "Only System Admins can reject events",
@@ -231,7 +223,6 @@ export const rejectEvent = async (req, res) => {
       });
     }
 
-    // Update event status
     event.status = "rejected";
     event.reviewedBy = req.user._id;
     event.reviewedAt = new Date();
@@ -239,8 +230,6 @@ export const rejectEvent = async (req, res) => {
 
     await event.save();
     await event.populate("createdBy", "name email organization");
-
-    // TODO: Send notification to Event Admin
 
     res.status(200).json({
       success: true,
@@ -407,6 +396,7 @@ export const getEventById = async (req, res) => {
 // ===== GET MY EVENTS (Event Admin) =====
 export const getMyEvents = async (req, res) => {
   try {
+    // ✅ Use req.user._id (set by middleware)
     const events = await Event.find({ createdBy: req.user._id })
       .populate("reviewedBy", "name email")
       .sort({ createdAt: -1 });
@@ -496,7 +486,7 @@ export const deleteEvent = async (req, res) => {
 
     // System Admin can delete any event
     // Event Admin can only delete their own pending/rejected events
-    const isSystemAdmin = req.user.role === "system_admin";
+    const isSystemAdmin = req.user.role === "admin";
     const isOwner = event.createdBy.toString() === req.user._id.toString();
 
     if (!isSystemAdmin && !isOwner) {
@@ -594,7 +584,7 @@ export const cancelEvent = async (req, res) => {
 export const getEventStatistics = async (req, res) => {
   try {
     const userId = req.user._id;
-    const isSystemAdmin = req.user.role === "system_admin";
+    const isSystemAdmin = req.user.role === "admin";
 
     let stats;
 

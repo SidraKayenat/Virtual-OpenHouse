@@ -27,12 +27,20 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await api("/auth/login", {
+      // Regular login flow
+      const response = await api("/auth/login", {
         method: "POST",
         body: JSON.stringify(form),
       });
 
-      navigate("/user/dashboard"); // later: dashboard
+      // Navigate based on user role
+      if (response.user?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (response.user?.role === "user") {
+        navigate("/user/dashboard");
+      } else {
+        console.log("Neither admin nor user"); // default fallback
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -127,6 +135,21 @@ export default function Login() {
               >
                 Signup
               </button>
+            </div>
+
+            {/* Demo Credentials */}
+            <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs font-semibold text-blue-900 mb-2">
+                Demo Admin Credentials:
+              </p>
+              <div className="space-y-1 text-xs text-blue-800">
+                <p>
+                  <strong>Email:</strong> admin@gmail.com
+                </p>
+                <p>
+                  <strong>Password:</strong> 123456
+                </p>
+              </div>
             </div>
           </div>
         </div>
