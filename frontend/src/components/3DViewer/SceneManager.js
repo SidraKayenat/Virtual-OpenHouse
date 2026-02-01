@@ -48,7 +48,7 @@ export class SceneManager {
       }),
     );
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -50;
+    floor.position.y = 0;
     floor.receiveShadow = true;
     this.scene.add(floor);
   }
