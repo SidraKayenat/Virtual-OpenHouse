@@ -1,8 +1,6 @@
-// src/components/3DViewer/PlayerController.js
-
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { PLAYER_CONFIG, HALL_DIMENSIONS } from "./utils/constants";
+import { PLAYER_CONFIG } from "./utils/constants";
 
 export class PlayerController {
   constructor(scene, camera) {
@@ -16,18 +14,26 @@ export class PlayerController {
     this.walkAction = null;
     this.activeAction = null;
 
+    // ]Function to check if controls should be disabled
+    this.isUIOpen = () => false; // Default: UI not open
+
     this.setupInputListeners();
     this.loadPlayerModel();
   }
 
   setupInputListeners() {
-    window.addEventListener("keydown", (e) => {
+    this.handleKeyDown = (e) => {
+      //  IGNORE INPUT IF UI IS OPEN
+      if (this.isUIOpen()) return;
       this.keys[e.key.toLowerCase()] = true;
-    });
+    };
 
-    window.addEventListener("keyup", (e) => {
+    this.handleKeyUp = (e) => {
       this.keys[e.key.toLowerCase()] = false;
-    });
+    };
+
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
   }
 
   async loadPlayerModel() {
@@ -35,12 +41,7 @@ export class PlayerController {
 
     try {
       const gltf = await new Promise((resolve, reject) => {
-        loader.load(
-          "/models/avatar.glb",
-          resolve,
-          undefined,
-          reject,
-        );
+        loader.load("/models/avatar.glb", resolve, undefined, reject);
       });
 
       this.scene.remove(this.player);
@@ -65,12 +66,27 @@ export class PlayerController {
     }
   }
 
+  //  ADD THIS METHOD
+  setUIOpenCallback(callback) {
+    this.isUIOpen = callback;
+  }
+
   update(deltaTime) {
     this.mixer?.update(deltaTime);
     this.handleMovement(deltaTime);
   }
 
   handleMovement(deltaTime) {
+    //  DON'T MOVE IF UI IS OPEN
+    if (this.isUIOpen()) {
+      // Stop walking animation if playing
+      if (this.activeAction) {
+        this.walkAction?.stop();
+        this.activeAction = null;
+      }
+      return;
+    }
+
     let x = 0,
       z = 0;
 
@@ -81,7 +97,6 @@ export class PlayerController {
 
     const moving = x !== 0 || z !== 0;
 
-    // Handle walk animation
     if (this.mixer && this.walkAction) {
       if (moving && this.activeAction !== this.walkAction) {
         this.walkAction.reset().play();
@@ -94,7 +109,6 @@ export class PlayerController {
 
     if (!moving) return;
 
-    // Calculate movement direction
     const forward = new THREE.Vector3();
     this.camera.getWorldDirection(forward);
     forward.y = 0;
@@ -108,16 +122,14 @@ export class PlayerController {
     moveDir.addScaledVector(right, x);
     moveDir.normalize();
 
-    // Move player
     this.player.position.addScaledVector(
       moveDir,
       PLAYER_CONFIG.SPEED * deltaTime,
     );
     this.player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
 
-    // Clamp to hall boundaries
-    const hw = HALL_DIMENSIONS.WIDTH / 2 - 1;
-    const hd = HALL_DIMENSIONS.DEPTH / 2 - 1;
+    const hw = 130 / 2 - 1;
+    const hd = 140 / 2 - 1;
     this.player.position.x = this.clamp(this.player.position.x, -hw, hw);
     this.player.position.z = this.clamp(this.player.position.z, -hd, hd);
   }
