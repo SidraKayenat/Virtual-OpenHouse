@@ -10,12 +10,15 @@ import { PlayerController } from "./PlayerController";
 import { CameraController } from "./CameraController";
 import { CAMERA_CONFIG } from "./utils/constants";
 
-const ThreeScene = ({ eventData, onStallClick }) => {
+const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
+  // 🔥 Add isUIOpen prop
   const canvasRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!canvasRef.current || !eventData) return;
+
+    console.log("🚀 ThreeScene initializing...");
 
     let animationId;
     const clock = new THREE.Clock();
@@ -37,7 +40,7 @@ const ThreeScene = ({ eventData, onStallClick }) => {
       CAMERA_CONFIG.NEAR,
       CAMERA_CONFIG.FAR,
     );
-    camera.position.set(0, 10, -10);
+    camera.position.set(0, 10, 30);
 
     // Initialize scene
     const sceneManager = new SceneManager();
@@ -49,31 +52,36 @@ const ThreeScene = ({ eventData, onStallClick }) => {
     controls.enablePan = false;
     controls.minDistance = CAMERA_CONFIG.MIN_DISTANCE;
     controls.maxDistance = CAMERA_CONFIG.MAX_DISTANCE;
-    controls.maxPolarAngle = Math.PI / 2 - 0.05;
+    controls.maxPolarAngle = CAMERA_CONFIG.MAX_POLAR_ANGLE;
+    controls.minPolarAngle = CAMERA_CONFIG.MIN_POLAR_ANGLE;
 
     // Initialize managers
-    const environmentLoader = new EnvironmentLoader(scene);
+    const environmentLoader = new EnvironmentLoader(scene, renderer);
     const stallManager = new StallManager(scene);
     const playerController = new PlayerController(scene, camera);
     const cameraController = new CameraController(camera, controls);
 
+    // 🔥 SET UP UI OPEN CALLBACK
+    playerController.setUIOpenCallback(() => isUIOpen);
+
     // Load environment and stalls
     const initializeScene = async () => {
       try {
-        // Load environment based on event config
+        console.log("🌍 Loading environment...");
         await environmentLoader.loadEnvironment(
           eventData.environmentType || "plain_ground",
         );
 
-        // Create stalls
+        console.log("🏗️ Creating stalls...");
         await stallManager.createStalls(
           eventData.stallCount || 6,
           eventData.stalls || [],
         );
 
+        console.log("✅ Scene initialization complete");
         setIsLoading(false);
       } catch (error) {
-        console.error("Failed to initialize scene:", error);
+        console.error("❌ Failed to initialize scene:", error);
         setIsLoading(false);
       }
     };
@@ -85,18 +93,33 @@ const ThreeScene = ({ eventData, onStallClick }) => {
     const mouse = new THREE.Vector2();
 
     const handleClick = (event) => {
-      if (cameraController.isInteracting()) return;
+      // 🔥 DON'T RAYCAST IF UI IS OPEN
+      if (isUIOpen) {
+        console.log("⏭️ UI is open, ignoring click");
+        return;
+      }
+
+      if (cameraController.isInteracting()) {
+        console.log("⏭️ Already interacting, ignoring click");
+        return;
+      }
 
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(stallManager.getStalls());
+      const stalls = stallManager.getStalls();
+      const intersects = raycaster.intersectObjects(stalls);
 
       if (intersects.length > 0) {
         const stallData = intersects[0].object.userData;
+        console.log("✅ Clicked stall:", stallData.name);
+
         cameraController.focusOn(intersects[0].object.position);
-        onStallClick(stallData);
+
+        if (onStallClick && typeof onStallClick === "function") {
+          onStallClick(stallData);
+        }
       }
     };
 
@@ -135,7 +158,7 @@ const ThreeScene = ({ eventData, onStallClick }) => {
       stallManager.dispose();
       renderer.dispose();
     };
-  }, [eventData, onStallClick]);
+  }, [eventData, onStallClick, isUIOpen]); // 🔥 Add isUIOpen to dependencies
 
   return (
     <>
