@@ -5,7 +5,7 @@ import {
   markAllAsRead,
   deleteNotification,
 } from "../controllers/notificationController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken } from "../middleware/AuthMiddleware.js";
 
 const notificationRoutes = express.Router();
 

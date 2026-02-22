@@ -29,7 +29,7 @@ import {
   updateProfile,
   changePassword,
 } from "../controllers/authController.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken } from "../middleware/AuthMiddleware.js";
 
 const authRoutes = express.Router();
 

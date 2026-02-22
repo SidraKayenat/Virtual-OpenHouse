@@ -6,6 +6,10 @@ import mongoose from "mongoose";
 import authRoutes from "./routes/authRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import stallRoutes from "./routes/stallRoutes.js"; 
+import registrationRoutes from "./routes/registrationRoutes.js";
+
+
 
 // This loads variables from a .env file into process.env
 dotenv.config();
@@ -28,18 +32,21 @@ app.use(
 // app.use("/uploads/files", express.static("uploads/files"))
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
   }),
 );
-// app.use("/api/contacts",contactsRoutes);
-// app.use("/api/messages",messagesRoutes);
-// app.use("/api/channel",channelRoutes);
+
+
 app.use("/api/events", eventRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/stalls", stallRoutes); 
+app.use("/api/registrations", registrationRoutes);
+
 
 const server = app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
