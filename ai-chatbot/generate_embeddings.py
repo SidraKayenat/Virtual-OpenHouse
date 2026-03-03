@@ -16,12 +16,14 @@ REQUIRED_ENV_VARS = [
     "GROQ_API_KEY",
 ]
 
+
 def validate_env():
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
     if missing:
         logging.error("Missing required environment variables: %s", ", ".join(missing))
         logging.error("Set them before running embeddings generation.")
         sys.exit(1)
+
 
 def sanitize_error_message(message):
     if not message:
@@ -33,6 +35,7 @@ def sanitize_error_message(message):
     sanitized = re.sub(r"gsk_[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
     return sanitized
 
+
 def process_project(folder, project_id):
     if not os.path.isdir(folder):
         raise FileNotFoundError(f"Upload folder not found: {folder}")
@@ -43,26 +46,60 @@ def process_project(folder, project_id):
 
     docs = []
     for file in os.listdir(folder):
-        if file.endswith(".pdf"):
+        if file.lower().endswith(".pdf"):
             loader = PyPDFLoader(os.path.join(folder, file))
             docs += loader.load()
 
     if not docs:
         raise ValueError(f"No PDF files found in {folder}")
 
+    # =========================
+    # FIX 1: DEBUG - verify title page text is extractable
+    # =========================
+    print("\n=== DEBUG: FIRST PAGES PREVIEW (check title/project name) ===")
+    for i, d in enumerate(docs[:3]):
+        print(f"\n---- DOC PAGE INDEX {i} ----")
+        preview = (d.page_content or "").strip()
+        print(preview[:800] if preview else "[EMPTY PAGE CONTENT]")
+    print("=== END DEBUG ===\n")
+
+    # =========================
+    # FIX 4: mark early pages (title page usually page 0/1)
+    # =========================
+    for doc in docs:
+        page = doc.metadata.get("page", 99)
+        doc.metadata["is_title_page"] = page <= 1
+
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
+
+    # =========================
+    # FIX 3: add explicit metadata to every chunk
+    # =========================
+    for chunk in chunks:
+        chunk.metadata["project_id"] = project_id
+
+        # keep filename-friendly source for debugging + citations
+        src = chunk.metadata.get("source", "")
+        chunk.metadata["source_file"] = os.path.basename(src) if src else "unknown.pdf"
+
+        # carry forward title-page flag (if present)
+        # (splitter usually copies metadata, but we keep it safe)
+        if "is_title_page" not in chunk.metadata:
+            chunk.metadata["is_title_page"] = False
 
     Chroma.from_documents(
         chunks,
         HuggingFaceEmbeddings(),
         persist_directory=persist_directory,
     ).persist()
+
     return {
         "status": "success",
         "project_id": project_id,
         "chunks_indexed": len(chunks),
     }
+
 
 if __name__ == "__main__":
     validate_env()

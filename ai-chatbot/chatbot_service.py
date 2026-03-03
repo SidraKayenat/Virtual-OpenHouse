@@ -2,14 +2,14 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-print("MODEL:", os.getenv("GROQ_CHAT_MODEL"))
-print("KEY SET:", bool(os.getenv("GROQ_API_KEY")))
-
-
 import logging
 import os
 import re
 import sys
+
+print("MODEL:", os.getenv("GROQ_CHAT_MODEL"))
+print("KEY SET:", bool(os.getenv("GROQ_API_KEY")))
+
 
 from flask import Flask, request, jsonify
 from langchain_community.vectorstores import Chroma
@@ -28,7 +28,7 @@ REQUIRED_ENV_VARS = [
     "GROQ_CHAT_MODEL",
 ]
 
-DEFAULT_TOP_K = 4
+DEFAULT_TOP_K = 8
 # Keep default as plain similarity (most compatible)
 DEFAULT_SEARCH_TYPE = "similarity"
 # Only used when search_type == "similarity_score_threshold"
