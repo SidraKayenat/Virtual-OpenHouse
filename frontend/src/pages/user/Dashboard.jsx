@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, eventAPI, notificationAPI } from "@/lib/api";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
   const [myEvents, setMyEvents] = useState([]);
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [filter, setFilter] = useState("all");
   const [notifications, setNotifications] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
@@ -16,18 +19,20 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Load user profile
-        const userData = await api("/auth/profile", { method: "GET" });
-        setUser(userData.user || userData);
 
         // Load user's events
         const eventsData = await eventAPI.getMyEvents();
         setMyEvents(eventsData.data || []);
+
+        // Load published/live events
+        const liveData = await eventAPI.getPublished();
+        setLiveEvents(liveData.data || []);
 
         // Load notifications
         const notificationsData = await notificationAPI.getAll(10, 0);
@@ -94,10 +99,16 @@ export default function Dashboard() {
     });
   };
 
+  // derive filtered list for UI
+  const filteredEvents = myEvents.filter((e) => {
+    if (filter === "all") return true;
+    return e.status === filter;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+        <Navbar />
         <main className="max-w-6xl mx-auto px-4 py-8">
           <p className="text-gray-600">Loading dashboard...</p>
         </main>
@@ -107,11 +118,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar
-        user={user}
-        notifications={notifications}
-        setNotifications={setNotifications}
-      />
+      <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         {error && (
@@ -166,14 +173,33 @@ export default function Dashboard() {
 
         {/* My Events Section */}
         <section className="bg-white rounded shadow">
-          <div className="p-6 border-b">
+          <div className="p-6 border-b flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">My Events</h2>
+            <div className="flex gap-2">
+              {["all", "pending", "approved", "rejected", "published"].map(
+                (st) => (
+                  <button
+                    key={st}
+                    onClick={() => setFilter(st)}
+                    className={`px-3 py-1 rounded text-sm font-medium transition ${
+                      filter === st
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {st.charAt(0).toUpperCase() + st.slice(1)}
+                  </button>
+                ),
+              )}
+            </div>
           </div>
 
-          {myEvents.length === 0 ? (
+          {filteredEvents.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 mb-4">
-                No events yet. Create your first event!
+                {filter === "all"
+                  ? "No events yet. Create your first event!"
+                  : `No ${filter} events`}
               </p>
               <Link
                 to="/user/create-event"
@@ -184,7 +210,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-4 p-6">
-              {myEvents.map((event) => (
+              {filteredEvents.map((event) => (
                 <div
                   key={event._id}
                   className={`border rounded-lg p-6 ${getStatusColor(event.status)}`}
@@ -219,21 +245,111 @@ export default function Dashboard() {
                     </div>
 
                     <div className="ml-4 flex gap-2">
-                      {event.status === "approved" && (
-                        <Link
-                          to={`/user/event/${event._id}/edit`}
+                      {(event.status === "pending" ||
+                        event.status === "approved") && (
+                        <button
+                          onClick={() => navigate(`/event/${event._id}/edit`)}
                           className="px-4 py-2 bg-white bg-opacity-75 rounded text-sm font-medium hover:bg-opacity-100 transition"
                         >
-                          Publish
-                        </Link>
+                          Update
+                        </button>
                       )}
+
+                      {event.status === "approved" && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await eventAPI.publish(event._id);
+                              alert("Event published!");
+                              // refresh list
+                              const updated = await eventAPI.getMyEvents();
+                              setMyEvents(updated.data || []);
+                              // update stats
+                              const ev = updated.data || [];
+                              setStats({
+                                pending: ev.filter(
+                                  (e) => e.status === "pending",
+                                ).length,
+                                approved: ev.filter(
+                                  (e) => e.status === "approved",
+                                ).length,
+                                published: ev.filter(
+                                  (e) => e.status === "published",
+                                ).length,
+                                rejected: ev.filter(
+                                  (e) => e.status === "rejected",
+                                ).length,
+                              });
+                            } catch (err) {
+                              console.error("Publish error", err);
+                              alert(err.message || "Failed to publish");
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium"
+                        >
+                          Publish
+                        </button>
+                      )}
+
                       <Link
-                        to={`/user/event/${event._id}`}
+                        to={`/event/${event._id}`}
                         className="px-4 py-2 bg-white bg-opacity-75 rounded text-sm font-medium hover:bg-opacity-100 transition"
                       >
                         View
                       </Link>
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Live Events Section */}
+        <section className="mt-8 bg-white rounded shadow">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-bold text-gray-900">Live Events</h2>
+          </div>
+
+          {liveEvents.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-500">No live events to display</p>
+            </div>
+          ) : (
+            <div className="space-y-4 p-6">
+              {liveEvents.map((event) => (
+                <div
+                  key={event._id}
+                  className={`border rounded-lg p-6 bg-blue-50 border-blue-200 hover:shadow-md transition cursor-pointer`}
+                  onClick={() => navigate(`/event/${event._id}`)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">{event.name}</h3>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          Published
+                        </span>
+                      </div>
+
+                      <p className="text-sm mt-2 opacity-75">
+                        {event.description.substring(0, 100)}...
+                      </p>
+
+                      <div className="flex flex-wrap gap-6 mt-4 text-sm">
+                        <span>📅 {formatDate(event.liveDate)}</span>
+                        <span>🏢 {event.numberOfStalls} stalls</span>
+                        <span>📍 {event.venue || "Virtual"}</span>
+                      </div>
+                    </div>
+
+                    <Link
+                      to={`/event/${event._id}`}
+                      className="ml-4 px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View
+                    </Link>
                   </div>
                 </div>
               ))}

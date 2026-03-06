@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import TabHeader from "@/components/TabHeader";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Login() {
+  const { setUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,6 +34,8 @@ export default function Login() {
         method: "POST",
         body: JSON.stringify(form),
       });
+
+      setUser(response.user);
 
       // Navigate based on user role
       if (response.user?.role === "admin") {
@@ -138,17 +142,45 @@ export default function Login() {
             </div>
 
             {/* Demo Credentials */}
-            <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-xs font-semibold text-blue-900 mb-2">
-                Demo Admin Credentials:
-              </p>
-              <div className="space-y-1 text-xs text-blue-800">
-                <p>
-                  <strong>Email:</strong> admin@gmail.com
+            <div className="mt-8 space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div>
+                <p className="text-xs font-semibold text-blue-900 mb-2">
+                  Demo Admin Credentials:
                 </p>
-                <p>
-                  <strong>Password:</strong> 123456
+                <div className="space-y-1 text-xs text-blue-800">
+                  <p>
+                    <strong>Email:</strong> admin@gmail.com
+                  </p>
+                  <p>
+                    <strong>Password:</strong> 123456
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-red-900 mb-2">
+                  Demo System Admin Credentials:
                 </p>
+                <div className="space-y-1 text-xs text-red-800">
+                  <p>
+                    <strong>Email:</strong> admin@gmail.com
+                  </p>
+                  <p>
+                    <strong>Password:</strong> 123456
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-blue-900 mb-2">
+                  Demo User2(attendee/registerer) Credentials:
+                </p>
+                <div className="space-y-1 text-xs text-blue-800">
+                  <p>
+                    <strong>Email:</strong> ayela@gmail.com
+                  </p>
+                  <p>
+                    <strong>Password:</strong> 123456
+                  </p>
+                </div>
               </div>
             </div>
           </div>
