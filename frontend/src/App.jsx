@@ -6,6 +6,8 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/user/Dashboard";
 import CreateEvent from "./pages/user/CreateEvent";
 import EditEvent from "./pages/user/EditEvent";
+import CreateRegistration from "./pages/CreateRegistration";
+import RegistrationDetails from "./pages/RegistrationDetails";
 import AdminDashboard from "./pages/admin/Dashboard";
 import EventDetails from "./pages/EventDetails";
 import EventViewerPage from "./pages/EventViewerPage";
@@ -24,7 +26,17 @@ function App() {
           {/* User */}
           <Route path="/user/dashboard" element={<Dashboard />} />
           <Route path="/user/create-event" element={<CreateEvent />} />
+          <Route
+            path="/user/register/:eventId"
+            element={<CreateRegistration />}
+          />
           <Route path="event/:eventId/edit" element={<EditEvent />} />
+
+          {/* Registrations */}
+          <Route
+            path="/registration/:registrationId"
+            element={<RegistrationDetails />}
+          />
 
           {/* Admin */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />

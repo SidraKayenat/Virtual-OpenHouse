@@ -4,11 +4,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { eventAPI } from "@/lib/api";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { registrationAPI } from "@/lib/api";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [myEvents, setMyEvents] = useState([]);
   const [liveEvents, setLiveEvents] = useState([]);
+  const [myRegistrations, setMyRegistrations] = useState([]);
   const [filter, setFilter] = useState("all");
   const [stats, setStats] = useState({
     pending: 0,
@@ -32,6 +34,10 @@ export default function Dashboard() {
         // Load published/live events
         const liveData = await eventAPI.getPublished();
         setLiveEvents(liveData.data || []);
+
+        // Load user's registrations
+        const registrationsData = await registrationAPI.getMyRegistrations();
+        setMyRegistrations(registrationsData.data || []);
 
         // Calculate stats
         if (eventsData.data) {
@@ -166,8 +172,124 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* My Registrations Section */}
+        <section className="mt-8 bg-white rounded shadow">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-bold text-gray-900">
+              My Registrations ({myRegistrations.length})
+            </h2>
+          </div>
+
+          {myRegistrations.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-500 mb-4">
+                You haven't registered for any events yet.
+              </p>
+              <Link
+                to="/"
+                className="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+              >
+                Browse Events
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4 p-6">
+              {myRegistrations.map((registration) => {
+                const statusColor =
+                  {
+                    pending: "bg-yellow-50 border-yellow-200",
+                    approved: "bg-green-50 border-green-200",
+                    rejected: "bg-red-50 border-red-200",
+                    cancelled: "bg-gray-50 border-gray-200",
+                  }[registration.status] || "bg-gray-50 border-gray-200";
+
+                const statusBadgeColor =
+                  {
+                    pending: "bg-yellow-100 text-yellow-800",
+                    approved: "bg-green-100 text-green-800",
+                    rejected: "bg-red-100 text-red-800",
+                    cancelled: "bg-gray-100 text-gray-800",
+                  }[registration.status] || "bg-gray-100 text-gray-800";
+
+                return (
+                  <div
+                    key={registration._id}
+                    className={`border rounded-lg p-6 ${statusColor}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold">
+                            {registration.participantInfo?.projectTitle}
+                          </h3>
+                          <span
+                            className={`px-3 py-1 rounded text-xs font-medium ${statusBadgeColor}`}
+                          >
+                            {registration.status.charAt(0).toUpperCase() +
+                              registration.status.slice(1)}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-gray-600">
+                          Event:{" "}
+                          <span className="font-medium">
+                            {registration.event?.name}
+                          </span>
+                        </p>
+
+                        <p className="text-sm text-gray-700 mt-2">
+                          {registration.participantInfo?.projectDescription?.substring(
+                            0,
+                            100,
+                          )}
+                          ...
+                        </p>
+
+                        <div className="flex flex-wrap gap-6 mt-4 text-sm">
+                          <span>
+                            📂 {registration.participantInfo?.category}
+                          </span>
+                          <span>
+                            👥{" "}
+                            {registration.participantInfo?.teamMembers
+                              ?.length || 0}{" "}
+                            members
+                          </span>
+                          <span>
+                            📅 {formatDate(registration.event?.liveDate)}
+                          </span>
+                        </div>
+
+                        {registration.status === "approved" && (
+                          <p className="text-sm text-green-700 mt-3 font-medium">
+                            ✓ Stall #{registration.stallNumber} Assigned
+                          </p>
+                        )}
+
+                        {registration.status === "rejected" && (
+                          <div className="mt-3 p-2 bg-red-100 bg-opacity-70 rounded text-sm">
+                            <strong>Rejection Reason:</strong>{" "}
+                            {registration.rejectionReason}
+                          </div>
+                        )}
+                      </div>
+
+                      <Link
+                        to={`/registration/${registration._id}`}
+                        className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 transition"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* My Events Section */}
-        <section className="bg-white rounded shadow">
+        <section className="mt-8 bg-white rounded shadow">
           <div className="p-6 border-b flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">My Events</h2>
             <div className="flex gap-2">

@@ -77,7 +77,8 @@ export const createRegistration = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Registration submitted successfully. Awaiting approval from Event Admin.",
+      message:
+        "Registration submitted successfully. Awaiting approval from Event Admin.",
       data: registration,
     });
   } catch (error) {
@@ -210,7 +211,8 @@ export const approveRegistration = async (req, res) => {
       });
     }
 
-    const registration = await Registration.findById(registrationId).populate("event");
+    const registration =
+      await Registration.findById(registrationId).populate("event");
 
     if (!registration) {
       return res.status(404).json({
@@ -273,6 +275,15 @@ export const approveRegistration = async (req, res) => {
 
     await registration.save();
 
+    // decrement available stalls on event
+    if (registration.event && registration.event.updateAvailableStalls) {
+      try {
+        await registration.event.updateAvailableStalls();
+      } catch (err) {
+        console.error("Failed to update available stalls:", err);
+      }
+    }
+
     await registration.populate([
       { path: "user", select: "name email organization" },
       { path: "event", select: "name liveDate" },
@@ -308,7 +319,8 @@ export const rejectRegistration = async (req, res) => {
       });
     }
 
-    const registration = await Registration.findById(registrationId).populate("event");
+    const registration =
+      await Registration.findById(registrationId).populate("event");
 
     if (!registration) {
       return res.status(404).json({
@@ -390,7 +402,10 @@ export const getRegistrationById = async (req, res) => {
 
     const registration = await Registration.findById(registrationId)
       .populate("user", "name email organization phoneNumber")
-      .populate("event", "name description liveDate numberOfStalls availableStalls")
+      .populate(
+        "event",
+        "name description liveDate numberOfStalls availableStalls createdBy",
+      )
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email");
 
@@ -402,8 +417,10 @@ export const getRegistrationById = async (req, res) => {
     }
 
     // Only allow user themselves or event creator to view
-    const isOwner = registration.user._id.toString() === req.user._id.toString();
-    const isEventCreator = registration.event.createdBy.toString() === req.user._id.toString();
+    const isOwner =
+      registration.user._id.toString() === req.user._id.toString();
+    const isEventCreator =
+      registration.event.createdBy.toString() === req.user._id.toString();
     const isSystemAdmin = req.user.role === "system_admin";
 
     if (!isOwner && !isEventCreator && !isSystemAdmin) {
@@ -432,7 +449,8 @@ export const cancelRegistration = async (req, res) => {
     const { registrationId } = req.params;
     const { cancellationReason } = req.body;
 
-    const registration = await Registration.findById(registrationId).populate("event");
+    const registration =
+      await Registration.findById(registrationId).populate("event");
 
     if (!registration) {
       return res.status(404).json({
@@ -576,12 +594,14 @@ export const getRegistrationStatistics = async (req, res) => {
 
     const totalRegistrations = Object.values(formattedStats).reduce(
       (sum, val) => sum + val,
-      0
+      0,
     );
 
     res.status(200).json({
       success: true,
       data: {
+        // expose approved count as registered for clarity
+        registered: formattedStats.approved || 0,
         pending: formattedStats.pending || 0,
         approved: formattedStats.approved || 0,
         rejected: formattedStats.rejected || 0,

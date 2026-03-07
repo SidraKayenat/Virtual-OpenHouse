@@ -137,3 +137,71 @@ export const notificationAPI = {
       method: "DELETE",
     }),
 };
+
+// ===== REGISTRATION API CALLS =====
+export const registrationAPI = {
+  // Create registration
+  create: (eventId, registrationData) =>
+    api(`/registrations/events/${eventId}/register`, {
+      method: "POST",
+      body: JSON.stringify(registrationData),
+    }),
+
+  // Get my registrations
+  getMyRegistrations: (status = null) => {
+    const queryString = status ? `?status=${status}` : "";
+    return api(`/registrations/my-registrations${queryString}`, {
+      method: "GET",
+    });
+  },
+
+  // Get event registrations (event admin only)
+  getEventRegistrations: (eventId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api(
+      `/registrations/events/${eventId}/all${queryString ? "?" + queryString : ""}`,
+      {
+        method: "GET",
+      },
+    );
+  },
+
+  // ⭐ GET REGISTRATION STATISTICS
+  getStats: (eventId) =>
+    api(`/registrations/events/${eventId}/statistics`, {
+      method: "GET",
+    }),
+
+  // Get single registration
+  getById: (registrationId) =>
+    api(`/registrations/${registrationId}`, {
+      method: "GET",
+    }),
+
+  // Approve registration
+  approve: (registrationId, stallNumber) =>
+    api(`/registrations/${registrationId}/approve`, {
+      method: "PATCH",
+      body: JSON.stringify({ stallNumber }),
+    }),
+
+  // Reject registration
+  reject: (registrationId, rejectionReason) =>
+    api(`/registrations/${registrationId}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ rejectionReason }),
+    }),
+
+  // Update registration
+  update: (registrationId, updateData) =>
+    api(`/registrations/${registrationId}`, {
+      method: "PUT",
+      body: JSON.stringify(updateData),
+    }),
+
+  // Cancel registration
+  cancel: (registrationId) =>
+    api(`/registrations/${registrationId}/cancel`, {
+      method: "PATCH",
+    }),
+};

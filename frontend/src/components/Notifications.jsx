@@ -182,7 +182,7 @@ export default function Notifications() {
                 }
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-1">
+                  <div className=" mt-1">
                     {getNotificationIcon(notification.type)}
                   </div>
 
@@ -203,7 +203,7 @@ export default function Notifications() {
                         </p>
                       </div>
                       {!notification.isRead && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2" />
+                        <div className=" w-2 h-2 bg-blue-600 rounded-full mt-2" />
                       )}
                     </div>
 
@@ -217,7 +217,7 @@ export default function Notifications() {
                       e.stopPropagation();
                       handleDeleteNotification(notification._id);
                     }}
-                    className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                    className=" p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
                     title="Delete notification"
                   >
                     <Trash2 size={16} />
