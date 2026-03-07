@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
-import AdminNotifications from "@/components/AdminNotifications";
-import UserNotifications from "@/components/UserNotifications";
+import { LogOut, Bell } from "lucide-react";
+import Notifications from "@/components/Notifications";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
   const { user, logout, loading } = useAuth();
 
   const handleLogout = async () => {
@@ -27,8 +25,6 @@ export default function Navbar() {
     );
   }
 
-  const isAdmin = user?.role === "admin";
-
   return (
     <nav className="w-full border-b bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,24 +35,21 @@ export default function Navbar() {
               OPEN HOUSE
             </Link>
             <span className="text-sm text-gray-500">
-              {isAdmin ? "Admin Dashboard" : "User Dashboard"}
+              {user?.role === "admin" ? "Admin Dashboard" : "User Dashboard"}
             </span>
           </div>
 
           {/* Right Side */}
           <div className="flex items-center gap-4">
             {/* Notifications */}
-            {isAdmin ? (
-              <AdminNotifications
-                notifications={notifications}
-                setNotifications={setNotifications}
-              />
-            ) : (
-              <UserNotifications
-                notifications={notifications}
-                setNotifications={setNotifications}
-              />
-            )}
+            <div className="relative group">
+              <button className="relative p-2 text-gray-600 hover:text-gray-900 transition">
+                <Bell size={20} />
+              </button>
+              <div className="absolute right-0 top-full mt-2 w-80 hidden group-hover:block z-50">
+                <Notifications />
+              </div>
+            </div>
 
             {/* User Info & Actions */}
             <div className="flex items-center gap-3">
@@ -74,7 +67,7 @@ export default function Navbar() {
               </div>
 
               {/* Create Event Button (User only) */}
-              {!isAdmin && (
+              {user?.role !== "admin" && (
                 <Link
                   to="/user/create-event"
                   className="px-3 py-1 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 transition"

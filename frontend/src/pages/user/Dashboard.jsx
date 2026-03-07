@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import { api, eventAPI, notificationAPI } from "@/lib/api";
+import { eventAPI } from "@/lib/api";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -10,7 +10,6 @@ export default function Dashboard() {
   const [myEvents, setMyEvents] = useState([]);
   const [liveEvents, setLiveEvents] = useState([]);
   const [filter, setFilter] = useState("all");
-  const [notifications, setNotifications] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
     approved: 0,
@@ -33,10 +32,6 @@ export default function Dashboard() {
         // Load published/live events
         const liveData = await eventAPI.getPublished();
         setLiveEvents(liveData.data || []);
-
-        // Load notifications
-        const notificationsData = await notificationAPI.getAll(10, 0);
-        setNotifications(notificationsData.data || []);
 
         // Calculate stats
         if (eventsData.data) {
@@ -356,34 +351,6 @@ export default function Dashboard() {
             </div>
           )}
         </section>
-
-        {/* Notifications Section */}
-        {notifications.length > 0 && (
-          <section className="mt-8 bg-white rounded shadow">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">
-                Recent Notifications
-              </h2>
-            </div>
-
-            <div className="space-y-4 p-6">
-              {notifications.slice(0, 5).map((notif) => (
-                <div
-                  key={notif._id}
-                  className="p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition"
-                >
-                  <p className="text-sm font-medium text-gray-900">
-                    {notif.title}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {new Date(notif.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </main>
     </div>
   );

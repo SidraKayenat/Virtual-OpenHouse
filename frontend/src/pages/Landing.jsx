@@ -38,7 +38,7 @@ const Landing = () => {
           }
         }
       } catch (err) {
-        // User not logged in, continue to landing page
+        console.error("No user found, continuing to landing page:", err);
       }
     };
     checkAdminLogin();
@@ -168,7 +168,7 @@ const Landing = () => {
         className="relative bg-cover bg-center bg-no-repeat overflow-hidden min-h-screen flex items-center"
         style={{ backgroundImage: "url(/bg.png)" }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-100/80 via-blue-50/60 to-transparent"></div>
+        <div className="absolute inset-0 from-blue-100/80 via-blue-50/60 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="bg-blue-50/70 backdrop-blur-sm rounded-2xl p-12">
@@ -219,10 +219,7 @@ const Landing = () => {
       </div>
 
       {/* How It Works Section */}
-      <div
-        id="how-it-works"
-        className="py-24 bg-gradient-to-br from-indigo-50 to-purple-50"
-      >
+      <div id="how-it-works" className="py-24  from-indigo-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-gray-900 mb-4">
@@ -342,7 +339,7 @@ const Landing = () => {
           </div>
 
           {/* Unified Dashboard */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
+          <div className=" from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
             <div className="text-center max-w-3xl mx-auto">
               <h3 className="text-white mb-4">
                 One Dashboard for All Your Needs

@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
       setUser(userData);
     } catch (err) {
       setUser(null);
+      console.error("Failed to load user:", err);
     } finally {
       setLoading(false);
     }
@@ -26,7 +27,9 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await api("/auth/logout", { method: "POST" });
-    } catch {}
+    } catch {
+      console.error("Failed to logout");
+    }
     setUser(null);
   };
 

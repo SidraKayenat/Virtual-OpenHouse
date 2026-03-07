@@ -12,7 +12,6 @@ export default function EventDetails() {
   const navigate = useNavigate();
 
   const [event, setEvent] = useState(null);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -130,36 +129,6 @@ export default function EventDetails() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-700">
             {error}
-          </div>
-        )}
-
-        {/* Stats Row */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-4">
-              <p className="text-gray-500 text-sm">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {stats.pending || 0}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <p className="text-gray-500 text-sm">Approved</p>
-              <p className="text-2xl font-bold text-green-600">
-                {stats.approved || 0}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <p className="text-gray-500 text-sm">Published</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {stats.published || 0}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <p className="text-gray-500 text-sm">Rejected</p>
-              <p className="text-2xl font-bold text-red-600">
-                {stats.rejected || 0}
-              </p>
-            </div>
           </div>
         )}
 

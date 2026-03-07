@@ -158,14 +158,14 @@ export default function Login() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-red-900 mb-2">
-                  Demo System Admin Credentials:
+                  Demo Event Admin Credentials:
                 </p>
                 <div className="space-y-1 text-xs text-red-800">
                   <p>
-                    <strong>Email:</strong> admin@gmail.com
+                    <strong>Email:</strong> sidrakayenatofficial@gmail.com
                   </p>
                   <p>
-                    <strong>Password:</strong> 123456
+                    <strong>Password:</strong> 12345678
                   </p>
                 </div>
               </div>

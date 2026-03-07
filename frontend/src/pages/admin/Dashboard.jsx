@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, eventAPI, notificationAPI } from "@/lib/api";
+import { eventAPI } from "@/lib/api";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { useAuth } from "@/context/AuthContext";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
   // events for the current filter (pending/approved/rejected)
   const [events, setEvents] = useState([]);
   // published events shown separately at bottom
@@ -24,7 +22,6 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectionModal, setShowRejectionModal] = useState(null);
-  const { user } = useAuth();
   const [filter, setFilter] = useState("pending");
 
   useEffect(() => {
@@ -38,10 +35,6 @@ export default function AdminDashboard() {
         // Load published events regardless of filter (show at bottom)
         const pubData = await eventAPI.getAll({ status: "published" });
         setPublishedEvents(pubData.data || []);
-
-        // Load notifications
-        const notificationsData = await notificationAPI.getAll(10, 0);
-        setNotifications(notificationsData.data || []);
 
         // Load stats
         const statsData = await eventAPI.getStats();
@@ -76,10 +69,6 @@ export default function AdminDashboard() {
         setEvents((prev) => prev.filter((e) => e._id !== eventId));
       }
 
-      // Refresh notifications
-      const notificationsData = await notificationAPI.getAll(10, 0);
-      setNotifications(notificationsData.data || []);
-
       // refresh stats
       const statsData = await eventAPI.getStats();
       setStats(statsData.data || {});
@@ -107,10 +96,6 @@ export default function AdminDashboard() {
       if (filter === "pending") {
         setEvents((prev) => prev.filter((e) => e._id !== eventId));
       }
-
-      // Refresh notifications
-      const notificationsData = await notificationAPI.getAll(10, 0);
-      setNotifications(notificationsData.data || []);
 
       // refresh stats
       const statsData = await eventAPI.getStats();
