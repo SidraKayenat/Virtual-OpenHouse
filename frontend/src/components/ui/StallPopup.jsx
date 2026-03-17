@@ -28,13 +28,12 @@ const StallPopup = ({ stallData, onClose }) => {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [stallData, isChatbotOpen, handleClose]); // 🔥 Now safe to include
-
-  const handleOpenChatbot = () => {
-    setIsChatbotOpen(true);
-  };
+    }, [stallData, isChatbotOpen, handleClose]);
 
   if (!stallData) return null;
+
+  const teamMembers = stallData.teamMembers || [];
+  const hasTech = Array.isArray(stallData.tech) && stallData.tech.length > 0;
 
   return (
     <>
@@ -54,12 +53,33 @@ const StallPopup = ({ stallData, onClose }) => {
             <p className="popup-description">{stallData.description}</p>
           )}
 
-          {stallData.tech && stallData.tech.length > 0 && (
+          {stallData.category && (
             <div className="popup-section">
-              <h3>Tech Stack</h3>
+              <h3>Category</h3>
+              <p>{stallData.category}</p>
+            </div>
+          )}
+
+          {hasTech && (
+            <div className="popup-section">
+              <h3>Tags</h3>
               <ul className="tech-list">
                 {stallData.tech.map((tech, index) => (
                   <li key={index}>{tech}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {teamMembers.length > 0 && (
+            <div className="popup-section">
+              <h3>Team</h3>
+              <ul className="tech-list">
+                {teamMembers.map((member, index) => (
+                  <li key={`${member.name || "member"}-${index}`}>
+                    {member.name}
+                    {member.role ? ` — ${member.role}` : ""}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -73,7 +93,7 @@ const StallPopup = ({ stallData, onClose }) => {
           )}
 
           <div className="popup-actions">
-            <button className="action-btn" onClick={handleOpenChatbot}>
+            <button className="action-btn" onClick={() => setIsChatbotOpen(true)}>
               🤖 Talk to ExpoBot
             </button>
 

@@ -74,7 +74,7 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
 
         console.log("🏗️ Creating stalls...");
         await stallManager.createStalls(
-          eventData.stallCount || 6,
+          eventData.stallCount || eventData.numberOfStalls || eventData.stalls?.length || 0,
           eventData.stalls || [],
         );
 

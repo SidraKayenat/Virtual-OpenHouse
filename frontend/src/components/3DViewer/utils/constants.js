@@ -38,10 +38,17 @@ export const ENVIRONMENT_TYPES = {
   PLAIN_GROUND: "plain_ground",
   MCS_HALL: "mcs_hall",
   OUTDOOR_PARK: "outdoor_park",
+    INDOOR: "indoor",
+    OUTDOOR: "outdoor",
+    HYBRID: "hybrid",
 };
 
 export const ENVIRONMENT_MODELS = {
-  [ENVIRONMENT_TYPES.PLAIN_GROUND]: "/Environments/HdrOutdoorFieldBaseballDayClear001_HDR_8K.exr",
+  [ENVIRONMENT_TYPES.PLAIN_GROUND]: "/Environments/2.exr",
   [ENVIRONMENT_TYPES.MCS_HALL]: "/Environments/2.exr",
   // [ENVIRONMENT_TYPES.OUTDOOR_PARK]: "/models/Environments/outdoor_park.glb",
+  [ENVIRONMENT_TYPES.INDOOR]: "/Environments/2.exr",
+  [ENVIRONMENT_TYPES.OUTDOOR]: "/Environments/2k.exr",
+  [ENVIRONMENT_TYPES.OUTDOOR_PARK]: "/Environments/2k.exr",
+  [ENVIRONMENT_TYPES.HYBRID]: "/Environments/2k.exr",
 };

@@ -7,22 +7,23 @@ export default function UserNotifications({
 }) {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
 
-  const unreadNotifications = notifications.filter((n) => !n.read).length;
+  const unreadNotifications = notifications.filter((n) => !n.isRead).length;
 
-  const formatTime = (date) => {
+  const formatTime = (dateValue) => {
     const now = new Date();
+    const date = new Date(dateValue);
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return `${Math.max(minutes, 1)}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
   };
 
   const markNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+    setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
   };
 
   return (
@@ -68,7 +69,7 @@ export default function UserNotifications({
               ) : (
                 notifications.map((notif) => (
                   <div
-                    key={notif.id}
+                    key={notif._id}
                     className="p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition"
                   >
                     <div className="flex items-start gap-3">
@@ -83,13 +84,13 @@ export default function UserNotifications({
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">
-                          {notif.message}
+                          {notif.title}
                         </p>
                         <p className="text-xs text-gray-600 mt-1">
-                          {notif.eventName}
+                          {notif.message}
                         </p>
                         <p className="text-xs text-gray-500 mt-2">
-                          {formatTime(notif.timestamp)}
+                          {formatTime(notif.createdAt)}
                         </p>
                       </div>
                     </div>

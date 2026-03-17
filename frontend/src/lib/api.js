@@ -1,5 +1,5 @@
-const API_BASE_URL = "http://localhost:8747/api";
-// ⚠️ change port if backend differs
+const API_BASE_URL =
+import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export const api = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -112,6 +112,19 @@ export const eventAPI = {
 };
 
 // ===== NOTIFICATION API CALLS =====
+export const stallAPI = {
+  getEventStalls: (eventId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const querySuffix = queryString ? `?${queryString}` : "";
+    return api(`/stalls/event/${eventId}${querySuffix}`, { method: "GET" });
+  },
+
+  getById: (stallId) =>
+    api(`/stalls/${stallId}`, {
+      method: "GET",
+    }),
+};
+
 export const notificationAPI = {
   // Get notifications
   getAll: (limit = 20, skip = 0) =>
