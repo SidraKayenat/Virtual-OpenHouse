@@ -13,15 +13,24 @@ export function AuthProvider({ children }) {
       const userData = resp.user || resp;
       setUser(userData);
     } catch (err) {
+      // It's normal for unauthenticated users to hit this endpoint.
+      // Avoid console noise and simply treat as "no user".
       setUser(null);
-      console.error("Failed to load user:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUser();
+    const hasJwtCookie = document.cookie
+      .split(";")
+      .some((cookie) => cookie.trim().startsWith("jwt="));
+
+    if (hasJwtCookie) {
+      loadUser();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const logout = async () => {

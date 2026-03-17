@@ -1,26 +1,49 @@
-import React, { useState } from "react";
-import Navbar from "@/components/Navbar";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import DashboardNavbar from "@/components/navbar/DashboardNavbar";
+import { useNavigate, useParams } from "react-router-dom";
 import { eventAPI } from "@/lib/api";
 
-export default function CreateEvent() {
+export default function EditEvent() {
+  const { eventId } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    numberOfStalls: 1,
-    liveDate: "",
-    startTime: "",
-    endTime: "",
-    backgroundType: "default",
-    customBackground: "",
-    environmentType: "indoor",
-    eventType: "exhibition",
-    tags: "",
-    venue: "",
-  });
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const resp = await eventAPI.getById(eventId);
+        const e = resp.data;
+        if (!e) {
+          setError("Event not found");
+          return;
+        }
+        setForm({
+          name: e.name || "",
+          description: e.description || "",
+          numberOfStalls: e.numberOfStalls || 1,
+          liveDate: e.liveDate ? e.liveDate.slice(0, 16) : "",
+          startTime: e.startTime || "",
+          endTime: e.endTime || "",
+          backgroundType: e.backgroundType || "default",
+          customBackground: e.customBackground || "",
+          environmentType: e.environmentType || "indoor",
+          eventType: e.eventType || "exhibition",
+          tags: e.tags ? e.tags.join(",") : "",
+          venue: e.venue || "",
+        });
+      } catch (err) {
+        console.error("Failed to load event for edit", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [eventId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,15 +53,7 @@ export default function CreateEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // setError(null);
-
     try {
-      // Validate required fields
-      if (!form.name || !form.description || !form.liveDate) {
-        throw new Error("Please fill in all required fields");
-      }
-
-      // Prepare event data
       const eventData = {
         name: form.name,
         description: form.description,
@@ -53,32 +68,44 @@ export default function CreateEvent() {
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
         venue: form.venue,
       };
-
-      // Create event via API
-      const response = await eventAPI.create(eventData);
-
-      if (response.success) {
-        alert("Event request submitted successfully! Awaiting admin approval.");
-        navigate("/user/dashboard");
-      } else {
-        throw new Error(response.message || "Failed to create event");
-      }
+      await eventAPI.update(eventId, eventData);
+      alert("Event updated successfully");
+      navigate(`/user/event/${eventId}`);
     } catch (err) {
-      console.error("Create Event Error:", err);
-      setError(err.message || "Could not submit event request");
+      console.error("Update error", err);
+      setError(err.message || "Failed to update event");
     } finally {
       setLoading(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardNavbar />
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <p className="text-gray-600">Loading event...</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (!form) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardNavbar />
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <p className="text-red-600">{error || "Event not available"}</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <DashboardNavbar />
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-2">Create Event Request</h1>
-        <p className="text-sm text-gray-600 mb-6">
-          Submit an event request — a system admin will review and approve it.
-        </p>
+        <h1 className="text-2xl font-bold mb-2">Edit Event</h1>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-700">
@@ -90,6 +117,7 @@ export default function CreateEvent() {
           onSubmit={handleSubmit}
           className="space-y-6 bg-white p-8 rounded shadow"
         >
+          {/* reuse same structure as create form, copy from CreateEvent and adjust values */}
           {/* Basic Info */}
           <div className="border-b pb-6">
             <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
@@ -103,7 +131,6 @@ export default function CreateEvent() {
                 value={form.name}
                 onChange={handleChange}
                 required
-                placeholder="e.g., Tech Conference 2026"
                 className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
@@ -118,7 +145,6 @@ export default function CreateEvent() {
                 onChange={handleChange}
                 rows={4}
                 required
-                placeholder="Describe your event..."
                 className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
@@ -186,7 +212,6 @@ export default function CreateEvent() {
                   name="venue"
                   value={form.venue}
                   onChange={handleChange}
-                  placeholder="Physical or virtual location"
                   className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
@@ -226,7 +251,6 @@ export default function CreateEvent() {
                 name="tags"
                 value={form.tags}
                 onChange={handleChange}
-                placeholder="e.g., technology, networking, 2026"
                 className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
@@ -277,7 +301,6 @@ export default function CreateEvent() {
                     name="customBackground"
                     value={form.customBackground}
                     onChange={handleChange}
-                    placeholder="e.g., #FF5733 or https://example.com/bg.jpg"
                     className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
@@ -291,11 +314,11 @@ export default function CreateEvent() {
               disabled={loading}
               className="flex-1 bg-indigo-600 text-white px-6 py-2 rounded font-medium hover:bg-indigo-700 disabled:bg-gray-400 transition"
             >
-              {loading ? "Submitting..." : "Submit Event Request"}
+              {loading ? "Saving..." : "Save Changes"}
             </button>
             <button
               type="button"
-              onClick={() => navigate("/user/dashboard")}
+              onClick={() => navigate(-1)}
               className="px-6 py-2 border border-gray-300 rounded font-medium text-gray-700 hover:bg-gray-50 transition"
             >
               Cancel

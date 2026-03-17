@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ImageWithFallback } from "@/components/ImagewithFallback";
 import {
   Calendar,
@@ -14,35 +14,35 @@ import {
   Sparkles,
   Headset,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import EventCard from "@/components/event/EventCard";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
+import PublicNavbar from "@/components/navbar/PublicNavbar";
 
 const Landing = () => {
-  const navigate = useNavigate();
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
 
-  // Check for admin auto-login on component mount
   useEffect(() => {
-    const checkAdminLogin = async () => {
-      // Check if user is already logged in
+    const fetchEvents = async () => {
       try {
-        const response = await api("/auth/profile", { method: "GET" });
-        if (response.user) {
-          // User is already logged in, redirect to their dashboard
-          if (
-            response.user.role === "system_admin" ||
-            response.user.role === "event_admin"
-          ) {
-            navigate("/admin/dashboard");
-          } else {
-            navigate("/user/dashboard");
-          }
-        }
+        const res = await api("/events/published");
+
+        const events = res.data || res.events || [];
+
+        const live = events.filter((e) => e.status === "live");
+        const upcoming = events.filter((e) => e.status === "published");
+
+        setLiveEvents(live);
+        setUpcomingEvents(upcoming);
       } catch (err) {
-        console.error("No user found, continuing to landing page:", err);
+        console.error("Failed to fetch events", err);
       }
     };
-    checkAdminLogin();
-  }, [navigate]);
+
+    fetchEvents();
+  }, []);
+
   const features = [
     {
       icon: Boxes,
@@ -82,67 +82,41 @@ const Landing = () => {
     },
   ];
 
-  const upcomingEvents = [
-    {
-      id: "1",
-      title: "Tech Conference 2025",
-      date: "Jan 15, 2025",
-      location: "San Francisco, CA",
-      attendees: 1500,
-      image:
-        "https://images.unsplash.com/photo-1592758080692-b6a5dbe9c725?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwY29uZmVyZW5jZSUyMHN0YWdlfGVufDF8fHx8MTc2NDkwMDYwN3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      category: "Technology",
-    },
-    {
-      id: "2",
-      title: "Business Networking Summit",
-      date: "Jan 22, 2025",
-      location: "New York, NY",
-      attendees: 800,
-      image:
-        "https://images.unsplash.com/photo-1675716921224-e087a0cca69a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG5ldHdvcmtpbmclMjBldmVudHxlbnwxfHx8fDE3NjQ5MzE1MDF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      category: "Business",
-    },
-    {
-      id: "3",
-      title: "Music Festival 2025",
-      date: "Feb 5, 2025",
-      location: "Austin, TX",
-      attendees: 5000,
-      image:
-        "https://images.unsplash.com/photo-1656283384093-1e227e621fad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGNvbmNlcnQlMjBjcm93ZHxlbnwxfHx8fDE3NjQ5NzU4MTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      category: "Entertainment",
-    },
-  ];
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="border-b border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* <nav className="border-b border-gray-200 bg-white">
+        <div className=" px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
               <span className="text-gray-900 font-bold text-xl">
                 OPEN HOUSE
               </span>
             </div>
-            <div className="hidden md:flex items-center gap-8">
+            <div
+              className="hidden md:flex items-center gap-12 font-normal
+            "
+            >
               <Link
-                to="/events"
-                className="text-gray-700 hover:text-gray-900 font-medium"
+                to="/browseevents"
+                className="relative text-gray-700 transition-colors duration-300 group"
               >
                 Browse Events
+                <span className="absolute left-1/2 bottom-0 w-0 h-[1px] bg-gray-700 transition-all duration-300 -translate-x-1/2 group-hover:w-full"></span>
               </Link>
               <a
                 href="#features"
-                className="text-gray-700 hover:text-gray-900 font-medium"
+                className="relative text-gray-700 transition-colors duration-300 group"
               >
                 About
+                <span className="absolute left-1/2 bottom-0 w-0 h-[1px] bg-gray-700 transition-all duration-300 -translate-x-1/2 group-hover:w-full"></span>
               </a>
               <a
-                href="#how-it-works"
-                className="text-gray-700 hover:text-gray-900 font-medium"
+                href="#contact"
+                className="relative text-gray-700 transition-colors duration-300 group"
               >
                 Contact
+                <span className="absolute left-1/2 bottom-0 w-0 h-[1px] bg-gray-700 transition-all duration-300 -translate-x-1/2 group-hover:w-full"></span>
               </a>
             </div>
             <div className="flex items-center gap-4">
@@ -161,7 +135,8 @@ const Landing = () => {
             </div>
           </div>
         </div>
-      </nav>
+      </nav> */}
+      <PublicNavbar />
 
       {/* Hero Section */}
       <div
@@ -180,7 +155,7 @@ const Landing = () => {
                 event environments.
               </p>
               <Link
-                to="/events"
+                to="/browseevents"
                 className="inline-flex items-center gap-2 bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 font-semibold text-lg"
               >
                 Explore Events
@@ -220,7 +195,7 @@ const Landing = () => {
 
       {/* How It Works Section */}
       <div id="how-it-works" className="py-24  from-indigo-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className=" px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-gray-900 mb-4">
               Experience Virtual Events Like Never Before
@@ -339,7 +314,7 @@ const Landing = () => {
           </div>
 
           {/* Unified Dashboard */}
-          <div className=" from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
+          <div className=" bg-[#618799] from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
             <div className="text-center max-w-3xl mx-auto">
               <h3 className="text-white mb-4">
                 One Dashboard for All Your Needs
@@ -366,9 +341,33 @@ const Landing = () => {
         </div>
       </div>
 
+      {/* LIVE EVENTS */}
+      <div className="py-12 bg-white">
+        <div className=" px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center items-center mb-10">
+            <div>
+              <h2 className="text-gray-900 mb-2 text-2xl font-semibold">
+                Live Events
+              </h2>
+              <p className="text-gray-600">Join events happening right now</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {liveEvents.length === 0 ? (
+              <p className="text-gray-500">No live events right now</p>
+            ) : (
+              liveEvents.map((event) => (
+                <EventCard key={event._id} event={event} />
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Upcoming Events */}
-      <div className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="py-12 bg-gray-50">
+        <div className=" px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
             <div>
               <h2 className="text-gray-900 mb-2">Upcoming Events</h2>
@@ -383,7 +382,7 @@ const Landing = () => {
               View All &rarr;
             </Link>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {upcomingEvents.map((event) => (
               <Link
                 key={event.id}
@@ -409,6 +408,16 @@ const Landing = () => {
                 </div>
               </Link>
             ))}
+          </div> */}
+
+          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {upcomingEvents.length === 0 ? (
+              <p className="text-gray-500">No upcoming events</p>
+            ) : (
+              upcomingEvents.map((event) => (
+                <EventCard key={event._id} event={event} />
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -433,7 +442,7 @@ const Landing = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer id="contact" className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>

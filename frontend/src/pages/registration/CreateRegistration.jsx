@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import { eventAPI, registrationAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft } from "lucide-react";
@@ -121,7 +121,7 @@ export default function CreateRegistration() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <DashboardNavbar />
         <main className="max-w-2xl mx-auto px-4 py-8">
           <p className="text-gray-600">Loading event details...</p>
         </main>
@@ -132,7 +132,7 @@ export default function CreateRegistration() {
   if (!event) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <DashboardNavbar />
         <main className="max-w-2xl mx-auto px-4 py-8">
           <p className="text-red-600">Event not found</p>
         </main>
@@ -142,7 +142,7 @@ export default function CreateRegistration() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <DashboardNavbar />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <button

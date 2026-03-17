@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import { registrationAPI, eventAPI } from "@/lib/api";
+import DashboardNavbar from "@/components/navbar/DashboardNavbar";
+import { registrationAPI } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 
 export default function RegistrationDetails() {
   const { registrationId } = useParams();
+  const { eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -94,7 +95,7 @@ export default function RegistrationDetails() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <DashboardNavbar />
         <main className="max-w-2xl mx-auto px-4 py-8">
           <p className="text-gray-600">Loading registration details...</p>
         </main>
@@ -105,7 +106,7 @@ export default function RegistrationDetails() {
   if (!registration) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <DashboardNavbar />
         <main className="max-w-2xl mx-auto px-4 py-8">
           <p className="text-red-600">Registration not found</p>
         </main>
@@ -130,7 +131,7 @@ export default function RegistrationDetails() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <DashboardNavbar />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <button

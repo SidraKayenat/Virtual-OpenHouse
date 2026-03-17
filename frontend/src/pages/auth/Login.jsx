@@ -38,13 +38,14 @@ export default function Login() {
       setUser(response.user);
 
       // Navigate based on user role
-      if (response.user?.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (response.user?.role === "user") {
-        navigate("/user/dashboard");
-      } else {
-        console.log("Neither admin nor user"); // default fallback
-      }
+      // if (response.user?.role === "admin") {
+      //   navigate("/admin/dashboard");
+      // } else if (response.user?.role === "user") {
+      //   navigate("/user/dashboard");
+      // } else {
+      //   console.log("Neither admin nor user"); // default fallback
+      // }
+      navigate("/");
     } catch (err) {
       setError(err.message);
     } finally {
