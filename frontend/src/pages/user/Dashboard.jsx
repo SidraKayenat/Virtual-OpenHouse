@@ -7,6 +7,7 @@ import { AlertCircle, CheckCircle, Clock } from "lucide-react";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [myEvents, setMyEvents] = useState([]);
+  const [publishedEvents, setPublishedEvents] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
@@ -32,6 +33,10 @@ export default function Dashboard() {
         // Load notifications
         const notificationsData = await notificationAPI.getAll(10, 0);
         setNotifications(notificationsData.data || []);
+
+        // Load published/live events for attendees
+        const publishedData = await eventAPI.getPublished({ limit: 50 });
+        setPublishedEvents(publishedData.data || []);
 
         // Calculate stats
         if (eventsData.data) {
@@ -93,6 +98,18 @@ export default function Dashboard() {
       day: "numeric",
     });
   };
+
+    const handlePublish = async (eventId) => {
+    try {
+      await eventAPI.publish(eventId);
+      const eventsData = await eventAPI.getMyEvents();
+      setMyEvents(eventsData.data || []);
+    } catch (err) {
+      console.error("Publish event error:", err);
+      setError(err.message || "Failed to publish event");
+    }
+  };
+
 
   if (loading) {
     return (
@@ -220,21 +237,68 @@ export default function Dashboard() {
 
                     <div className="ml-4 flex gap-2">
                       {event.status === "approved" && (
-                        <Link
-                          to={`/user/event/${event._id}/edit`}
+                        <button
+                          type="button"
+                          onClick={() => handlePublish(event._id)}
                           className="px-4 py-2 bg-white bg-opacity-75 rounded text-sm font-medium hover:bg-opacity-100 transition"
                         >
                           Publish
-                        </Link>
+                        </button>
                       )}
                       <Link
-                        to={`/user/event/${event._id}`}
+                        to={`/event/${event._id}`}
                         className="px-4 py-2 bg-white bg-opacity-75 rounded text-sm font-medium hover:bg-opacity-100 transition"
                       >
                         View
                       </Link>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Live & Published Events Section */}
+        <section className="mt-8 bg-white rounded shadow">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-bold text-gray-900">Live Events</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Open any live or published event to enter the dynamic 3D scene.
+            </p>
+          </div>
+
+          {publishedEvents.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              No published events are available yet.
+            </div>
+          ) : (
+            <div className="space-y-4 p-6">
+              {publishedEvents.map((event) => (
+                <div
+                  key={event._id}
+                  className="border rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {event.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {event.description}
+                    </p>
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
+                      <span>📅 {formatDate(event.liveDate)}</span>
+                      <span>🏢 {event.numberOfStalls} stalls</span>
+                      <span className="uppercase">{event.status}</span>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={`/event/${event._id}`}
+                    className="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
+                  >
+                    {event.status === "live" ? "Join Live Event" : "Open Event"}
+                  </Link>
                 </div>
               ))}
             </div>

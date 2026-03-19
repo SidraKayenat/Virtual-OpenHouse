@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ImageWithFallback } from "@/components/ImagewithFallback";
 import {
   Calendar,
@@ -18,7 +18,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 
 const Landing = () => {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
+  const [publishedEvents, setPublishedEvents] = useState([]);
 
   // Check for admin auto-login on component mount
   useEffect(() => {
@@ -28,21 +29,34 @@ const Landing = () => {
         const response = await api("/auth/profile", { method: "GET" });
         if (response.user) {
           // User is already logged in, redirect to their dashboard
-          if (
-            response.user.role === "system_admin" ||
-            response.user.role === "event_admin"
-          ) {
+          if (response.user.role === "admin") {
             navigate("/admin/dashboard");
           } else {
             navigate("/user/dashboard");
           }
         }
-      } catch (err) {
+      } catch {
         // User not logged in, continue to landing page
       }
     };
     checkAdminLogin();
   }, [navigate]);
+
+    useEffect(() => {
+    const loadPublishedEvents = async () => {
+      try {
+        const response = await api("/events/published?limit=6", {
+          method: "GET",
+        });
+        setPublishedEvents(response.data || []);
+      } catch (error) {
+        console.error("Failed to fetch published events:", error);
+      }
+    };
+
+    loadPublishedEvents();
+  }, []);
+  
   const features = [
     {
       icon: Boxes,
@@ -82,38 +96,7 @@ const Landing = () => {
     },
   ];
 
-  const upcomingEvents = [
-    {
-      id: "1",
-      title: "Tech Conference 2025",
-      date: "Jan 15, 2025",
-      location: "San Francisco, CA",
-      attendees: 1500,
-      image:
-        "https://images.unsplash.com/photo-1592758080692-b6a5dbe9c725?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwY29uZmVyZW5jZSUyMHN0YWdlfGVufDF8fHx8MTc2NDkwMDYwN3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      category: "Technology",
-    },
-    {
-      id: "2",
-      title: "Business Networking Summit",
-      date: "Jan 22, 2025",
-      location: "New York, NY",
-      attendees: 800,
-      image:
-        "https://images.unsplash.com/photo-1675716921224-e087a0cca69a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG5ldHdvcmtpbmclMjBldmVudHxlbnwxfHx8fDE3NjQ5MzE1MDF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      category: "Business",
-    },
-    {
-      id: "3",
-      title: "Music Festival 2025",
-      date: "Feb 5, 2025",
-      location: "Austin, TX",
-      attendees: 5000,
-      image:
-        "https://images.unsplash.com/photo-1656283384093-1e227e621fad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGNvbmNlcnQlMjBjcm93ZHxlbnwxfHx8fDE3NjQ5NzU4MTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      category: "Entertainment",
-    },
-  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -126,12 +109,12 @@ const Landing = () => {
               </span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <Link
-                to="/events"
+              <a
+                href="#upcoming-events"
                 className="text-gray-700 hover:text-gray-900 font-medium"
               >
                 Browse Events
-              </Link>
+              </a>
               <a
                 href="#features"
                 className="text-gray-700 hover:text-gray-900 font-medium"
@@ -179,13 +162,13 @@ const Landing = () => {
                 Explore stalls, view projects, and interact inside immersive 3D
                 event environments.
               </p>
-              <Link
-                to="/events"
+              <a
+                href="#upcoming-events"
                 className="inline-flex items-center gap-2 bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 font-semibold text-lg"
               >
                 Explore Events
                 <span>→</span>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -370,7 +353,7 @@ const Landing = () => {
       </div>
 
       {/* Upcoming Events */}
-      <div className="py-24 bg-gray-50">
+      <div id="upcoming-events" className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
             <div>
@@ -380,38 +363,44 @@ const Landing = () => {
               </p>
             </div>
             <Link
-              to="/events"
+              to="/user/dashboard"
               className="text-indigo-600 hover:text-indigo-700"
             >
               View All &rarr;
             </Link>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {upcomingEvents.map((event) => (
+            {publishedEvents.map((event) => (
               <Link
-                key={event.id}
-                to={`/events/${event.id}`}
+                key={event._id}
+                to={`/event/${event._id}`}
                 className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all"
               >
                 <ImageWithFallback
-                  src={event.image}
-                  alt={event.title}
+                  src={event.thumbnailUrl || "/bg.png"}
+                  alt={event.name}
                   className="w-full h-48 object-cover"
                 />
                 <div className="p-6">
-                  <div className="text-indigo-600 mb-2">{event.category}</div>
-                  <h3 className="text-gray-900 mb-2">{event.title}</h3>
+                  <div className="text-indigo-600 mb-2">{event.eventType}</div>
+                  <h3 className="text-gray-900 mb-2">{event.name}</h3>
                   <div className="flex items-center gap-2 text-gray-600 mb-2">
                     <Calendar className="size-4" />
-                    <span>{event.date}</span>
+                    <span>{new Date(event.liveDate).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Users className="size-4" />
-                    <span>{event.attendees.toLocaleString()} attending</span>
+                    <span>{event.numberOfStalls} stalls</span>
                   </div>
                 </div>
               </Link>
             ))}
+
+            {publishedEvents.length === 0 && (
+              <div className="col-span-full text-center py-10 text-gray-500 bg-white rounded-xl border">
+                No published events available yet.
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ const normalizeStall = (stall) => ({
 export const fetchEventData = async (eventId) => {
   const [eventResponse, stallsResponse] = await Promise.all([
     eventAPI.getById(eventId),
-    stallAPI.getEventStalls(eventId),
+    stallAPI.getEventStalls(eventId, { published: true, limit: 100 }),
   ]);
 
  const event = eventResponse?.data || {};
