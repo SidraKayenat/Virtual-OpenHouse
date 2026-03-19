@@ -62,8 +62,6 @@
 
 // export default mongoose.model("Registration", registrationSchema);
 
-
-
 import mongoose from "mongoose";
 
 const { Schema } = mongoose;
@@ -166,10 +164,12 @@ const registrationSchema = new Schema(
         enum: ["technology", "business", "art", "science", "other"],
         default: "other",
       },
-      teamMembers: [{
-        name: String,
-        role: String,
-      }],
+      teamMembers: [
+        {
+          name: String,
+          role: String,
+        },
+      ],
       requirements: {
         type: String,
         maxlength: [500, "Requirements cannot exceed 500 characters"],
@@ -180,7 +180,7 @@ const registrationSchema = new Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // ===== INDEXES =====
@@ -213,7 +213,7 @@ registrationSchema.methods.canBeApproved = function () {
 registrationSchema.statics.getByEvent = function (eventId, status = null) {
   const query = { event: eventId };
   if (status) query.status = status;
-  
+
   return this.find(query)
     .populate("user", "name email organization")
     .populate("event", "name liveDate")
@@ -224,7 +224,7 @@ registrationSchema.statics.getByEvent = function (eventId, status = null) {
 registrationSchema.statics.getByUser = function (userId, status = null) {
   const query = { user: userId };
   if (status) query.status = status;
-  
+
   return this.find(query)
     .populate("event", "name description liveDate status")
     .sort({ createdAt: -1 });
@@ -245,17 +245,29 @@ registrationSchema.statics.countApproved = function (eventId) {
 // ===== PRE-SAVE HOOKS =====
 registrationSchema.pre("save", async function (next) {
   // If registration is being approved, set approval timestamp
-  if (this.isModified("status") && this.status === "approved" && !this.approvedAt) {
+  if (
+    this.isModified("status") &&
+    this.status === "approved" &&
+    !this.approvedAt
+  ) {
     this.approvedAt = new Date();
   }
 
   // If being rejected, set rejection timestamp
-  if (this.isModified("status") && this.status === "rejected" && !this.rejectedAt) {
+  if (
+    this.isModified("status") &&
+    this.status === "rejected" &&
+    !this.rejectedAt
+  ) {
     this.rejectedAt = new Date();
   }
 
   // If being cancelled, set cancellation timestamp
-  if (this.isModified("status") && this.status === "cancelled" && !this.cancelledAt) {
+  if (
+    this.isModified("status") &&
+    this.status === "cancelled" &&
+    !this.cancelledAt
+  ) {
     this.cancelledAt = new Date();
   }
 
@@ -269,7 +281,7 @@ registrationSchema.post("save", async function (doc, next) {
     try {
       const Event = mongoose.model("Event");
       const event = await Event.findById(doc.event);
-      
+
       if (event) {
         await event.updateAvailableStalls();
       }
