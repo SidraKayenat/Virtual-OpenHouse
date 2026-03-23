@@ -17,6 +17,10 @@ import BrowseEvents from "./pages/event/BrowseEvents";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import MyRegistrations from "./pages/registration/MyRegistrations";
 import MyEvents from "./pages/event/MyEvents";
+import MyStalls from "./pages/stall/MyStalls";
+import UpdateStall from "./pages/stall/UpdateStall";
+import StallEditor from "./pages/stall/StallEditor";
+import UpdateRegistration from "./pages/registration/UpdateRegistration";
 function App() {
   return (
     <BrowserRouter>
@@ -40,6 +44,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* event  */}
           <Route
             path="/user/create-event"
             element={
@@ -48,14 +54,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/user/register/:eventId"
-            element={
-              <ProtectedRoute>
-                <CreateRegistration />
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/user/events"
             element={
@@ -64,6 +63,20 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="event/:eventId/edit" element={<EditEvent />} />
+
+          <Route
+            path="/event/manage/:eventId"
+            element={
+              <ProtectedRoute>
+                <ManageEvent />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* registrations  */}
+
           <Route
             path="/user/registrations"
             element={
@@ -72,7 +85,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="event/:eventId/edit" element={<EditEvent />} />
+
           <Route
             path="/registration/:registrationId"
             element={
@@ -81,11 +94,41 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
-            path="/event/manage/:eventId"
+            path="/user/register/:eventId"
             element={
               <ProtectedRoute>
-                <ManageEvent />
+                <CreateRegistration />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/registration/:registrationId/edit"
+            element={
+              <ProtectedRoute>
+                <UpdateRegistration />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* stalls  */}
+
+          <Route
+            path="/user/stalls"
+            element={
+              <ProtectedRoute>
+                <MyStalls />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/user/stalls/:stallId"
+            element={
+              <ProtectedRoute>
+                <StallEditor />
               </ProtectedRoute>
             }
           />

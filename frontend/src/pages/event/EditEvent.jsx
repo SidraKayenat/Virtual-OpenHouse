@@ -1,6 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import { eventAPI } from "@/lib/api";
+import DashboardNavbar from "@/components/navbar/DashboardNavbar";
+import Sidebar from "@/components/sidebar/Sidebar";
+import { motion } from "framer-motion";
+
 import {
   Calendar,
   Clock,
@@ -25,9 +30,6 @@ import {
   Lock,
   ShieldAlert,
 } from "lucide-react";
-import DashboardNavbar from "@/components/navbar/DashboardNavbar";
-import Sidebar from "@/components/sidebar/Sidebar";
-import { eventAPI } from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────
 const EVENT_TYPES = [
@@ -225,7 +227,7 @@ function ChoiceCard({
   selected,
   label,
   desc,
-  icon: Icon,
+  icon,
   color = "#a78bfa",
   onClick,
   locked,
@@ -251,7 +253,7 @@ function ChoiceCard({
           background: selected ? `${color}20` : "rgba(255,255,255,0.06)",
         }}
       >
-        <Icon
+        <icon
           size={15}
           style={{ color: selected ? color : "rgba(255,255,255,0.35)" }}
         />

@@ -39,6 +39,11 @@ const userGroups = [
         path: "/user/registrations",
         icon: ClipboardList,
       },
+      {
+        name: "Stalls",
+        path: "/user/stalls",
+        icon: ClipboardList,
+      },
       { name: "My Tickets (PF)", path: "/user/tickets", icon: Ticket },
       // { name: "Notifications", path: "/user/notifications", icon: Bell },
     ],

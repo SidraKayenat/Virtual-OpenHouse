@@ -1,18 +1,16 @@
-import express from "express";
 import dotenv from "dotenv";
+// This loads variables from a .env file into process.env
+dotenv.config();
+import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import authRoutes from "./routes/authRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import stallRoutes from "./routes/stallRoutes.js"; 
+import stallRoutes from "./routes/stallRoutes.js";
 import registrationRoutes from "./routes/registrationRoutes.js";
 
-
-
-// This loads variables from a .env file into process.env
-dotenv.config();
 // app: Initializes an Express application.
 const app = express();
 const port = process.env.PORT || 3001;
@@ -40,13 +38,11 @@ app.use(
   }),
 );
 
-
 app.use("/api/events", eventRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/stalls", stallRoutes); 
+app.use("/api/stalls", stallRoutes);
 app.use("/api/registrations", registrationRoutes);
-
 
 const server = app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

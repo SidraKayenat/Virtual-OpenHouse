@@ -1,5 +1,4 @@
-const API_BASE_URL = "http://localhost:8747/api";
-// ⚠️ change port if backend differs
+export const API_BASE_URL = "http://localhost:8747/api";
 
 export const api = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -204,4 +203,127 @@ export const registrationAPI = {
     api(`/registrations/${registrationId}/cancel`, {
       method: "PATCH",
     }),
+};
+
+// ===== STALL API CALLS =====
+export const stallAPI = {
+  // Create stall (after approval)
+  create: (registrationId) =>
+    api("/stalls/create", {
+      method: "POST",
+      body: JSON.stringify({ registrationId }),
+    }),
+
+  // Get my stalls
+  getMyStalls: () =>
+    api("/stalls/my-stalls", {
+      method: "GET",
+    }),
+
+  // Get stall by ID
+  getById: (stallId) =>
+    api(`/stalls/${stallId}`, {
+      method: "GET",
+    }),
+
+  // Update stall (title, description, team, etc.)
+  update: (stallId, data) =>
+    api(`/stalls/${stallId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  // Publish stall
+  publish: (stallId) =>
+    api(`/stalls/${stallId}/publish`, {
+      method: "PATCH",
+    }),
+
+  // Unpublish stall
+  unpublish: (stallId) =>
+    api(`/stalls/${stallId}/unpublish`, {
+      method: "PATCH",
+    }),
+
+  // Toggle active
+  toggleActive: (stallId) =>
+    api(`/stalls/${stallId}/toggle-active`, {
+      method: "PATCH",
+    }),
+
+  // Delete stall
+  delete: (stallId) =>
+    api(`/stalls/${stallId}`, {
+      method: "DELETE",
+    }),
+
+  // ===== MEDIA =====
+
+  // Upload images
+  uploadImages: (stallId, files) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("images", file));
+
+    return fetch(`${API_BASE_URL}/stalls/${stallId}/upload-images`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((res) => res.json());
+  },
+
+  // Upload banner
+  uploadBanner: (stallId, file) => {
+    const formData = new FormData();
+    formData.append("banner", file);
+
+    return fetch(`${API_BASE_URL}/stalls/${stallId}/upload-banner`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((res) => res.json());
+  },
+
+  // Delete image
+  deleteImage: (stallId, publicId) =>
+    api(`/stalls/${stallId}/images/${publicId}`, {
+      method: "DELETE",
+    }),
+
+  // Update image caption
+  updateImageCaption: (stallId, publicId, caption) =>
+    api(`/stalls/${stallId}/images/${publicId}/caption`, {
+      method: "PATCH",
+      body: JSON.stringify({ caption }),
+    }),
+
+  // Reorder images
+  reorderImages: (stallId, images) =>
+    api(`/stalls/${stallId}/images/reorder`, {
+      method: "PATCH",
+      body: JSON.stringify({ images }),
+    }),
+
+  // Upload video
+  uploadVideo: (stallId, file) => {
+    const formData = new FormData();
+    formData.append("video", file);
+
+    return fetch(`${API_BASE_URL}/stalls/${stallId}/upload-video`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((res) => res.json());
+  },
+
+  // Upload documents
+  uploadDocuments: (stallId, files) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("documents", file));
+
+    return fetch(`${API_BASE_URL}/stalls/${stallId}/upload-documents`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((res) => res.json());
+  },
 };

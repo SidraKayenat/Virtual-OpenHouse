@@ -3,46 +3,27 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
-  ChevronRight,
-  AlertCircle,
   CheckCircle,
+  AlertCircle,
   Briefcase,
   Users,
   Wrench,
-  Send,
+  ChevronRight,
+  Save,
   X,
   Plus,
-  Hash,
-  FileText,
-  Tag,
-  Info,
-  Calendar,
-  MapPin,
-  Building,
-  UserPlus,
   Trash2,
-  Shield,
+  Info,
+  ShieldAlert,
+  Lock,
 } from "lucide-react";
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
-import { eventAPI, registrationAPI } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
+import { registrationAPI } from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────
 const CATEGORIES = ["technology", "business", "art", "science", "other"];
 const ROLES = ["lead", "developer", "designer", "manager", "other"];
-
-const STEPS = [
-  {
-    id: 0,
-    label: "Project Info",
-    icon: Briefcase,
-    desc: "Title, description & category",
-  },
-  { id: 1, label: "Team Members", icon: Users, desc: "Add your team" },
-  { id: 2, label: "Requirements", icon: Wrench, desc: "Special stall needs" },
-  { id: 3, label: "Review", icon: Shield, desc: "Confirm & submit" },
-];
 
 const CATEGORY_COLORS = {
   technology: "#60a5fa",
@@ -52,7 +33,56 @@ const CATEGORY_COLORS = {
   other: "#fb923c",
 };
 
-// ─── Styled input system ──────────────────────────────────────────────────
+const STEPS = [
+  {
+    id: 0,
+    label: "Project Info",
+    icon: Briefcase,
+    desc: "Title, description & category",
+  },
+  { id: 1, label: "Team Members", icon: Users, desc: "Edit your team" },
+  { id: 2, label: "Requirements", icon: Wrench, desc: "Special stall needs" },
+  { id: 3, label: "Review", icon: CheckCircle, desc: "Review & save changes" },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+const fmt = (d) =>
+  d
+    ? new Date(d).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+
+function getDiff(original, current) {
+  const LABELS = {
+    projectTitle: "Project Title",
+    projectDescription: "Description",
+    category: "Category",
+    requirements: "Requirements",
+  };
+  const changes = [];
+  Object.keys(LABELS).forEach((k) => {
+    if (String(original[k] || "") !== String(current[k] || ""))
+      changes.push({
+        field: LABELS[k],
+        from: original[k] || "—",
+        to: current[k] || "—",
+      });
+  });
+  const origTeam = JSON.stringify(original.teamMembers || []);
+  const currTeam = JSON.stringify(current.teamMembers || []);
+  if (origTeam !== currTeam)
+    changes.push({
+      field: "Team Members",
+      from: `${(original.teamMembers || []).length} member(s)`,
+      to: `${(current.teamMembers || []).length} member(s)`,
+    });
+  return changes;
+}
+
+// ─── Styled primitives ────────────────────────────────────────────────────
 const inputBase = {
   background: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.1)",
@@ -70,12 +100,8 @@ function Field({ label, required, hint, error, children }) {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <label
-          className="text-[12px] font-semibold tracking-wide"
-          style={{
-            color: "rgba(255,255,255,0.5)",
-            textTransform: "uppercase",
-            letterSpacing: "0.07em",
-          }}
+          className="text-[12px] font-semibold uppercase tracking-wide"
+          style={{ color: "rgba(255,255,255,0.45)", letterSpacing: "0.07em" }}
         >
           {label}
           {required && <span style={{ color: "#f87171" }}> *</span>}
@@ -83,7 +109,7 @@ function Field({ label, required, hint, error, children }) {
         {hint && (
           <span
             className="text-[11px]"
-            style={{ color: "rgba(255,255,255,0.25)" }}
+            style={{ color: "rgba(255,255,255,0.22)" }}
           >
             {hint}
           </span>
@@ -148,43 +174,6 @@ function StyledTextarea({ ...props }) {
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
     />
-  );
-}
-
-function StyledSelect({ icon: Icon, children, ...props }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="relative">
-      {Icon && (
-        <Icon
-          size={14}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: focused ? "#a78bfa" : "rgba(255,255,255,0.25)" }}
-        />
-      )}
-      <select
-        {...props}
-        style={{
-          ...inputBase,
-          paddingLeft: Icon ? 38 : 14,
-          paddingRight: 36,
-          appearance: "none",
-          cursor: "pointer",
-          borderColor: focused
-            ? "rgba(167,139,250,0.5)"
-            : "rgba(255,255,255,0.1)",
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      >
-        {children}
-      </select>
-      <ChevronRight
-        size={13}
-        className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
-        style={{ color: "rgba(255,255,255,0.25)" }}
-      />
-    </div>
   );
 }
 
@@ -259,8 +248,6 @@ function StepNav({ currentStep, completedSteps, onGoTo }) {
           </button>
         );
       })}
-
-      {/* Progress bar */}
       <div className="mt-4 px-1">
         <div
           className="h-1 rounded-full"
@@ -285,25 +272,10 @@ function StepNav({ currentStep, completedSteps, onGoTo }) {
   );
 }
 
-// ─── Event summary card (right panel) ────────────────────────────────────
-function EventSummaryCard({ event, formData }) {
-  const catColor = CATEGORY_COLORS[formData.category] || "#a78bfa";
-  const fmt = (d) =>
-    d
-      ? new Date(d).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-      : "—";
-  const fillPct = event
-    ? Math.round(
-        ((event.numberOfStalls - event.availableStalls) /
-          (event.numberOfStalls || 1)) *
-          100,
-      )
-    : 0;
-
+// ─── Preview panel ────────────────────────────────────────────────────────
+function RegistrationPreview({ registration, form }) {
+  const event = registration?.event || {};
+  const catColor = CATEGORY_COLORS[form.category] || "#a78bfa";
   return (
     <div
       className="rounded-2xl overflow-hidden sticky top-6"
@@ -312,12 +284,11 @@ function EventSummaryCard({ event, formData }) {
         border: "1px solid rgba(255,255,255,0.08)",
       }}
     >
-      {/* Event thumb */}
       <div
-        className="relative h-32 overflow-hidden"
+        className="relative h-28 overflow-hidden"
         style={{ background: "linear-gradient(135deg,#1e1b30,#2d1f5e)" }}
       >
-        {event?.thumbnailUrl && (
+        {event.thumbnailUrl && (
           <img
             src={event.thumbnailUrl}
             alt=""
@@ -331,191 +302,297 @@ function EventSummaryCard({ event, formData }) {
           }}
         />
         <span
-          className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+          className="absolute top-2.5 left-2.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
           style={{
-            background: "rgba(10,10,20,0.6)",
-            color: "#93c5fd",
-            border: "1px solid rgba(96,165,250,0.2)",
-            backdropFilter: "blur(8px)",
+            background: "rgba(251,191,36,0.22)",
+            color: "#fbbf24",
+            border: "1px solid rgba(251,191,36,0.3)",
+            backdropFilter: "blur(6px)",
           }}
         >
-          {event?.status || "Event"}
+          Pending
         </span>
       </div>
-
       <div className="p-4 flex flex-col gap-3">
-        {/* Event info */}
         <div>
           <p
-            className="text-[10px] font-bold uppercase tracking-widest mb-1"
+            className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
             style={{ color: "rgba(255,255,255,0.25)" }}
           >
-            Registering for
+            Event
           </p>
-          <h3
-            className="text-white font-bold text-[13.5px] line-clamp-2 leading-snug"
+          <p
+            className="text-white font-bold text-[13px] leading-snug"
             style={{ fontFamily: "'Syne',sans-serif" }}
           >
-            {event?.name || "—"}
-          </h3>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          {event?.liveDate && (
+            {event.name || "—"}
+          </p>
+          {event.liveDate && (
             <p
-              className="flex items-center gap-1.5 text-[11px]"
-              style={{ color: "rgba(255,255,255,0.4)" }}
-            >
-              <Calendar size={11} /> {fmt(event.liveDate)}
-            </p>
-          )}
-          {event?.venue && (
-            <p
-              className="flex items-center gap-1.5 text-[11px]"
-              style={{ color: "rgba(255,255,255,0.4)" }}
-            >
-              <MapPin size={11} /> {event.venue}
-            </p>
-          )}
-        </div>
-
-        {/* Stall availability */}
-        {event && (
-          <div>
-            <div
-              className="flex justify-between text-[10.5px] mb-1"
+              className="text-[11px] mt-0.5"
               style={{ color: "rgba(255,255,255,0.35)" }}
             >
-              <span className="flex items-center gap-1">
-                <Building size={10} /> Stall availability
-              </span>
-              <span
-                style={{
-                  color: event.availableStalls === 0 ? "#f87171" : "#34d399",
-                }}
-              >
-                {event.availableStalls} left
-              </span>
-            </div>
-            <div
-              className="h-1.5 rounded-full"
-              style={{ background: "rgba(255,255,255,0.07)" }}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${fillPct}%`,
-                  background:
-                    fillPct >= 90
-                      ? "linear-gradient(90deg,#ef4444,#dc2626)"
-                      : fillPct >= 60
-                        ? "linear-gradient(90deg,#f59e0b,#fbbf24)"
-                        : "linear-gradient(90deg,#7c3aed,#a78bfa)",
-                }}
-              />
-            </div>
-            <p
-              className="text-[10px] mt-1"
-              style={{ color: "rgba(255,255,255,0.22)" }}
-            >
-              {event.numberOfStalls - event.availableStalls} /{" "}
-              {event.numberOfStalls} stalls filled
+              📅 {fmt(event.liveDate)}
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Registration preview */}
         <div
-          className="pt-3"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+            paddingTop: 12,
+          }}
         >
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-2"
             style={{ color: "rgba(255,255,255,0.25)" }}
           >
-            Your Registration
+            Your Project
           </p>
-          <div className="flex flex-col gap-1.5">
-            {formData.projectTitle ? (
-              <p className="text-white text-[12.5px] font-semibold line-clamp-1">
-                {formData.projectTitle}
-              </p>
-            ) : (
-              <p
-                className="text-[12px]"
-                style={{ color: "rgba(255,255,255,0.2)" }}
-              >
-                No project title yet…
-              </p>
-            )}
-            {formData.category && (
-              <span
-                className="self-start text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
-                style={{
-                  background: `${catColor}18`,
-                  color: catColor,
-                  border: `1px solid ${catColor}30`,
-                }}
-              >
-                {formData.category}
-              </span>
-            )}
-            {formData.teamMembers.length > 0 && (
-              <p
-                className="flex items-center gap-1 text-[11px]"
-                style={{ color: "rgba(255,255,255,0.35)" }}
-              >
-                <Users size={10} /> {formData.teamMembers.length} team member
-                {formData.teamMembers.length !== 1 ? "s" : ""}
-              </p>
-            )}
-          </div>
+          {form.projectTitle ? (
+            <p className="text-white font-semibold text-[13px] line-clamp-1">
+              {form.projectTitle}
+            </p>
+          ) : (
+            <p
+              className="text-[12px]"
+              style={{ color: "rgba(255,255,255,0.2)" }}
+            >
+              No title yet…
+            </p>
+          )}
+          {form.category && (
+            <span
+              className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+              style={{
+                background: `${catColor}18`,
+                color: catColor,
+                border: `1px solid ${catColor}30`,
+              }}
+            >
+              {form.category}
+            </span>
+          )}
+          {form.projectDescription && (
+            <p
+              className="text-[11px] mt-2 line-clamp-3 leading-relaxed"
+              style={{ color: "rgba(255,255,255,0.38)" }}
+            >
+              {form.projectDescription}
+            </p>
+          )}
+          {form.teamMembers.length > 0 && (
+            <p
+              className="flex items-center gap-1.5 text-[11px] mt-2"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            >
+              <Users size={10} /> {form.teamMembers.length} member
+              {form.teamMembers.length !== 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+// ─── Confirm modal ────────────────────────────────────────────────────────
+function ConfirmModal({ changes, onConfirm, onCancel, loading }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 12 }}
+        transition={{ duration: 0.22 }}
+        className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-5"
+        style={{
+          background: "#1a1728",
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 32px 64px rgba(0,0,0,0.6)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: "rgba(251,191,36,0.12)",
+              border: "1px solid rgba(251,191,36,0.25)",
+            }}
+          >
+            <ShieldAlert size={18} style={{ color: "#fbbf24" }} />
+          </div>
+          <div>
+            <h3
+              className="text-white font-bold text-[15px]"
+              style={{ fontFamily: "'Syne',sans-serif" }}
+            >
+              Save Changes?
+            </h3>
+            <p
+              className="text-[12px]"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            >
+              Review your modifications before saving
+            </p>
+          </div>
+        </div>
+
+        {changes.length > 0 && (
+          <div
+            className="rounded-xl p-4 flex flex-col gap-3"
+            style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <p
+              className="text-[10.5px] font-bold uppercase tracking-widest"
+              style={{ color: "rgba(255,255,255,0.25)" }}
+            >
+              Modified fields
+            </p>
+            {changes.map(({ field, from, to }) => (
+              <div key={field} className="flex flex-col gap-0.5">
+                <p
+                  className="text-[12px] font-semibold"
+                  style={{ color: "rgba(255,255,255,0.55)" }}
+                >
+                  {field}
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className="text-[11px] px-2 py-0.5 rounded line-through truncate max-w-[130px]"
+                    style={{
+                      background: "rgba(248,113,113,0.1)",
+                      color: "#f87171",
+                    }}
+                  >
+                    {String(from).length > 40
+                      ? String(from).slice(0, 40) + "…"
+                      : from}
+                  </span>
+                  <ChevronRight
+                    size={11}
+                    style={{ color: "rgba(255,255,255,0.2)", flexShrink: 0 }}
+                  />
+                  <span
+                    className="text-[11px] px-2 py-0.5 rounded truncate max-w-[130px]"
+                    style={{
+                      background: "rgba(52,211,153,0.1)",
+                      color: "#34d399",
+                    }}
+                  >
+                    {String(to).length > 40
+                      ? String(to).slice(0, 40) + "…"
+                      : to}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p
+          className="text-[12.5px]"
+          style={{ color: "rgba(255,255,255,0.38)" }}
+        >
+          Only <strong style={{ color: "white" }}>pending</strong> registrations
+          can be updated. Once the event admin reviews it, changes will no
+          longer be possible.
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl text-[13px] font-medium"
+            style={{
+              color: "rgba(255,255,255,0.5)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.04)",
+            }}
+          >
+            Go back
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+            style={{
+              background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
+              border: "1px solid rgba(167,139,250,0.25)",
+              boxShadow: "0 4px 16px rgba(124,58,237,0.3)",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{" "}
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save size={14} /> Confirm Save
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Validation ───────────────────────────────────────────────────────────
-function validateStep(step, formData) {
+function validateStep(step, form) {
   const errs = {};
   if (step === 0) {
-    if (!formData.projectTitle.trim())
+    if (!form.projectTitle.trim())
       errs.projectTitle = "Project title is required";
-    if (formData.projectTitle.length > 200)
+    if (form.projectTitle.length > 200)
       errs.projectTitle = "Max 200 characters";
-    if (!formData.projectDescription.trim())
+    if (!form.projectDescription.trim())
       errs.projectDescription = "Description is required";
-    if (formData.projectDescription.length > 1000)
+    if (form.projectDescription.length > 1000)
       errs.projectDescription = "Max 1000 characters";
-    if (!formData.category) errs.category = "Select a category";
+    if (!form.category) errs.category = "Select a category";
   }
   if (step === 2) {
-    if (formData.requirements.length > 500)
+    if (form.requirements.length > 500)
       errs.requirements = "Max 500 characters";
   }
   return errs;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────
-export default function CreateRegistration() {
-  const { eventId } = useParams();
+export default function UpdateRegistration() {
+  const { registrationId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
-  const [event, setEvent] = useState(null);
-  const [eventLoading, setEventLoading] = useState(true);
+  const [registration, setRegistration] = useState(null);
+  const [original, setOriginal] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const [step, setStep] = useState(0);
   const [done, setDone] = useState([]);
   const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [form, setFormState] = useState({
     projectTitle: "",
     projectDescription: "",
-    category: "",
+    category: "other",
     teamMembers: [],
     requirements: "",
   });
@@ -523,59 +600,85 @@ export default function CreateRegistration() {
   const [memberInput, setMemberInput] = useState({ name: "", role: "other" });
   const [memberError, setMemberError] = useState("");
 
-  // Load event
+  const setForm = (updater) =>
+    setFormState((prev) =>
+      typeof updater === "function" ? updater(prev) : { ...prev, ...updater },
+    );
+  const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  // ── Load ──────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
-        setEventLoading(true);
-        const res = await eventAPI.getById(eventId);
-        setEvent(res.data);
+        setLoading(true);
+        const res = await registrationAPI.getById(registrationId);
+        const reg = res.data;
+
+        if (reg.status !== "pending") {
+          setError(
+            `This registration is "${reg.status}" and can no longer be edited.`,
+          );
+          setLoading(false);
+          return;
+        }
+
+        setRegistration(reg);
+        const info = reg.participantInfo || {};
+        const mapped = {
+          projectTitle: info.projectTitle || "",
+          projectDescription: info.projectDescription || "",
+          category: info.category || "other",
+          teamMembers: (info.teamMembers || []).map((m) => ({
+            name: m.name || "",
+            role: m.role || "other",
+          })),
+          requirements: info.requirements || "",
+        };
+        setFormState(mapped);
+        setOriginal(JSON.parse(JSON.stringify(mapped)));
       } catch (err) {
-        setSubmitError(err.message);
+        setError(err.message);
       } finally {
-        setEventLoading(false);
+        setLoading(false);
       }
     })();
-  }, [eventId]);
+  }, [registrationId]);
 
-  const setField = (field, value) =>
-    setFormData((f) => ({ ...f, [field]: value }));
-
-  // Team member actions
+  // ── Team ──────────────────────────────────────────────────────────────
   const addMember = () => {
     if (!memberInput.name.trim()) {
       setMemberError("Enter a member name");
       return;
     }
-    if (formData.teamMembers.length >= 10) {
-      setMemberError("Max 10 team members");
+    if (form.teamMembers.length >= 10) {
+      setMemberError("Max 10 members");
       return;
     }
-    setFormData((f) => ({
-      ...f,
-      teamMembers: [
-        ...f.teamMembers,
-        { name: memberInput.name.trim(), role: memberInput.role },
-      ],
-    }));
+    setField("teamMembers", [
+      ...form.teamMembers,
+      { name: memberInput.name.trim(), role: memberInput.role },
+    ]);
     setMemberInput({ name: "", role: "other" });
     setMemberError("");
   };
-
   const removeMember = (i) =>
-    setFormData((f) => ({
-      ...f,
-      teamMembers: f.teamMembers.filter((_, idx) => idx !== i),
-    }));
+    setField(
+      "teamMembers",
+      form.teamMembers.filter((_, idx) => idx !== i),
+    );
+  const updateMember = (i, key, val) =>
+    setField(
+      "teamMembers",
+      form.teamMembers.map((m, idx) => (idx === i ? { ...m, [key]: val } : m)),
+    );
 
-  // Step navigation
+  // ── Navigation ────────────────────────────────────────────────────────
   const goToStep = (n) => {
     setStep(n);
     setErrors({});
   };
-
   const nextStep = () => {
-    const errs = validateStep(step, formData);
+    const errs = validateStep(step, form);
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
@@ -584,29 +687,36 @@ export default function CreateRegistration() {
     setErrors({});
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
-
   const prevStep = () => {
     setErrors({});
     setStep((s) => Math.max(s - 1, 0));
   };
 
-  // Submit
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    setSubmitError(null);
+  // ── Save ──────────────────────────────────────────────────────────────
+  const diff = original ? getDiff(original, form) : [];
+  const isDirty = diff.length > 0;
+
+  const handleSave = async () => {
     try {
-      await registrationAPI.create(eventId, {
-        projectTitle: formData.projectTitle,
-        projectDescription: formData.projectDescription,
-        category: formData.category,
-        teamMembers: formData.teamMembers,
-        requirements: formData.requirements,
+      setSaving(true);
+      await registrationAPI.update(registrationId, {
+        participantInfo: {
+          projectTitle: form.projectTitle,
+          projectDescription: form.projectDescription,
+          category: form.category,
+          teamMembers: form.teamMembers,
+          requirements: form.requirements,
+        },
       });
-      setSubmitted(true);
+      setOriginal(JSON.parse(JSON.stringify(form)));
+      setShowConfirm(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setSubmitError(err.message || "Failed to submit registration");
+      setError(err.message || "Failed to save");
+      setShowConfirm(false);
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
@@ -620,125 +730,8 @@ export default function CreateRegistration() {
     exit: { opacity: 0, y: -10, transition: { duration: 0.18 } },
   };
 
-  // ── Success screen ────────────────────────────────────────────────
-  if (submitted) {
-    return (
-      <div
-        className="min-h-screen flex"
-        style={{
-          background: "#0c0c0f",
-          fontFamily: "'DM Sans','Segoe UI',sans-serif",
-        }}
-      >
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Syne:wght@700;800&display=swap');`}</style>
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <DashboardNavbar />
-          <main className="flex-1 flex items-center justify-center px-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="max-w-md w-full text-center flex flex-col items-center gap-5 p-8 rounded-2xl"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{
-                  background: "rgba(52,211,153,0.15)",
-                  border: "2px solid rgba(52,211,153,0.35)",
-                }}
-              >
-                <CheckCircle size={30} style={{ color: "#34d399" }} />
-              </div>
-              <div>
-                <h2
-                  className="text-white text-xl font-bold"
-                  style={{ fontFamily: "'Syne',sans-serif" }}
-                >
-                  Registration Submitted!
-                </h2>
-                <p
-                  className="text-[13px] mt-2"
-                  style={{ color: "rgba(255,255,255,0.45)" }}
-                >
-                  Your registration for{" "}
-                  <strong style={{ color: "white" }}>{event?.name}</strong> is
-                  pending review by the event admin.
-                </p>
-              </div>
-              <div
-                className="w-full p-4 rounded-xl text-left"
-                style={{
-                  background: "rgba(52,211,153,0.06)",
-                  border: "1px solid rgba(52,211,153,0.15)",
-                }}
-              >
-                <p
-                  className="text-[11.5px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: "rgba(52,211,153,0.6)" }}
-                >
-                  What happens next
-                </p>
-                {[
-                  "The event admin reviews your registration",
-                  "You'll be notified when approved",
-                  "A stall number will be assigned to you",
-                ].map((t, i) => (
-                  <p
-                    key={i}
-                    className="flex items-center gap-2 text-[12.5px] mb-1.5"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
-                  >
-                    <span
-                      className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-                      style={{
-                        background: "rgba(52,211,153,0.2)",
-                        color: "#34d399",
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                    {t}
-                  </p>
-                ))}
-              </div>
-              <div className="flex gap-3 w-full">
-                <Link
-                  to="/user/registrations"
-                  className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-center transition-all"
-                  style={{
-                    background: "rgba(124,58,237,0.18)",
-                    color: "#c4b5fd",
-                    border: "1px solid rgba(124,58,237,0.28)",
-                  }}
-                >
-                  My Registrations
-                </Link>
-                <Link
-                  to="/browseevents"
-                  className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-center transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    color: "rgba(255,255,255,0.6)",
-                    border: "1px solid rgba(255,255,255,0.09)",
-                  }}
-                >
-                  Browse More
-                </Link>
-              </div>
-            </motion.div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Loading ───────────────────────────────────────────────────────
-  if (eventLoading) {
+  // ── Loading ───────────────────────────────────────────────────────────
+  if (loading) {
     return (
       <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
@@ -751,7 +744,7 @@ export default function CreateRegistration() {
                 className="text-[13px]"
                 style={{ color: "rgba(255,255,255,0.3)" }}
               >
-                Loading event…
+                Loading registration…
               </p>
             </div>
           </main>
@@ -760,30 +753,8 @@ export default function CreateRegistration() {
     );
   }
 
-  if (!event) {
-    return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <DashboardNavbar />
-          <main className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-white font-semibold mb-2">Event not found</p>
-              <Link
-                to="/browseevents"
-                className="text-violet-400 underline text-sm"
-              >
-                Browse Events
-              </Link>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Event full guard ──────────────────────────────────────────────
-  if (event.availableStalls === 0) {
+  // ── Not-pending guard ─────────────────────────────────────────────────
+  if (error && !registration) {
     return (
       <div
         className="min-h-screen flex"
@@ -792,59 +763,72 @@ export default function CreateRegistration() {
           fontFamily: "'DM Sans','Segoe UI',sans-serif",
         }}
       >
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Syne:wght@700;800&display=swap');`}</style>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Syne:wght@700;800&display=swap');`}</style>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
           <main className="flex-1 flex items-center justify-center px-6">
-            <div
-              className="max-w-sm w-full text-center flex flex-col items-center gap-4 p-8 rounded-2xl"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="max-w-sm w-full text-center flex flex-col items-center gap-5 p-8 rounded-2xl"
               style={{
                 background: "rgba(255,255,255,0.03)",
                 border: "1px solid rgba(255,255,255,0.07)",
               }}
             >
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{
-                  background: "rgba(248,113,113,0.12)",
-                  border: "2px solid rgba(248,113,113,0.3)",
+                  background: "rgba(248,113,113,0.1)",
+                  border: "1px solid rgba(248,113,113,0.2)",
                 }}
               >
-                <Building size={24} style={{ color: "#f87171" }} />
+                <Lock size={22} style={{ color: "#f87171" }} />
               </div>
-              <h2
-                className="text-white font-bold"
-                style={{ fontFamily: "'Syne',sans-serif" }}
+              <div>
+                <h2
+                  className="text-white font-bold text-[17px] mb-1"
+                  style={{ fontFamily: "'Syne',sans-serif" }}
+                >
+                  Cannot Edit Registration
+                </h2>
+                <p
+                  className="text-[13px]"
+                  style={{ color: "rgba(255,255,255,0.45)" }}
+                >
+                  {error}
+                </p>
+              </div>
+              <div
+                className="p-3.5 w-full rounded-xl text-[12px]"
+                style={{
+                  background: "rgba(251,191,36,0.07)",
+                  border: "1px solid rgba(251,191,36,0.15)",
+                  color: "#fde68a",
+                }}
               >
-                Event is Full
-              </h2>
-              <p
-                className="text-[13px]"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-              >
-                All stalls for{" "}
-                <strong style={{ color: "white" }}>{event.name}</strong> have
-                been filled.
-              </p>
-              <Link
-                to="/browseevents"
-                className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white text-center"
+                Only registrations with <strong>Pending</strong> status can be
+                edited. Once reviewed by the admin, edits are locked.
+              </div>
+              <button
+                onClick={() => navigate(-1)}
+                className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white"
                 style={{
                   background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
                   border: "1px solid rgba(167,139,250,0.25)",
                 }}
               >
-                Browse Other Events
-              </Link>
-            </div>
+                Go Back
+              </button>
+            </motion.div>
           </main>
         </div>
       </div>
     );
   }
 
-  // ── Main form ─────────────────────────────────────────────────────
+  // ─── Main render ─────────────────────────────────────────────────────
   return (
     <div
       className="min-h-screen flex"
@@ -868,45 +852,144 @@ export default function CreateRegistration() {
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
-          {/* Header */}
+          {/* API error */}
+          {error && registration && (
+            <div
+              className="mb-5 p-4 rounded-xl text-sm flex items-center justify-between gap-3"
+              style={{
+                background: "rgba(248,113,113,0.1)",
+                border: "1px solid rgba(248,113,113,0.2)",
+                color: "#fca5a5",
+              }}
+            >
+              <span>
+                <AlertCircle size={13} className="inline mr-1.5" />
+                {error}
+              </span>
+              <button onClick={() => setError(null)}>
+                <X size={13} />
+              </button>
+            </div>
+          )}
+
+          {/* ── Header ── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex items-center gap-4 mb-7"
+            className="flex items-center justify-between gap-4 mb-7"
           >
-            <button
-              onClick={() => navigate(-1)}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "rgba(255,255,255,0.5)",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(255,255,255,0.5)")
-              }
-            >
-              <ArrowLeft size={15} />
-            </button>
-            <div>
-              <h1
-                className="text-white text-xl font-bold"
-                style={{ fontFamily: "'Syne',sans-serif" }}
+            <div className="flex items-center gap-4 min-w-0">
+              <button
+                onClick={() => navigate(-1)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.5)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color = "rgba(255,255,255,0.5)")
+                }
               >
-                Register for Event
-              </h1>
-              <p
-                className="text-[12.5px]"
-                style={{ color: "rgba(255,255,255,0.35)" }}
+                <ArrowLeft size={15} />
+              </button>
+              <div className="min-w-0">
+                <h1
+                  className="text-white text-xl font-bold"
+                  style={{ fontFamily: "'Syne',sans-serif" }}
+                >
+                  Update Registration
+                </h1>
+                <p
+                  className="text-[12.5px]"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                >
+                  Step {step + 1} of {STEPS.length} · {STEPS[step].label}
+                </p>
+              </div>
+            </div>
+
+            {/* Dirty indicator + save button */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <AnimatePresence>
+                {isDirty && (
+                  <motion.span
+                    key="dirty"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-[11.5px] font-medium px-3 py-1.5 rounded-full"
+                    style={{
+                      background: "rgba(251,191,36,0.1)",
+                      color: "#fbbf24",
+                      border: "1px solid rgba(251,191,36,0.2)",
+                    }}
+                  >
+                    {diff.length} unsaved change{diff.length !== 1 ? "s" : ""}
+                  </motion.span>
+                )}
+                {saveSuccess && (
+                  <motion.span
+                    key="saved"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-[11.5px] font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                    style={{
+                      background: "rgba(52,211,153,0.1)",
+                      color: "#34d399",
+                      border: "1px solid rgba(52,211,153,0.2)",
+                    }}
+                  >
+                    <CheckCircle size={12} /> Saved!
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <button
+                onClick={() => isDirty && setShowConfirm(true)}
+                disabled={!isDirty}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
+                style={
+                  isDirty
+                    ? {
+                        background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
+                        border: "1px solid rgba(167,139,250,0.25)",
+                        boxShadow: "0 4px 16px rgba(124,58,237,0.3)",
+                        cursor: "pointer",
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.3)",
+                        cursor: "not-allowed",
+                      }
+                }
               >
-                Step {step + 1} of {STEPS.length} · {STEPS[step].label}
-              </p>
+                <Save size={14} /> Save Changes
+              </button>
             </div>
           </motion.div>
 
-          {/* 3-col layout */}
+          {/* Pending-only notice */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-5 flex items-center gap-3 p-3.5 rounded-xl text-[12.5px]"
+            style={{
+              background: "rgba(251,191,36,0.06)",
+              border: "1px solid rgba(251,191,36,0.15)",
+              color: "#fde68a",
+            }}
+          >
+            <Info size={13} style={{ color: "#fbbf24", flexShrink: 0 }} />
+            Only your <strong>project information</strong> can be changed. Once
+            the admin reviews your registration, editing will be locked.
+          </motion.div>
+
+          {/* 3-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_220px] gap-6">
             {/* ── Left: step nav ── */}
             <motion.div
@@ -981,22 +1064,6 @@ export default function CreateRegistration() {
                   </div>
                 </div>
 
-                {/* Submit error */}
-                {submitError && (
-                  <div
-                    className="mb-5 p-3 rounded-xl text-[12.5px]"
-                    style={{
-                      background: "rgba(248,113,113,0.1)",
-                      border: "1px solid rgba(248,113,113,0.2)",
-                      color: "#fca5a5",
-                    }}
-                  >
-                    <AlertCircle size={13} className="inline mr-1.5" />{" "}
-                    {submitError}
-                  </div>
-                )}
-
-                {/* Step panels */}
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={step}
@@ -1010,29 +1077,28 @@ export default function CreateRegistration() {
                           label="Project Title"
                           required
                           error={errors.projectTitle}
-                          hint={`${formData.projectTitle.length}/200`}
+                          hint={`${form.projectTitle.length}/200`}
                         >
                           <StyledInput
                             icon={Briefcase}
                             type="text"
-                            placeholder="e.g. EcoTrack — Sustainability Dashboard"
-                            value={formData.projectTitle}
+                            placeholder="e.g. EcoTrack Dashboard"
+                            value={form.projectTitle}
                             maxLength={200}
                             onChange={(e) =>
                               setField("projectTitle", e.target.value)
                             }
                           />
                         </Field>
-
                         <Field
                           label="Project Description"
                           required
                           error={errors.projectDescription}
-                          hint={`${formData.projectDescription.length}/1000`}
+                          hint={`${form.projectDescription.length}/1000`}
                         >
                           <StyledTextarea
-                            placeholder="Describe your project in detail — what it does, who it's for, and what makes it stand out…"
-                            value={formData.projectDescription}
+                            placeholder="Describe your project…"
+                            value={form.projectDescription}
                             rows={5}
                             maxLength={1000}
                             onChange={(e) =>
@@ -1040,7 +1106,6 @@ export default function CreateRegistration() {
                             }
                           />
                         </Field>
-
                         <Field
                           label="Category"
                           required
@@ -1049,7 +1114,7 @@ export default function CreateRegistration() {
                           <div className="grid grid-cols-3 gap-2">
                             {CATEGORIES.map((cat) => {
                               const color = CATEGORY_COLORS[cat];
-                              const selected = formData.category === cat;
+                              const selected = form.category === cat;
                               return (
                                 <button
                                   key={cat}
@@ -1080,17 +1145,16 @@ export default function CreateRegistration() {
                       </>
                     )}
 
-                    {/* STEP 1: Team Members */}
+                    {/* STEP 1: Team */}
                     {step === 1 && (
                       <>
-                        {/* Add member row */}
                         <Field
                           label="Add Team Member"
-                          hint={`${formData.teamMembers.length}/10`}
+                          hint={`${form.teamMembers.length}/10`}
                         >
                           <div className="flex gap-2">
                             <div className="relative flex-1">
-                              <UserPlus
+                              <Users
                                 size={13}
                                 className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
                                 style={{ color: "rgba(255,255,255,0.25)" }}
@@ -1123,7 +1187,7 @@ export default function CreateRegistration() {
                                 }
                               />
                             </div>
-                            <div className="relative w-36 flex-shrink-0">
+                            <div className="relative w-32 flex-shrink-0">
                               <select
                                 value={memberInput.role}
                                 onChange={(e) =>
@@ -1147,14 +1211,14 @@ export default function CreateRegistration() {
                               </select>
                               <ChevronRight
                                 size={12}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
                                 style={{ color: "rgba(255,255,255,0.25)" }}
                               />
                             </div>
                             <button
                               type="button"
                               onClick={addMember}
-                              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-semibold transition-all"
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-semibold flex-shrink-0 transition-all"
                               style={{
                                 background: "rgba(124,58,237,0.2)",
                                 color: "#c4b5fd",
@@ -1174,16 +1238,15 @@ export default function CreateRegistration() {
                           </div>
                           {memberError && (
                             <p
-                              className="text-[11.5px] flex items-center gap-1 mt-1"
+                              className="text-[11.5px] mt-1"
                               style={{ color: "#f87171" }}
                             >
-                              <AlertCircle size={11} /> {memberError}
+                              {memberError}
                             </p>
                           )}
                         </Field>
 
-                        {/* Member list */}
-                        {formData.teamMembers.length === 0 ? (
+                        {form.teamMembers.length === 0 ? (
                           <div
                             className="flex flex-col items-center justify-center py-10 gap-2 rounded-xl"
                             style={{
@@ -1199,24 +1262,12 @@ export default function CreateRegistration() {
                               className="text-[12.5px]"
                               style={{ color: "rgba(255,255,255,0.25)" }}
                             >
-                              No team members added yet
-                            </p>
-                            <p
-                              className="text-[11px]"
-                              style={{ color: "rgba(255,255,255,0.18)" }}
-                            >
-                              You can register solo or add teammates above
+                              No team members added
                             </p>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
-                            <p
-                              className="text-[10.5px] font-bold uppercase tracking-widest"
-                              style={{ color: "rgba(255,255,255,0.25)" }}
-                            >
-                              Team ({formData.teamMembers.length})
-                            </p>
-                            {formData.teamMembers.map((m, i) => (
+                            {form.teamMembers.map((m, i) => (
                               <div
                                 key={i}
                                 className="flex items-center gap-3 p-3 rounded-xl"
@@ -1232,23 +1283,63 @@ export default function CreateRegistration() {
                                       "linear-gradient(135deg,#7c3aed,#2563eb)",
                                   }}
                                 >
-                                  {m.name.charAt(0).toUpperCase()}
+                                  {m.name?.charAt(0)?.toUpperCase() || "?"}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white text-[13px] font-semibold truncate">
-                                    {m.name}
-                                  </p>
-                                  <p
-                                    className="text-[10.5px] capitalize"
-                                    style={{ color: "rgba(255,255,255,0.38)" }}
-                                  >
-                                    {m.role}
-                                  </p>
+                                <div className="flex-1 min-w-0 grid grid-cols-2 gap-2">
+                                  <input
+                                    value={m.name}
+                                    placeholder="Name"
+                                    onChange={(e) =>
+                                      updateMember(i, "name", e.target.value)
+                                    }
+                                    style={{
+                                      ...inputBase,
+                                      padding: "7px 12px",
+                                      fontSize: 12.5,
+                                    }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                  <div className="relative">
+                                    <select
+                                      value={m.role}
+                                      onChange={(e) =>
+                                        updateMember(i, "role", e.target.value)
+                                      }
+                                      style={{
+                                        ...inputBase,
+                                        padding: "7px 28px 7px 12px",
+                                        fontSize: 12.5,
+                                        appearance: "none",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {ROLES.map((r) => (
+                                        <option key={r} value={r}>
+                                          {r.charAt(0).toUpperCase() +
+                                            r.slice(1)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <ChevronRight
+                                      size={12}
+                                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
+                                      style={{
+                                        color: "rgba(255,255,255,0.25)",
+                                      }}
+                                    />
+                                  </div>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => removeMember(i)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                                   style={{ color: "rgba(248,113,113,0.5)" }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.background =
@@ -1280,8 +1371,8 @@ export default function CreateRegistration() {
                           error={errors.requirements}
                         >
                           <StyledTextarea
-                            placeholder="Describe any special stall requirements — power outlets, equipment, space needs, setup time, accessibility needs…"
-                            value={formData.requirements}
+                            placeholder="Update any special stall requirements — power, equipment, space, setup time…"
+                            value={form.requirements}
                             rows={5}
                             maxLength={500}
                             onChange={(e) =>
@@ -1289,45 +1380,21 @@ export default function CreateRegistration() {
                             }
                           />
                         </Field>
-
                         <div
-                          className="p-4 rounded-xl"
+                          className="p-3.5 rounded-xl text-[12px]"
                           style={{
                             background: "rgba(96,165,250,0.06)",
                             border: "1px solid rgba(96,165,250,0.15)",
+                            color: "#93c5fd",
                           }}
                         >
-                          <p
-                            className="flex items-center gap-2 text-[12.5px] font-semibold mb-2"
-                            style={{ color: "#93c5fd" }}
-                          >
-                            <Info size={13} /> Tips for requirements
-                          </p>
-                          <ul className="flex flex-col gap-1">
-                            {[
-                              "Mention power/electrical needs (# of outlets)",
-                              "Specify if you need a table, chairs, or display stand",
-                              "Note any large equipment that needs extra space",
-                              "Request early setup if your installation takes time",
-                            ].map((tip) => (
-                              <li
-                                key={tip}
-                                className="text-[12px] flex items-start gap-2"
-                                style={{ color: "rgba(255,255,255,0.45)" }}
-                              >
-                                <span
-                                  className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0"
-                                  style={{ background: "rgba(96,165,250,0.5)" }}
-                                />
-                                {tip}
-                              </li>
-                            ))}
-                          </ul>
+                          <Info size={13} className="inline mr-1.5 mb-0.5" />
+                          Leave blank if you have no special requirements.
                         </div>
                       </>
                     )}
 
-                    {/* STEP 3: Review & Submit */}
+                    {/* STEP 3: Review */}
                     {step === 3 && (
                       <>
                         {/* Summary */}
@@ -1346,23 +1413,20 @@ export default function CreateRegistration() {
                           </p>
                           <div className="grid grid-cols-2 gap-3">
                             {[
-                              ["Project Title", formData.projectTitle || "—"],
-                              ["Category", formData.category || "—"],
+                              ["Project Title", form.projectTitle || "—"],
+                              ["Category", form.category || "—"],
                               [
                                 "Team Size",
-                                formData.teamMembers.length === 0
+                                form.teamMembers.length === 0
                                   ? "Solo"
-                                  : `${formData.teamMembers.length} member${formData.teamMembers.length !== 1 ? "s" : ""}`,
+                                  : `${form.teamMembers.length} member(s)`,
                               ],
                               [
                                 "Special Needs",
-                                formData.requirements ? "Yes" : "None",
+                                form.requirements ? "Yes" : "None",
                               ],
-                              ["Event", event?.name || "—"],
-                              [
-                                "Stalls Available",
-                                event?.availableStalls ?? "—",
-                              ],
+                              ["Event", registration?.event?.name || "—"],
+                              ["Status", "Pending"],
                             ].map(([k, v]) => (
                               <div key={k} className="flex flex-col gap-0.5">
                                 <span
@@ -1382,82 +1446,90 @@ export default function CreateRegistration() {
                           </div>
                         </div>
 
-                        {/* Description preview */}
-                        {formData.projectDescription && (
+                        {/* Diff */}
+                        {isDirty ? (
                           <div
-                            className="rounded-xl p-4"
+                            className="rounded-xl p-4 flex flex-col gap-2"
                             style={{
-                              background: "rgba(255,255,255,0.02)",
-                              border: "1px solid rgba(255,255,255,0.07)",
+                              background: "rgba(251,191,36,0.06)",
+                              border: "1px solid rgba(251,191,36,0.15)",
                             }}
                           >
                             <p
-                              className="text-[10.5px] font-bold uppercase tracking-widest mb-2"
-                              style={{ color: "rgba(255,255,255,0.25)" }}
+                              className="text-[10.5px] font-bold uppercase tracking-widest"
+                              style={{ color: "rgba(251,191,36,0.6)" }}
                             >
-                              Description
+                              Pending Changes ({diff.length})
                             </p>
+                            {diff.map(({ field }) => (
+                              <p
+                                key={field}
+                                className="text-[12px] flex items-center gap-2"
+                                style={{ color: "#fde68a" }}
+                              >
+                                <span className="w-1 h-1 rounded-full bg-yellow-400 flex-shrink-0" />{" "}
+                                {field} modified
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <div
+                            className="p-4 rounded-xl"
+                            style={{
+                              background: "rgba(148,163,184,0.07)",
+                              border: "1px solid rgba(148,163,184,0.15)",
+                            }}
+                          >
                             <p
-                              className="text-[12.5px] leading-relaxed"
-                              style={{ color: "rgba(255,255,255,0.55)" }}
+                              className="text-[12.5px]"
+                              style={{ color: "rgba(255,255,255,0.35)" }}
                             >
-                              {formData.projectDescription}
+                              No changes made yet — edit the fields in the
+                              previous steps.
                             </p>
                           </div>
                         )}
 
-                        {/* Team preview */}
-                        {formData.teamMembers.length > 0 && (
-                          <div
-                            className="rounded-xl p-4"
-                            style={{
-                              background: "rgba(255,255,255,0.02)",
-                              border: "1px solid rgba(255,255,255,0.07)",
-                            }}
-                          >
-                            <p
-                              className="text-[10.5px] font-bold uppercase tracking-widest mb-2"
-                              style={{ color: "rgba(255,255,255,0.25)" }}
-                            >
-                              Team
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {formData.teamMembers.map((m, i) => (
-                                <span
-                                  key={i}
-                                  className="flex items-center gap-1.5 text-[11.5px] px-2.5 py-1 rounded-full"
-                                  style={{
-                                    background: "rgba(124,58,237,0.12)",
-                                    color: "#c4b5fd",
-                                    border: "1px solid rgba(124,58,237,0.2)",
-                                  }}
-                                >
-                                  {m.name} ·{" "}
-                                  <span className="capitalize opacity-60">
-                                    {m.role}
-                                  </span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Warning */}
                         <div
-                          className="p-3.5 rounded-xl"
+                          className="p-3.5 rounded-xl text-[12px]"
                           style={{
-                            background: "rgba(251,191,36,0.07)",
-                            border: "1px solid rgba(251,191,36,0.18)",
+                            background: "rgba(251,191,36,0.06)",
+                            border: "1px solid rgba(251,191,36,0.15)",
                             color: "#fde68a",
                           }}
                         >
-                          <p className="text-[12px] flex items-start gap-2">
-                            <Info size={13} className="mt-0.5 flex-shrink-0" />
-                            After submitting, your registration will be reviewed
-                            by the event admin. You'll receive a stall number
-                            upon approval.
-                          </p>
+                          <Info size={13} className="inline mr-1.5 mb-0.5" />
+                          Only <strong>pending</strong> registrations can be
+                          updated. Once the admin reviews, editing is locked.
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={() => isDirty && setShowConfirm(true)}
+                          disabled={!isDirty}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white transition-all"
+                          style={
+                            isDirty
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg,#7c3aed,#6d28d9)",
+                                  border: "1px solid rgba(167,139,250,0.25)",
+                                  boxShadow: "0 6px 24px rgba(124,58,237,0.35)",
+                                  cursor: "pointer",
+                                }
+                              : {
+                                  background: "rgba(255,255,255,0.04)",
+                                  border: "1px solid rgba(255,255,255,0.08)",
+                                  color: "rgba(255,255,255,0.25)",
+                                  cursor: "not-allowed",
+                                }
+                          }
+                        >
+                          <Save size={15} />
+                          {isDirty
+                            ? "Review & Save Changes"
+                            : "No Changes to Save"}
+                        </button>
                       </>
                     )}
                   </motion.div>
@@ -1469,7 +1541,6 @@ export default function CreateRegistration() {
                   style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
                 >
                   <button
-                    type="button"
                     onClick={prevStep}
                     disabled={step === 0}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
@@ -1490,10 +1561,8 @@ export default function CreateRegistration() {
                   >
                     <ArrowLeft size={14} /> Back
                   </button>
-
-                  {step < STEPS.length - 1 ? (
+                  {step < STEPS.length - 1 && (
                     <button
-                      type="button"
                       onClick={nextStep}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
                       style={{
@@ -1504,38 +1573,12 @@ export default function CreateRegistration() {
                     >
                       Continue <ChevronRight size={14} />
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={submitting}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
-                      style={{
-                        background: submitting
-                          ? "rgba(124,58,237,0.4)"
-                          : "linear-gradient(135deg,#7c3aed,#6d28d9)",
-                        border: "1px solid rgba(167,139,250,0.25)",
-                        boxShadow: "0 4px 16px rgba(124,58,237,0.3)",
-                        cursor: submitting ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {submitting ? (
-                        <>
-                          <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{" "}
-                          Submitting…
-                        </>
-                      ) : (
-                        <>
-                          <Send size={14} /> Submit Registration
-                        </>
-                      )}
-                    </button>
                   )}
                 </div>
               </div>
             </motion.div>
 
-            {/* ── Right: event summary ── */}
+            {/* ── Right: live preview ── */}
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1545,13 +1588,31 @@ export default function CreateRegistration() {
                 className="text-[10px] font-bold uppercase tracking-widest mb-3"
                 style={{ color: "rgba(255,255,255,0.25)" }}
               >
-                Event Details
+                Registration Preview
               </p>
-              <EventSummaryCard event={event} formData={formData} />
+              <RegistrationPreview registration={registration} form={form} />
+              <p
+                className="text-[10.5px] text-center mt-3"
+                style={{ color: "rgba(255,255,255,0.18)" }}
+              >
+                Updates as you edit
+              </p>
             </motion.div>
           </div>
         </main>
       </div>
+
+      {/* Confirm modal */}
+      <AnimatePresence>
+        {showConfirm && (
+          <ConfirmModal
+            changes={diff}
+            onConfirm={handleSave}
+            onCancel={() => setShowConfirm(false)}
+            loading={saving}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,6 +1,9 @@
 import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
+
+dotenv.config();
 
 // ===== CLOUDINARY CONFIGURATION =====
 cloudinary.config({
@@ -139,11 +142,14 @@ export const uploadDocument = multer({
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       "text/plain",
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only PDF, DOC, DOCX, PPT, PPTX, TXT files are allowed!"), false);
+      cb(
+        new Error("Only PDF, DOC, DOCX, PPT, PPTX, TXT files are allowed!"),
+        false,
+      );
     }
   },
 });
@@ -181,7 +187,10 @@ export const uploadTeamImage = multer({
 // ===== CLOUDINARY HELPER FUNCTIONS =====
 
 // Delete file from Cloudinary
-export const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+export const deleteFromCloudinary = async (
+  publicId,
+  resourceType = "image",
+) => {
   try {
     const result = await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
@@ -194,10 +203,13 @@ export const deleteFromCloudinary = async (publicId, resourceType = "image") => 
 };
 
 // Delete multiple files
-export const deleteMultipleFromCloudinary = async (publicIds, resourceType = "image") => {
+export const deleteMultipleFromCloudinary = async (
+  publicIds,
+  resourceType = "image",
+) => {
   try {
-    const promises = publicIds.map(id => 
-      cloudinary.uploader.destroy(id, { resource_type: resourceType })
+    const promises = publicIds.map((id) =>
+      cloudinary.uploader.destroy(id, { resource_type: resourceType }),
     );
     return await Promise.all(promises);
   } catch (error) {
@@ -218,7 +230,10 @@ export const getCloudinaryFileDetails = async (publicId) => {
 };
 
 // Upload base64 image (for direct uploads)
-export const uploadBase64Image = async (base64String, folder = "virtual-openhouse/misc") => {
+export const uploadBase64Image = async (
+  base64String,
+  folder = "virtual-openhouse/misc",
+) => {
   try {
     const result = await cloudinary.uploader.upload(base64String, {
       folder,

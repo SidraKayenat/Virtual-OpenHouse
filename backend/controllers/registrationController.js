@@ -447,7 +447,7 @@ export const getRegistrationById = async (req, res) => {
 export const cancelRegistration = async (req, res) => {
   try {
     const { registrationId } = req.params;
-    const { cancellationReason } = req.body;
+    const { cancellationReason } = req.body || {};
 
     const registration =
       await Registration.findById(registrationId).populate("event");

@@ -273,7 +273,9 @@ export const deleteStallImage = async (req, res) => {
     }
 
     // Find image
-    const imageIndex = stall.images.findIndex(img => img.publicId === publicId);
+    const imageIndex = stall.images.findIndex(
+      (img) => img.publicId === publicId,
+    );
     if (imageIndex === -1) {
       return res.status(404).json({
         success: false,
@@ -331,7 +333,9 @@ export const deleteStallVideo = async (req, res) => {
     }
 
     // Find video
-    const videoIndex = stall.videos.findIndex(vid => vid.publicId === publicId);
+    const videoIndex = stall.videos.findIndex(
+      (vid) => vid.publicId === publicId,
+    );
     if (videoIndex === -1) {
       return res.status(404).json({
         success: false,
@@ -389,7 +393,9 @@ export const deleteStallDocument = async (req, res) => {
     }
 
     // Find document
-    const docIndex = stall.documents.findIndex(doc => doc.publicId === publicId);
+    const docIndex = stall.documents.findIndex(
+      (doc) => doc.publicId === publicId,
+    );
     if (docIndex === -1) {
       return res.status(404).json({
         success: false,
@@ -448,7 +454,7 @@ export const updateImageCaption = async (req, res) => {
     }
 
     // Find and update image
-    const image = stall.images.find(img => img.publicId === publicId);
+    const image = stall.images.find((img) => img.publicId === publicId);
     if (!image) {
       return res.status(404).json({
         success: false,
@@ -508,7 +514,7 @@ export const reorderImages = async (req, res) => {
     // Reorder images based on provided order
     const reorderedImages = [];
     imageOrder.forEach((publicId, index) => {
-      const image = stall.images.find(img => img.publicId === publicId);
+      const image = stall.images.find((img) => img.publicId === publicId);
       if (image) {
         image.order = index;
         reorderedImages.push(image);
@@ -516,7 +522,7 @@ export const reorderImages = async (req, res) => {
     });
 
     // Add any images not in the order array at the end
-    stall.images.forEach(img => {
+    stall.images.forEach((img) => {
       if (!imageOrder.includes(img.publicId)) {
         img.order = reorderedImages.length;
         reorderedImages.push(img);
