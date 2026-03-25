@@ -219,9 +219,9 @@ export const login = async (request, response) => {
 
     // Remove password from response
     const userResponse = user.toJSON();
-
     return response.status(200).json({
       user: userResponse,
+      token: token,
       message: "Login successful",
     });
   } catch (error) {

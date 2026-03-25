@@ -10,13 +10,12 @@ import eventRoutes from "./routes/eventRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import stallRoutes from "./routes/stallRoutes.js";
 import registrationRoutes from "./routes/registrationRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 // app: Initializes an Express application.
 const app = express();
 const port = process.env.PORT || 3001;
 const databaseURL = process.env.DATABASE_URL;
-
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 app.use(
   cors({
@@ -28,9 +27,10 @@ app.use(
 
 // app.use("/uploads/profiles", express.static("uploads/profiles"));
 // app.use("/uploads/files", express.static("uploads/files"))
-app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -43,11 +43,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/stalls", stallRoutes);
 app.use("/api/registrations", registrationRoutes);
+app.use("/api/users", userRoutes);
 
 const server = app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`✅ Server running on http://localhost:${port}`);
 });
-mongoose.set("debug", true);
 
 mongoose
   .connect(databaseURL)
@@ -64,7 +64,7 @@ mongoose.connection.on("connecting", () => {
 });
 
 mongoose.connection.on("connected", () => {
-  console.log("✅ MongoDB connected");
+  console.log("✅ MongoDB connected to", mongoose.connection.db.databaseName);
 });
 
 mongoose.connection.on("error", (err) => {
@@ -73,8 +73,4 @@ mongoose.connection.on("error", (err) => {
 
 mongoose.connection.on("disconnected", () => {
   console.log("⚠️ MongoDB disconnected");
-});
-
-mongoose.connection.on("connected", () => {
-  console.log("Connected to database:", mongoose.connection.db.databaseName);
 });

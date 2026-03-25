@@ -377,7 +377,7 @@ export const deleteStall = async (req, res) => {
 
     // Check ownership (or admin)
     const isOwner = stall.isOwnedBy(req.user._id);
-    const isAdmin = req.user.role === "system_admin";
+    const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({

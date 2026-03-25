@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 
-dotenv.config();
 
+dotenv.config();
 // ===== CLOUDINARY CONFIGURATION =====
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -75,6 +75,48 @@ const teamImageStorage = new CloudinaryStorage({
       { width: 500, height: 500, crop: "fill", gravity: "face" },
       { quality: "auto" },
       { radius: "max" }, // Make it circular
+    ],
+  },
+});
+
+// Event Thumbnail Images
+const eventThumbnailStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "virtual-openhouse/events/thumbnails",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 800, height: 450, crop: "fill" }, // Thumbnail size (16:9 aspect ratio)
+      { quality: "auto" },
+      { fetch_format: "auto" },
+    ],
+  },
+});
+
+// Event Background Images (Custom backgrounds)
+const eventBackgroundStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "virtual-openhouse/events/backgrounds",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 2560, height: 1280, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
+      { quality: "auto" },
+      { fetch_format: "auto" },
+    ],
+  },
+});
+
+// Event Default Background (Admin-managed default background)
+const eventDefaultBackgroundStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "virtual-openhouse/events/default-background",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 8704, height: 4352, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
+      { quality: "auto" },
+      { fetch_format: "auto" },
     ],
   },
 });
@@ -174,6 +216,51 @@ export const uploadTeamImage = multer({
   storage: teamImageStorage,
   limits: {
     fileSize: 2 * 1024 * 1024, // 2MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Event Thumbnail upload
+export const uploadEventThumbnail = multer({
+  storage: eventThumbnailStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Event Background upload (custom backgrounds)
+export const uploadEventBackground = multer({
+  storage: eventBackgroundStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Event Default Background upload (admin only)
+export const uploadEventDefaultBackground = multer({
+  storage: eventDefaultBackgroundStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {

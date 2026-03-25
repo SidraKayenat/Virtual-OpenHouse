@@ -17,14 +17,12 @@ const stallSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Event",
       required: true,
-      index: true,
     },
 
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
 
     // ===== STALL IDENTIFICATION =====
@@ -458,8 +456,6 @@ stallSchema.pre("save", function (next) {
 // Clean up Cloudinary files when stall is deleted
 stallSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
   // Note: Actual Cloudinary deletion will be done in controller
-  // This is just a placeholder for cleanup logic
-  console.log(`Preparing to delete stall ${this._id} and its media files`);
   next();
 });
 

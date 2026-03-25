@@ -117,7 +117,7 @@ export const getEventRegistrations = async (req, res) => {
     // Only event creator can view registrations
     if (
       event.createdBy.toString() !== req.user._id.toString() &&
-      req.user.role !== "system_admin"
+      req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,
@@ -421,7 +421,7 @@ export const getRegistrationById = async (req, res) => {
       registration.user._id.toString() === req.user._id.toString();
     const isEventCreator =
       registration.event.createdBy.toString() === req.user._id.toString();
-    const isSystemAdmin = req.user.role === "system_admin";
+    const isSystemAdmin = req.user.role === "admin";
 
     if (!isOwner && !isEventCreator && !isSystemAdmin) {
       return res.status(403).json({
@@ -569,7 +569,7 @@ export const getRegistrationStatistics = async (req, res) => {
     // Only event creator can view stats
     if (
       event.createdBy.toString() !== req.user._id.toString() &&
-      req.user.role !== "system_admin"
+      req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,

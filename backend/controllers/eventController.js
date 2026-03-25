@@ -1,6 +1,8 @@
 import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
+import Settings from "../models/Settings.js";
 import mongoose from "mongoose";
+import { deleteFromCloudinary } from "../config/cloudinary.js";
 
 const ensureCorrectStatus = async (event) => {
   if (
@@ -125,13 +127,15 @@ export const createEvent = async (req, res) => {
       venue,
     } = req.body;
 
-    // Validate user role
-    // if (req.user.role !== "event_admin") {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: "Only Event Admins can create events",
-    //   });
-    // }
+
+    // If backgroundType is "default", fetch the default background URL from Settings
+    let defaultBackgroundUrl = null;
+    if (backgroundType === "default" || !backgroundType) {
+      const settings = await Settings.findOne();
+      if (settings && settings.defaultBackgroundUrl) {
+        defaultBackgroundUrl = settings.defaultBackgroundUrl;
+      }
+    }
 
     // Create event
     const event = await Event.create({
@@ -141,8 +145,9 @@ export const createEvent = async (req, res) => {
       liveDate,
       startTime,
       endTime,
-      backgroundType,
+      backgroundType: backgroundType || "default",
       customBackground,
+      defaultBackgroundUrl, // ← Set from Settings
       environmentType,
       eventType,
       tags,
@@ -758,3 +763,406 @@ export const getEventStatistics = async (req, res) => {
     });
   }
 };
+
+// ===== UPLOAD EVENT THUMBNAIL =====
+export const uploadEventThumbnail = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image uploaded",
+      });
+    }
+
+    // Find event
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check ownership (only event creator can upload thumbnail)
+    if (event.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only upload thumbnail to your own events",
+      });
+    }
+
+    // Delete old thumbnail if it exists
+    if (event.thumbnailPublicId) {
+      try {
+        await deleteFromCloudinary(event.thumbnailPublicId);
+      } catch (error) {
+        console.error("Error deleting old thumbnail:", error);
+        // Continue anyway - don't fail the upload
+      }
+    }
+
+    // Update event with new thumbnail
+    event.thumbnailUrl = req.file.path;
+    event.thumbnailPublicId = req.file.filename;
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Event thumbnail uploaded successfully",
+      data: {
+        thumbnailUrl: event.thumbnailUrl,
+        eventId: event._id,
+      },
+    });
+  } catch (error) {
+    console.error("Upload Event Thumbnail Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to upload thumbnail",
+    });
+  }
+};
+
+// ===== UPLOAD EVENT CUSTOM BACKGROUND =====
+export const uploadEventBackground = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image uploaded",
+      });
+    }
+
+    // Find event
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check ownership
+    if (event.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only upload background to your own events",
+      });
+    }
+
+    // Delete old custom background if it exists
+    if (event.customBackgroundPublicId) {
+      try {
+        await deleteFromCloudinary(event.customBackgroundPublicId);
+      } catch (error) {
+        console.error("Error deleting old background:", error);
+        // Continue anyway
+      }
+    }
+
+    // Update event with new background
+    event.customBackground = req.file.path;
+    event.customBackgroundPublicId = req.file.filename;
+    event.backgroundType = "custom"; // Automatically set to custom when uploading
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Event background uploaded successfully",
+      data: {
+        customBackground: event.customBackground,
+        backgroundType: event.backgroundType,
+        eventId: event._id,
+      },
+    });
+  } catch (error) {
+    console.error("Upload Event Background Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to upload background",
+    });
+  }
+};
+
+// ===== SET DEFAULT BACKGROUND (Admin only) =====
+// This endpoint stores the default background that will be used for all "default" background events
+export const setDefaultBackground = async (req, res) => {
+  try {
+    // Check admin role
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can set default background",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image uploaded",
+      });
+    }
+
+    const newDefaultBackgroundUrl = req.file.path;
+    const newDefaultBackgroundPublicId = req.file.filename;
+
+    // Get or create Settings document
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = await Settings.create({
+        defaultBackgroundUrl: newDefaultBackgroundUrl,
+        defaultBackgroundPublicId: newDefaultBackgroundPublicId,
+        lastUpdatedBy: req.user._id,
+        lastUpdatedAt: new Date(),
+      });
+    } else {
+      // Delete old default background from Cloudinary if it exists
+      if (settings.defaultBackgroundPublicId) {
+        try {
+          await deleteFromCloudinary(settings.defaultBackgroundPublicId);
+        } catch (error) {
+          console.error("Error deleting old default background:", error);
+          // Continue anyway - don't fail the upload
+        }
+      }
+
+      // Update Settings with new default background
+      settings.defaultBackgroundUrl = newDefaultBackgroundUrl;
+      settings.defaultBackgroundPublicId = newDefaultBackgroundPublicId;
+      settings.lastUpdatedBy = req.user._id;
+      settings.lastUpdatedAt = new Date();
+      await settings.save();
+    }
+
+    // ===== UPDATE ALL EVENTS WITH backgroundType="default" =====
+    const updateResult = await Event.updateMany(
+      { backgroundType: "default" },
+      {
+        $set: {
+          defaultBackgroundUrl: newDefaultBackgroundUrl,
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Default background set successfully",
+      data: {
+        defaultBackgroundUrl: newDefaultBackgroundUrl,
+        eventsUpdated: updateResult.modifiedCount,
+        note: `Updated ${updateResult.modifiedCount} events with default background type`,
+      },
+    });
+  } catch (error) {
+    console.error("Set Default Background Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to set default background",
+    });
+  }
+};
+
+// ===== UPDATE EVENT BACKGROUND TYPE =====
+export const updateBackgroundType = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { backgroundType } = req.body;
+
+    // Validate input
+    if (!backgroundType || !["default", "custom"].includes(backgroundType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid background type. Must be 'default' or 'custom'",
+      });
+    }
+
+    // Find event
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check ownership
+    if (event.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only modify your own events",
+      });
+    }
+
+    // Update background type
+    event.backgroundType = backgroundType;
+
+    // If switching to "default", fetch the current default background URL from Settings
+    if (backgroundType === "default") {
+      const settings = await Settings.findOne();
+      if (settings && settings.defaultBackgroundUrl) {
+        event.defaultBackgroundUrl = settings.defaultBackgroundUrl;
+      }
+    }
+
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Background type updated successfully",
+      data: {
+        backgroundType: event.backgroundType,
+        defaultBackgroundUrl: event.defaultBackgroundUrl,
+        customBackground: event.customBackground,
+        eventId: event._id,
+      },
+    });
+  } catch (error) {
+    console.error("Update Background Type Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update background type",
+    });
+  }
+};
+
+// ===== DELETE EVENT THUMBNAIL =====
+export const deleteEventThumbnail = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check ownership
+    if (event.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only modify your own events",
+      });
+    }
+
+    // Delete from cloudinary if exists
+    if (event.thumbnailPublicId) {
+      try {
+        await deleteFromCloudinary(event.thumbnailPublicId);
+      } catch (error) {
+        console.error("Error deleting from Cloudinary:", error);
+      }
+    }
+
+    // Clear thumbnail fields
+    event.thumbnailUrl = null;
+    event.thumbnailPublicId = null;
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Event thumbnail deleted successfully",
+      data: {
+        eventId: event._id,
+      },
+    });
+  } catch (error) {
+    console.error("Delete Event Thumbnail Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete thumbnail",
+    });
+  }
+};
+
+// ===== DELETE CUSTOM BACKGROUND =====
+export const deleteCustomBackground = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check ownership
+    if (event.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only modify your own events",
+      });
+    }
+
+    // Delete from cloudinary if exists
+    if (event.customBackgroundPublicId) {
+      try {
+        await deleteFromCloudinary(event.customBackgroundPublicId);
+      } catch (error) {
+        console.error("Error deleting from Cloudinary:", error);
+      }
+    }
+
+    // Clear background fields
+    event.customBackground = null;
+    event.customBackgroundPublicId = null;
+    event.backgroundType = "default"; // Reset to default
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Custom background deleted successfully",
+      data: {
+        eventId: event._id,
+        backgroundType: event.backgroundType,
+      },
+    });
+  } catch (error) {
+    console.error("Delete Custom Background Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete background",
+    });
+  }
+};
+
+// ===== GET DEFAULT BACKGROUND SETTINGS (Public) =====
+// Frontend can call this to get the current default background URL
+export const getDefaultBackground = async (req, res) => {
+  try {
+    const settings = await Settings.findOne();
+
+    if (!settings || !settings.defaultBackgroundUrl) {
+      return res.status(200).json({
+        success: true,
+        message: "No default background set yet",
+        data: {
+          defaultBackgroundUrl: null,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        defaultBackgroundUrl: settings.defaultBackgroundUrl,
+      },
+    });
+  } catch (error) {
+    console.error("Get Default Background Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch default background",
+    });
+  }
+};
+
