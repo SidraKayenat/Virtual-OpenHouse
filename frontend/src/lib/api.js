@@ -59,11 +59,25 @@ export const eventAPI = {
     return api(`/events/published?${queryString}`, { method: "GET" });
   },
 
-  // Get single event
+  // Get single event  -Auth required
   getById: (eventId) =>
     api(`/events/${eventId}`, {
       method: "GET",
     }),
+
+  // NEW: Public event view - NO AUTH REQUIRED
+  getPublicById: (eventId) => {
+    return fetch(`${API_BASE_URL}/events/public/${eventId}`, {
+      method: "GET",
+      credentials: "include",
+    }).then(async (res) => {
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to fetch event");
+      }
+      return res.json();
+    });
+  },
 
   // Approve event (admin)
   approve: (eventId) =>
@@ -107,20 +121,6 @@ export const eventAPI = {
   // Get statistics
   getStats: () =>
     api("/events/stats/dashboard", {
-      method: "GET",
-    }),
-};
-
-// ===== NOTIFICATION API CALLS =====
-export const stallAPI = {
-  getEventStalls: (eventId, params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    const querySuffix = queryString ? `?${queryString}` : "";
-    return api(`/stalls/event/${eventId}${querySuffix}`, { method: "GET" });
-  },
-
-  getById: (stallId) =>
-    api(`/stalls/${stallId}`, {
       method: "GET",
     }),
 };
@@ -221,6 +221,17 @@ export const registrationAPI = {
 
 // ===== STALL API CALLS =====
 export const stallAPI = {
+  getEventStalls: (eventId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const querySuffix = queryString ? `?${queryString}` : "";
+    return api(`/stalls/event/${eventId}${querySuffix}`, { method: "GET" });
+  },
+
+  getById: (stallId) =>
+    api(`/stalls/${stallId}`, {
+      method: "GET",
+    }),
+
   // Create stall (after approval)
   create: (registrationId) =>
     api("/stalls/create", {

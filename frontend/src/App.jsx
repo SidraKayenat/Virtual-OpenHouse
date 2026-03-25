@@ -18,7 +18,6 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import MyRegistrations from "./pages/registration/MyRegistrations";
 import MyEvents from "./pages/event/MyEvents";
 import MyStalls from "./pages/stall/MyStalls";
-import UpdateStall from "./pages/stall/UpdateStall";
 import StallEditor from "./pages/stall/StallEditor";
 import UpdateRegistration from "./pages/registration/UpdateRegistration";
 function App() {

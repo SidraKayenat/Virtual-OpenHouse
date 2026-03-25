@@ -2,6 +2,110 @@ import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
 import mongoose from "mongoose";
 
+const ensureCorrectStatus = async (event) => {
+  if (
+    event.status === "published" &&
+    new Date() >= event.liveDate &&
+    new Date() < event.endTime
+  ) {
+    event.status = "live";
+    await event.save();
+  }
+  return event;
+};
+
+// ===== GET PUBLIC EVENT BY ID (No authentication required) =====
+export const getPublicEventById = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    // Find event with only public fields
+    const event = await Event.findById(eventId)
+      .select({
+        name: 1,
+        description: 1,
+        environmentType: 1,
+        numberOfStalls: 1,
+        liveDate: 1,
+        startTime: 1,
+        endTime: 1,
+        status: 1,
+        bannerImage: 1,
+        backgroundType: 1,
+        customBackground: 1,
+        eventType: 1,
+        tags: 1,
+        venue: 1,
+        createdBy: 1,
+      })
+      .populate("createdBy", "name organization")
+      .lean();
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Only return published or live events
+    if (!["published", "live"].includes(event.status)) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not available for public viewing",
+      });
+    }
+
+    // Update status if needed (check if event should be live)
+    if (event.status === "published") {
+      const now = new Date();
+      const liveDateTime = new Date(event.liveDate);
+      const endDateTime = new Date(event.endTime);
+
+      if (now >= liveDateTime && now < endDateTime) {
+        event.status = "live";
+        // Update in database (fire and forget - don't await)
+        Event.findByIdAndUpdate(eventId, { status: "live" }).catch((err) =>
+          console.error("Failed to update event status:", err),
+        );
+      }
+    }
+
+    // Get registration count (optional - can be removed if not needed)
+    const registrationCount = await Registration.countDocuments({
+      event: eventId,
+      status: "approved",
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...event,
+        registrationCount,
+        // Ensure we don't expose sensitive fields
+        reviewedBy: undefined,
+        rejectionReason: undefined,
+        reviewedAt: undefined,
+        publishedBy: undefined,
+      },
+    });
+  } catch (error) {
+    console.error("Get Public Event Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch event",
+    });
+  }
+};
+
 // ===== CREATE EVENT REQUEST =====
 // Role: Event Admin creates event (status: pending)
 export const createEvent = async (req, res) => {
@@ -93,6 +197,11 @@ export const getAllEvents = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    // Update statuses for any events that should be live
+    for (const event of events) {
+      await ensureCorrectStatus(event);
+    }
 
     const total = await Event.countDocuments(query);
 
@@ -336,6 +445,10 @@ export const getPublishedEvents = async (req, res) => {
       .limit(parseInt(limit));
 
     const total = await Event.countDocuments(query);
+    // Update statuses for any events that should be live
+    for (const event of events) {
+      await ensureCorrectStatus(event);
+    }
 
     res.status(200).json({
       success: true,
@@ -363,6 +476,9 @@ export const getEventById = async (req, res) => {
     const event = await Event.findById(eventId)
       .populate("createdBy", "name email organization")
       .populate("reviewedBy", "name email");
+
+    // Update statuses for any events that should be live
+    await ensureCorrectStatus(event);
 
     if (!event) {
       return res.status(404).json({
@@ -400,6 +516,11 @@ export const getMyEvents = async (req, res) => {
     const events = await Event.find({ createdBy: req.user._id })
       .populate("reviewedBy", "name email")
       .sort({ createdAt: -1 });
+
+    // Update statuses for any events that should be live
+    for (const event of events) {
+      await ensureCorrectStatus(event);
+    }
 
     res.status(200).json({
       success: true,

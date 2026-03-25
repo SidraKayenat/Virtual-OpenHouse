@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Public routes (no authentication required)
 router.get("/published", eventController.getPublishedEvents);
+router.get("/public/:eventId", eventController.getPublicEventById); // ADD THIS - Public event vie
 
 // Protected routes (require authentication)
 router.post("/create", verifyToken, eventController.createEvent);
@@ -13,7 +14,6 @@ router.get("/my-events", verifyToken, eventController.getMyEvents);
 router.get("/stats/dashboard", verifyToken, eventController.getEventStatistics);
 router.get("/pending/all", verifyToken, eventController.getPendingEvents);
 router.get("/:eventId", verifyToken, eventController.getEventById);
-router.get("/:eventId", eventController.getEventById);
 
 // Admin-only routes (system_admin role required)
 router.patch("/:eventId/approve", verifyToken, eventController.approveEvent);
