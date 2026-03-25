@@ -11,6 +11,7 @@ const EventViewerPage = () => {
   const [eventData, setEventData] = useState(null);
   const [selectedStall, setSelectedStall] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // 🔥 TRACK IF ANY UI IS OPEN
   const isUIOpen = selectedStall !== null;
@@ -18,11 +19,14 @@ const EventViewerPage = () => {
   useEffect(() => {
     const loadEventData = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const data = await fetchEventData(eventId);
-        console.log("📦 Loaded event data:", data);
         setEventData(data);
-      } catch (error) {
-        console.error("Failed to load event:", error);
+        } catch (loadError) {
+        console.error("Failed to load event:", loadError);
+        setError(loadError.message || "Failed to load event");
       } finally {
         setLoading(false);
       }
@@ -32,17 +36,33 @@ const EventViewerPage = () => {
   }, [eventId]);
 
   const handleStallClick = (stallData) => {
-    console.log("🎯 EventViewerPage received stall click:", stallData);
     setSelectedStall(stallData);
   };
 
   const handleClosePopup = () => {
-    console.log("🚪 EventViewerPage closing popup");
     setSelectedStall(null);
   };
 
   if (loading) {
     return <LoadingScreen />;
+  }
+   if (error) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          fontSize: "20px",
+          color: "#b91c1c",
+          padding: "24px",
+          textAlign: "center",
+        }}
+      >
+        {error}
+      </div>
+    );
   }
 
   if (!eventData) {

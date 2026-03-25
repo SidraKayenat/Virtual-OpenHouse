@@ -376,7 +376,7 @@ const Landing = () => {
               </p>
             </div>
             <Link
-              to="/events"
+              to="/user/dashboard"
               className="text-indigo-600 hover:text-indigo-700"
             >
               View All &rarr;
@@ -385,25 +385,25 @@ const Landing = () => {
           {/* <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {upcomingEvents.map((event) => (
               <Link
-                key={event.id}
-                to={`/events/${event.id}`}
+                key={event._id}
+                to={`/event/${event._id}`}
                 className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all"
               >
                 <ImageWithFallback
-                  src={event.image}
-                  alt={event.title}
+                  src={event.thumbnailUrl || "/bg.png"}
+                  alt={event.name}
                   className="w-full h-48 object-cover"
                 />
                 <div className="p-6">
-                  <div className="text-indigo-600 mb-2">{event.category}</div>
-                  <h3 className="text-gray-900 mb-2">{event.title}</h3>
+                  <div className="text-indigo-600 mb-2">{event.eventType}</div>
+                  <h3 className="text-gray-900 mb-2">{event.name}</h3>
                   <div className="flex items-center gap-2 text-gray-600 mb-2">
                     <Calendar className="size-4" />
-                    <span>{event.date}</span>
+                    <span>{new Date(event.liveDate).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Users className="size-4" />
-                    <span>{event.attendees.toLocaleString()} attending</span>
+                    <span>{event.numberOfStalls} stalls</span>
                   </div>
                 </div>
               </Link>

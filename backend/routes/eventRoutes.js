@@ -12,6 +12,7 @@ router.post("/create", verifyToken, eventController.createEvent);
 router.get("/my-events", verifyToken, eventController.getMyEvents);
 router.get("/stats/dashboard", verifyToken, eventController.getEventStatistics);
 router.get("/pending/all", verifyToken, eventController.getPendingEvents);
+router.get("/:eventId", verifyToken, eventController.getEventById);
 router.get("/:eventId", eventController.getEventById);
 
 // Admin-only routes (system_admin role required)
