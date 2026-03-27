@@ -1,3 +1,10 @@
+import { setDefaultResultOrder } from "dns";
+import { setServers } from "dns";
+
+setDefaultResultOrder("ipv4first");
+setServers(["8.8.8.8", "8.8.4.4"]);
+
+import express from "express";
 import dotenv from "dotenv";
 // This loads variables from a .env file into process.env
 dotenv.config();
