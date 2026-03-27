@@ -1,10 +1,13 @@
-import { setDefaultResultOrder, setServers } from "dns";
+import { setDefaultResultOrder } from "dns";
+import { setServers } from "dns";
+
 setDefaultResultOrder("ipv4first");
 setServers(["8.8.8.8", "8.8.4.4"]);
-//changes 
-import dotenv from "dotenv";
-dotenv.config();
 
+import express from "express";
+import dotenv from "dotenv";
+// This loads variables from a .env file into process.env
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -69,7 +72,6 @@ mongoose.connection.on("connecting", () => {
 
 mongoose.connection.on("connected", () => {
   console.log("✅ MongoDB connected");
-  console.log("Connected to database:", mongoose.connection.db.databaseName);
 });
 
 mongoose.connection.on("error", (err) => {
