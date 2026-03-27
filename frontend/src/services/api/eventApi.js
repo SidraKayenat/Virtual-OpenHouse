@@ -1,54 +1,117 @@
 // src/services/api/eventApi.js
+import { eventAPI, stallAPI } from "@/lib/api";
 
-// Mock data for testing
-const mockEventData = {
-  id: 1,
-  name: "Tech Expo 2025",
-  environmentType: "mcs_hall",
-  stallCount: 6,
-  stalls: [
-    {
-      id: 1,
-      name: "AI Innovation Hub",
-      description: "AI-powered solutions for automation and analytics.",
-      tech: ["Python", "TensorFlow", "FastAPI"],
-      contact: "ai@openhouse.com",
-      website: "https://example.com",
-    },
-    {
-      id: 2,
-      name: "Web XR Lab",
-      description: "Immersive web-based 3D and VR experiences.",
-      tech: ["Three.js", "WebXR", "GLTF"],
-      contact: "xr@openhouse.com",
-    },
-    {
-      id: 3,
-      name: "Robotics Zone",
-      description: "Autonomous robots and smart machines.",
-      tech: ["ROS", "C++", "OpenCV"],
-      contact: "robotics@openhouse.com",
-    },
-  ],
-};
+const normalizeStall = (stall) => ({
+  id: stall._id,
+  name: stall.projectTitle || `Stall ${stall.stallNumber}`,
+  description: stall.projectDescription || "No description available",
+  tech: Array.isArray(stall.tags) ? stall.tags : [],
+  contact:
+    stall.teamMembers?.[0]?.contactInfo?.email ||
+    stall.owner?.email ||
+    "No contact provided",
+  website: stall.teamMembers?.[0]?.contactInfo?.website || "",
+  teamMembers: stall.teamMembers || [],
+  category: stall.category,
+  media: {
+    images: stall.images || [],
+    videos: stall.videos || [],
+    documents: stall.documents || [],
+    bannerImage: stall.bannerImage || null,
+  },
+  raw: stall,
+});
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-// export const fetchEventData = async (eventId) => {
-export const fetchEventData = async () => {
+// ===== PUBLIC VERSION - No authentication required =====
+export const fetchPublicEventData = async (eventId) => {
   try {
-    // TODO: Replace with real API call
-    // const response = await fetch(`${API_BASE_URL}/events/${eventId}`);
-    // const data = await response.json();
-    // return data;
+    // Use public event endpoint (no auth required)
+    const eventResponse = await eventAPI.getPublicById(eventId);
+    const event = eventResponse?.data || eventResponse || {};
 
-    // For now, return mock data
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockEventData), 1000); // Simulate network delay
+    // Stall endpoint is already public in your backend (line 29 in stallRoutes)
+    const stallsResponse = await stallAPI.getEventStalls(eventId, {
+      published: true,
+      limit: 100,
     });
+    const stalls = (stallsResponse?.data || stallsResponse || []).map(
+      normalizeStall,
+    );
+
+    return {
+      id: event._id,
+      name: event.name,
+      description: event.description,
+      environmentType: event.environmentType || "indoor",
+      stallCount: event.numberOfStalls || stalls.length || 0,
+      liveDate: event.liveDate,
+      status: event.status,
+      stalls,
+      rawEvent: event,
+    };
   } catch (error) {
-    console.error("Error fetching event data:", error);
+    console.error("Error fetching public event data:", error);
     throw error;
   }
 };
+
+// ===== AUTHENTICATED VERSION - Requires login (for editing, managing) =====
+export const fetchAuthenticatedEventData = async (eventId) => {
+  try {
+    const [eventResponse, stallsResponse] = await Promise.all([
+      eventAPI.getById(eventId),
+      stallAPI.getEventStalls(eventId, { limit: 100 }),
+    ]);
+
+    const event = eventResponse?.data || {};
+    const stalls = (stallsResponse?.data || []).map(normalizeStall);
+
+    return {
+      id: event._id,
+      name: event.name,
+      description: event.description,
+      environmentType: event.environmentType || "indoor",
+      stallCount: event.numberOfStalls || stalls.length || 0,
+      liveDate: event.liveDate,
+      status: event.status,
+      stalls,
+      rawEvent: event,
+    };
+  } catch (error) {
+    console.error("Error fetching authenticated event data:", error);
+    throw error;
+  }
+};
+
+// ===== SMART FETCH - Tries public first, then authenticated if available =====
+export const fetchEventData = async (eventId, user = null) => {
+  try {
+    // First try public (always works for published events)
+    const publicData = await fetchPublicEventData(eventId);
+
+    // If user is logged in, also try to get user-specific data
+    if (user) {
+      try {
+        const authenticatedData = await fetchAuthenticatedEventData(eventId);
+        // Merge user-specific data (like registration status)
+        return {
+          ...publicData,
+          userRegistration: authenticatedData.userRegistration,
+          userStalls: authenticatedData.userStalls,
+        };
+      } catch (authError) {
+        console.warn("Could not fetch authenticated data:", authError);
+        // Still return public data even if authenticated fetch fails
+        return publicData;
+      }
+    }
+
+    return publicData;
+  } catch (error) {
+    console.error("Failed to fetch event data:", error);
+    throw error;
+  }
+};
+
+// ===== For backward compatibility - use public version by default =====
+export const fetchEventDataPublic = fetchPublicEventData;
