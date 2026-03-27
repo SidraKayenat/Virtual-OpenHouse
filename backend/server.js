@@ -1,5 +1,4 @@
-import { setDefaultResultOrder } from "dns";
-import { setServers } from "dns";
+import { setDefaultResultOrder, setServers } from "dns";
 setDefaultResultOrder("ipv4first");
 setServers(["8.8.8.8", "8.8.4.4"]);
 //changes 
@@ -70,6 +69,7 @@ mongoose.connection.on("connecting", () => {
 
 mongoose.connection.on("connected", () => {
   console.log("✅ MongoDB connected");
+  console.log("Connected to database:", mongoose.connection.db.databaseName);
 });
 
 mongoose.connection.on("error", (err) => {
