@@ -236,7 +236,6 @@ function Skeleton({ className = "" }) {
   );
 }
 
-
 // ─── Main component ───────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -316,7 +315,7 @@ export default function AdminDashboard() {
       allEvents.forEach((event) => {
         const date = new Date(event.createdAt);
         const monthKey = `${date.getFullYear()}-${String(
-          date.getMonth() + 1
+          date.getMonth() + 1,
         ).padStart(2, "0")}`;
 
         if (!eventsByMonth[monthKey]) {
@@ -352,7 +351,7 @@ export default function AdminDashboard() {
         } catch (err) {
           console.warn(
             `Could not load stats for event ${event._id}:`,
-            err.message
+            err.message,
           );
         }
       }
@@ -417,11 +416,17 @@ export default function AdminDashboard() {
               className="text-white text-2xl font-bold leading-tight"
               style={{ fontFamily: "'Syne',sans-serif" }}
             >
-              Good {greeting}, <span style={{
-                background: "linear-gradient(90deg,#a78bfa,#60a5fa)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}>Admin</span> 👋
+              Good {greeting},{" "}
+              <span
+                style={{
+                  background: "linear-gradient(90deg,#a78bfa,#60a5fa)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Admin
+              </span>{" "}
+              👋
             </h1>
             <p
               className="text-xs mt-1"
@@ -625,20 +630,27 @@ export default function AdminDashboard() {
                       <Skeleton key={i} />
                     ))}
                   </div>
-                ) : allEvents.filter(e => e.status === "live").length > 0 ? (
+                ) : allEvents.filter((e) => e.status === "live").length > 0 ? (
                   <div className="space-y-3">
                     {allEvents
-                      .filter(e => e.status === "live")
-                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                      .filter((e) => e.status === "live")
+                      .sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+                      )
                       .slice(0, 3)
-                      .map(event => (
+                      .map((event) => (
                         <RowItem
                           key={event._id}
                           to={`/admin/events/${event._id}`}
                           thumbnail={event.thumbnailUrl}
                           title={event.name}
                           sub={fmt(event.createdAt)}
-                          badge={<StatusBadge status={event.status} map={STATUS_EVENT} />}
+                          badge={
+                            <StatusBadge
+                              status={event.status}
+                              map={STATUS_EVENT}
+                            />
+                          }
                           accentBg="linear-gradient(135deg,#ef4444,#dc2626)"
                         />
                       ))}
@@ -667,25 +679,34 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 ) : allEvents.filter(
-                  e => e.status === "published" && 
-                    new Date(e.liveDate) > new Date()
-                ).length > 0 ? (
+                    (e) =>
+                      e.status === "published" &&
+                      new Date(e.liveDate) > new Date(),
+                  ).length > 0 ? (
                   <div className="space-y-3">
                     {allEvents
                       .filter(
-                        e => e.status === "published" && 
-                          new Date(e.liveDate) > new Date()
+                        (e) =>
+                          e.status === "published" &&
+                          new Date(e.liveDate) > new Date(),
                       )
-                      .sort((a, b) => new Date(a.liveDate) - new Date(b.liveDate))
+                      .sort(
+                        (a, b) => new Date(a.liveDate) - new Date(b.liveDate),
+                      )
                       .slice(0, 3)
-                      .map(event => (
+                      .map((event) => (
                         <RowItem
                           key={event._id}
                           to={`/admin/events/${event._id}`}
                           thumbnail={event.thumbnailUrl}
                           title={event.name}
                           sub={fmtShort(event.liveDate)}
-                          badge={<StatusBadge status={event.status} map={STATUS_EVENT} />}
+                          badge={
+                            <StatusBadge
+                              status={event.status}
+                              map={STATUS_EVENT}
+                            />
+                          }
                           accentBg="linear-gradient(135deg,#3b82f6,#1d4ed8)"
                         />
                       ))}
@@ -715,7 +736,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : recentUsers.length > 0 ? (
                   <div className="space-y-3">
-                    {recentUsers.map(user => (
+                    {recentUsers.map((user) => (
                       <RowItem
                         key={user._id}
                         to={`/admin/users/${user._id}`}

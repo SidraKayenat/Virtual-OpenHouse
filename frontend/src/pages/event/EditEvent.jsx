@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { eventAPI } from "@/lib/api";
@@ -18,6 +18,7 @@ import {
   CheckCircle,
   ArrowLeft,
   Save,
+  Upload,
   X,
   Hash,
   Users,
@@ -357,43 +358,77 @@ function TagInput({ value, onChange }) {
   );
 }
 
-// ─── Thumbnail picker ─────────────────────────────────────────────────────
-function ThumbnailPicker({ value, onChange }) {
+// ─── Image Uploader Component (for file upload) ─────────────────────────────
+function ImageUploader({ value, onUpload, uploading, onClear, label }) {
   const [preview, setPreview] = useState(value || "");
-  const [urlInput, setUrlInput] = useState(value || "");
-  const apply = () => {
-    setPreview(urlInput);
-    onChange(urlInput);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setPreview(value || "");
+  }, [value]);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      onUpload(file);
+    }
   };
-  const clear = () => {
+
+  const clearImage = () => {
     setPreview("");
-    setUrlInput("");
-    onChange("");
+    onClear();
   };
+
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="relative w-full rounded-2xl overflow-hidden flex items-center justify-center"
+        className="relative w-full rounded-2xl overflow-hidden cursor-pointer group"
         style={{
-          height: 160,
+          height: 180,
           background: preview ? "transparent" : "rgba(255,255,255,0.03)",
           border: preview ? "none" : "2px dashed rgba(255,255,255,0.1)",
         }}
+        onClick={() => !uploading && fileInputRef.current?.click()}
       >
-        {preview ? (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+          disabled={uploading}
+        />
+        {uploading ? (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+            <p
+              className="text-[11px]"
+              style={{ color: "rgba(255,255,255,0.3)" }}
+            >
+              Uploading...
+            </p>
+          </div>
+        ) : preview ? (
           <>
             <img
               src={preview}
-              alt="Thumbnail"
+              alt={label}
               className="w-full h-full object-cover"
-              onError={() => setPreview("")}
             />
             <div
-              className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center"
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
               style={{ background: "rgba(0,0,0,0.55)" }}
             >
               <button
-                onClick={clear}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearImage();
+                }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white"
                 style={{
                   background: "rgba(239,68,68,0.4)",
@@ -406,61 +441,21 @@ function ThumbnailPicker({ value, onChange }) {
           </>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: "rgba(167,139,250,0.1)",
-                border: "1px solid rgba(167,139,250,0.2)",
-              }}
-            >
-              <Image size={18} style={{ color: "#a78bfa" }} />
-            </div>
+            <Upload size={24} style={{ color: "rgba(255,255,255,0.4)" }} />
             <p
               className="text-[12px]"
               style={{ color: "rgba(255,255,255,0.3)" }}
             >
-              No thumbnail set
+              Click to upload {label}
+            </p>
+            <p
+              className="text-[10px]"
+              style={{ color: "rgba(255,255,255,0.2)" }}
+            >
+              JPG, PNG, WebP · Max 5MB
             </p>
           </div>
         )}
-      </div>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Globe
-            size={13}
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "rgba(255,255,255,0.25)" }}
-          />
-          <input
-            type="url"
-            placeholder="Paste image URL…"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && apply()}
-            style={{ ...inputBase, paddingLeft: 34, fontSize: 12.5 }}
-            onFocus={(e) =>
-              (e.target.style.borderColor = "rgba(167,139,250,0.5)")
-            }
-            onBlur={(e) =>
-              (e.target.style.borderColor = "rgba(255,255,255,0.1)")
-            }
-          />
-        </div>
-        <button
-          type="button"
-          onClick={apply}
-          disabled={!urlInput}
-          className="flex-shrink-0 px-4 py-2 rounded-xl text-[12px] font-semibold transition-all"
-          style={{
-            background: urlInput
-              ? "rgba(124,58,237,0.25)"
-              : "rgba(255,255,255,0.04)",
-            color: urlInput ? "#c4b5fd" : "rgba(255,255,255,0.25)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          Apply
-        </button>
       </div>
     </div>
   );
@@ -664,9 +659,8 @@ function getDiff(original, current) {
     environmentType: "Environment Type",
     eventType: "Event Type",
     tags: "Tags",
-    venue: "Venue",
     thumbnailUrl: "Thumbnail",
-    modelUrl: "3D Model URL",
+    // Remove venue and modelUrl
   };
   return Object.keys(current)
     .filter(
@@ -767,11 +761,7 @@ function LivePreview({ form }) {
               {form.startTime && ` · ${form.startTime}`}
             </span>
           )}
-          {form.venue && (
-            <span className="flex items-center gap-1.5">
-              <MapPin size={10} /> {form.venue}
-            </span>
-          )}
+
           {form.numberOfStalls && (
             <span className="flex items-center gap-1.5">
               <Users size={10} /> {form.numberOfStalls} stalls
@@ -796,6 +786,9 @@ export default function EditEvent() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+
   // Load event
   useEffect(() => {
     (async () => {
@@ -817,12 +810,14 @@ export default function EditEvent() {
           endTime: e.endTime || "",
           backgroundType: e.backgroundType || "default",
           customBackground: e.customBackground || "",
+          customBackgroundPublicId: e.customBackgroundPublicId || "", // Add this
           environmentType: e.environmentType || "indoor",
           eventType: e.eventType || "exhibition",
           tags: e.tags ? e.tags.join(", ") : "",
-          venue: e.venue || "",
           thumbnailUrl: e.thumbnailUrl || "",
-          modelUrl: e.modelUrl || "",
+          thumbnailPublicId: e.thumbnailPublicId || "", // Add this
+          // Remove venue field entirely
+          // Remove modelUrl field entirely
         };
         setForm(mapped);
         setOriginal(mapped);
@@ -844,8 +839,63 @@ export default function EditEvent() {
   const isDirty = diff.length > 0;
 
   const handleSaveClick = () => {
+    // Validate required fields
+    if (!form.thumbnailUrl) {
+      setError("Thumbnail is required");
+      return;
+    }
+    if (form.backgroundType === "custom" && !form.customBackground) {
+      setError(
+        "Custom background image is required when Custom background type is selected",
+      );
+      return;
+    }
     if (!isDirty) return;
     setShowConfirm(true);
+  };
+
+  // Thumbnail upload handler
+  const handleThumbnailUpload = async (file) => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("thumbnail", file);
+
+    try {
+      setUploadingThumbnail(true);
+      // Fix: Pass eventId as first argument
+      const response = await eventAPI.uploadThumbnail(eventId, formData);
+      if (response.success) {
+        set("thumbnailUrl", response.data.url);
+        set("thumbnailPublicId", response.data.publicId);
+      }
+    } catch (err) {
+      setError("Failed to upload thumbnail");
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  // Custom background upload handler
+  const handleBackgroundUpload = async (file) => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("background", file);
+
+    try {
+      setUploadingBackground(true);
+      // Fix: Pass eventId as first argument
+      const response = await eventAPI.uploadBackground(eventId, formData);
+      if (response.success) {
+        set("customBackground", response.data.url);
+        set("customBackgroundPublicId", response.data.publicId);
+      }
+    } catch (err) {
+      setError("Failed to upload background");
+    } finally {
+      setUploadingBackground(false);
+    }
   };
 
   const handleConfirm = async () => {
@@ -858,6 +908,7 @@ export default function EditEvent() {
         endTime: form.endTime,
         backgroundType: form.backgroundType,
         customBackground: form.customBackground,
+        customBackgroundPublicId: form.customBackgroundPublicId, // Add this
         environmentType: form.environmentType,
         eventType: form.eventType,
         tags: form.tags
@@ -866,9 +917,9 @@ export default function EditEvent() {
               .map((t) => t.trim())
               .filter(Boolean)
           : [],
-        venue: form.venue,
         thumbnailUrl: form.thumbnailUrl,
-        modelUrl: form.modelUrl,
+        thumbnailPublicId: form.thumbnailPublicId, // Add this
+        // Remove venue and modelUrl
       };
       await eventAPI.update(eventId, payload);
       setOriginal({ ...form });
@@ -1181,15 +1232,6 @@ export default function EditEvent() {
                       />
                     </Field>
                   </div>
-                  <Field label="Venue" hint="Physical or virtual location">
-                    <StyledInput
-                      icon={MapPin}
-                      name="venue"
-                      placeholder="e.g. Jakarta Convention Center"
-                      value={form.venue}
-                      onChange={handle}
-                    />
-                  </Field>
                 </Section>
               </motion.div>
 
@@ -1281,8 +1323,8 @@ export default function EditEvent() {
                         {
                           value: "custom",
                           label: "Custom",
-                          desc: "Your own background",
-                          icon: Globe,
+                          desc: "Upload your own",
+                          icon: Upload,
                         },
                       ].map(({ value, label, desc, icon }) => (
                         <ChoiceCard
@@ -1297,15 +1339,35 @@ export default function EditEvent() {
                       ))}
                     </div>
                   </Field>
+
                   {form.backgroundType === "custom" && (
-                    <Field label="Custom Background URL">
-                      <StyledInput
-                        icon={Globe}
-                        name="customBackground"
-                        placeholder="https://…"
+                    <Field
+                      label="Custom Background Image"
+                      required
+                      error={
+                        !form.customBackground &&
+                        "Custom background is required"
+                      }
+                    >
+                      <ImageUploader
                         value={form.customBackground}
-                        onChange={handle}
+                        onUpload={handleBackgroundUpload}
+                        onClear={() => {
+                          set("customBackground", "");
+                          set("customBackgroundPublicId", "");
+                        }}
+                        uploading={uploadingBackground}
+                        label="background"
                       />
+                      {!form.customBackground && (
+                        <p
+                          className="text-[11px] mt-1"
+                          style={{ color: "#f87171" }}
+                        >
+                          Custom background is required when selecting Custom
+                          background type
+                        </p>
+                      )}
                     </Field>
                   )}
                 </Section>
@@ -1318,19 +1380,16 @@ export default function EditEvent() {
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
                 <Section title="Media & 3D" icon={Image} accent="#fb923c">
-                  <Field label="Event Thumbnail" hint="Paste an image URL">
-                    <ThumbnailPicker
+                  <Field label="Event Thumbnail" hint="Upload an image">
+                    <ImageUploader
                       value={form.thumbnailUrl}
-                      onChange={(v) => set("thumbnailUrl", v)}
-                    />
-                  </Field>
-                  <Field label="3D Model URL" hint="Optional">
-                    <StyledInput
-                      icon={Box}
-                      name="modelUrl"
-                      placeholder="https://model.glb or .obj"
-                      value={form.modelUrl}
-                      onChange={handle}
+                      onUpload={handleThumbnailUpload}
+                      onClear={() => {
+                        set("thumbnailUrl", "");
+                        set("thumbnailPublicId", "");
+                      }}
+                      uploading={uploadingThumbnail}
+                      label="thumbnail"
                     />
                   </Field>
                 </Section>

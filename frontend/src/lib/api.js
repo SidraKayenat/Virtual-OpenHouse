@@ -123,6 +123,22 @@ export const eventAPI = {
     api("/events/stats/dashboard", {
       method: "GET",
     }),
+
+  uploadThumbnail: (eventId, formData) => {
+    return fetch(`${API_BASE_URL}/events/${eventId}/upload-thumbnail`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((res) => res.json());
+  },
+
+  uploadBackground: (eventId, formData) => {
+    return fetch(`${API_BASE_URL}/events/${eventId}/upload-background`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((res) => res.json());
+  },
 };
 
 export const notificationAPI = {
@@ -351,4 +367,34 @@ export const stallAPI = {
       body: formData,
     }).then((res) => res.json());
   },
+};
+
+// ===== USER API CALLS =====
+export const userAPI = {
+  // Get user statistics (total users & admins) - Public
+  getStats: () => api("/users/stats", { method: "GET" }),
+
+  // Get recent users (latest 3 users with role "user") - Public
+  getRecentUsers: (limit = 3) =>
+    api(`/users/recent?limit=${limit}`, { method: "GET" }),
+
+  // Get all users - Admin only
+  getAllUsers: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const querySuffix = queryString ? `?${queryString}` : "";
+    return api(`/users${querySuffix}`, { method: "GET" });
+  },
+
+  // Get user by ID - Authenticated
+  getById: (userId) => api(`/users/${userId}`, { method: "GET" }),
+
+  // Update user profile - Authenticated
+  update: (userId, userData) =>
+    api(`/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(userData),
+    }),
+
+  // Delete user - Admin only
+  delete: (userId) => api(`/users/${userId}`, { method: "DELETE" }),
 };

@@ -13,13 +13,16 @@ import ManageEvent from "./pages/event/ManageEvent";
 import EventViewerPage from "./pages/event/EventViewerPage";
 import { AuthProvider } from "./context/AuthContext";
 import EventDetails from "./pages/event/EventDetails";
-import BrowseEvents from "./pages/event/BrowseEvents";
+import BrowseEvents from "./pages/event/browse/BrowseEvents";
+import PublicBrowseEvents from "./pages/event/browse/PublicBrowseEvent";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import MyRegistrations from "./pages/registration/MyRegistrations";
 import MyEvents from "./pages/event/MyEvents";
 import MyStalls from "./pages/stall/MyStalls";
 import StallEditor from "./pages/stall/StallEditor";
 import UpdateRegistration from "./pages/registration/UpdateRegistration";
+import UserSettings from "./pages/settings/UserSettings";
+import EventRequests from "./pages/event/EventRequests";
 function App() {
   return (
     <BrowserRouter>
@@ -30,9 +33,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Signup />} />
           <Route path="/events/:eventId" element={<EventDetails />} />
-          <Route path="/browseevents" element={<BrowseEvents />} />
+          <Route path="/publicbrowseevents" element={<PublicBrowseEvents />} />
           <Route path="/event/view/:eventId" element={<EventViewerPage />} />
-          <Route path="/browseevents" element={<BrowseEvents />} />
 
           {/* User */}
           <Route
@@ -44,12 +46,30 @@ function App() {
             }
           />
 
+          <Route
+            path="/user/settings"
+            element={
+              <ProtectedRoute>
+                <UserSettings />
+              </ProtectedRoute>
+            }
+          />
+
           {/* event  */}
           <Route
             path="/user/create-event"
             element={
               <ProtectedRoute>
                 <CreateEvent />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/user/browseevents"
+            element={
+              <ProtectedRoute>
+                <BrowseEvents />
               </ProtectedRoute>
             }
           />
@@ -73,6 +93,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/admin/events/requests"
+            element={
+              <ProtectedRoute>
+                <EventRequests />
+              </ProtectedRoute>
+            }
+          ></Route>
 
           {/* registrations  */}
 

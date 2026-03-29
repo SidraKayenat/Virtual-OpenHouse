@@ -127,7 +127,6 @@ export const createEvent = async (req, res) => {
       venue,
     } = req.body;
 
-
     // If backgroundType is "default", fetch the default background URL from Settings
     let defaultBackgroundUrl = null;
     if (backgroundType === "default" || !backgroundType) {
@@ -947,7 +946,7 @@ export const setDefaultBackground = async (req, res) => {
         $set: {
           defaultBackgroundUrl: newDefaultBackgroundUrl,
         },
-      }
+      },
     );
 
     res.status(200).json({
@@ -1165,4 +1164,3 @@ export const getDefaultBackground = async (req, res) => {
     });
   }
 };
-

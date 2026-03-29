@@ -27,7 +27,7 @@ const userGroups = [
     label: "Overview",
     links: [
       { name: "Dashboard", path: "/user/dashboard", icon: LayoutDashboard },
-      { name: "Browse Events", path: "/browseevents", icon: Compass },
+      { name: "Browse Events", path: "/user//browseevents", icon: Compass },
     ],
   },
   {
@@ -44,7 +44,7 @@ const userGroups = [
         path: "/user/stalls",
         icon: ClipboardList,
       },
-      { name: "My Tickets (PF)", path: "/user/tickets", icon: Ticket },
+      // { name: "My Tickets (PF)", path: "/user/tickets", icon: Ticket },
       // { name: "Notifications", path: "/user/notifications", icon: Bell },
     ],
   },
@@ -62,37 +62,46 @@ const adminGroups = [
     label: "Overview",
     links: [
       { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-      { name: "Analytics", path: "/admin/analytics", icon: BarChart2 },
+      { name: "Browse Events", path: "/browseevents", icon: Compass },
     ],
   },
   {
-    label: "Events",
+    label: "Moderation",
     links: [
       {
-        name: "Pending Approval",
-        path: "/admin/events/pending",
+        name: "Pending Events",
+        path: "/admin/events/requests",
         icon: CheckSquare,
       },
-      { name: "All Events", path: "/admin/events", icon: Calendar },
-      { name: "Live Events", path: "/admin/events/live", icon: Eye },
+      {
+        name: "Reported Content",
+        path: "/admin/reports", // future
+        icon: Bell,
+      },
     ],
   },
   {
-    label: "People",
+    label: "Management",
     links: [
-      {
-        name: "Registrations",
-        path: "/admin/registrations",
-        icon: ClipboardList,
-      },
-      { name: "Users", path: "/admin/users", icon: Users },
+      { name: "All Events", path: "/admin/events", icon: Calendar },
+      { name: "All Users", path: "/admin/users", icon: Users },
+      { name: "All Stalls", path: "/admin/stalls", icon: ClipboardList },
     ],
   },
   {
     label: "System",
     links: [
-      { name: "Permissions", path: "/admin/permissions", icon: ShieldCheck },
       { name: "Settings", path: "/admin/settings", icon: Settings },
+      {
+        name: "Team & Management",
+        path: "/admin/team",
+        icon: ShieldCheck,
+      },
+      {
+        name: "Logs / Activity",
+        path: "/admin/logs",
+        icon: BarChart2,
+      },
     ],
   },
 ];
