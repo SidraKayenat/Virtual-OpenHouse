@@ -30,12 +30,32 @@ const notificationSchema = new Schema(
     type: {
       type: String,
       enum: [
-        "event_request",
+        // Event Admin notifications
+        "event_submitted",
         "event_approved",
         "event_rejected",
-        "event_live",
+        "event_published",
+        "registration_received",
+        "event_reminder",
+        "event_starting_soon",
+        // Reminders
+        "event_reminder_24h",
+        "event_reminder_1h",
+        "event_ended",
+        // System Admin notifications
+        "event_pending_approval",
+        // Participant/User notifications - Registration
+        "registration_submitted",
         "registration_approved",
+        "registration_rejected",
         "registration_cancelled",
+        // Participant/User notifications - Stall
+        "stall_created",
+        "stall_published",
+        // System notifications
+        "welcome",
+        "account_created",
+        "new_user",
       ],
       required: true,
     },

@@ -3,6 +3,13 @@ import Registration from "../models/Registration.js";
 import Settings from "../models/Settings.js";
 import mongoose from "mongoose";
 import { deleteFromCloudinary } from "../config/cloudinary.js";
+import {
+  notifyEventSubmitted,
+  notifyEventApproved,
+  notifyEventRejected,
+  notifyEventPublished,
+  notifyAdminPendingApproval,
+} from "../services/notificationService.js";
 
 const ensureCorrectStatus = async (event) => {
   if (
@@ -157,6 +164,19 @@ export const createEvent = async (req, res) => {
 
     await event.populate("createdBy", "name email organization");
 
+    // Send notifications
+    try {
+      // Notify event creator that event was submitted
+      await notifyEventSubmitted(event._id, event.name, req.user._id);
+      
+      // Notify all system admins of pending approval
+      const creatorName = req.user.name || "Event Creator";
+      await notifyAdminPendingApproval(event._id, event.name, creatorName);
+    } catch (notifError) {
+      console.error("Error sending notifications:", notifError);
+      // Don't fail the request if notifications fail
+    }
+
     res.status(201).json({
       success: true,
       message:
@@ -285,6 +305,14 @@ export const approveEvent = async (req, res) => {
     await event.save();
     await event.populate("createdBy", "name email organization");
 
+    // Send notification to event creator
+    try {
+      await notifyEventApproved(event._id, event.name, event.createdBy._id);
+    } catch (notifError) {
+      console.error("Error sending approval notification:", notifError);
+      // Don't fail the request if notification fails
+    }
+
     res.status(200).json({
       success: true,
       message: "Event approved successfully",
@@ -344,6 +372,14 @@ export const rejectEvent = async (req, res) => {
     await event.save();
     await event.populate("createdBy", "name email organization");
 
+    // Send notification to event creator
+    try {
+      await notifyEventRejected(event._id, event.name, event.createdBy._id, rejectionReason);
+    } catch (notifError) {
+      console.error("Error sending rejection notification:", notifError);
+      // Don't fail the request if notification fails
+    }
+
     res.status(200).json({
       success: true,
       message: "Event rejected",
@@ -394,6 +430,14 @@ export const publishEvent = async (req, res) => {
     event.publishedBy = req.user._id;
 
     await event.save();
+
+    // Send notification to event creator
+    try {
+      await notifyEventPublished(event._id, event.name, req.user._id);
+    } catch (notifError) {
+      console.error("Error sending publish notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     // TODO: Send notifications to all attendees/interested users
 
