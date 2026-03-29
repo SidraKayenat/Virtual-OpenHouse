@@ -9,6 +9,7 @@ import { StallManager } from "./StallManager";
 import { PlayerController } from "./PlayerController";
 import { CameraController } from "./CameraController";
 import { CAMERA_CONFIG } from "./utils/constants";
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
   const isUIOpenRef = useRef(isUIOpen);
@@ -113,6 +114,14 @@ useEffect(() => {
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
+    // After creating the main renderer
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+labelRenderer.domElement.style.pointerEvents = 'none'; // so clicks pass through to Three.js
+canvasRef.current.parentElement.appendChild(labelRenderer.domElement);
+
     const handleClick = (event) => {
       // 🔥 DON'T RAYCAST IF UI IS OPEN
       if (isUIOpenRef.current) {
@@ -156,6 +165,7 @@ useEffect(() => {
       controls.update();
 
       renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
       animationId = requestAnimationFrame(animate);
     };
 
@@ -166,6 +176,7 @@ useEffect(() => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
     };
 
     window.addEventListener("resize", handleResize);
@@ -175,6 +186,7 @@ useEffect(() => {
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("pointerdown", handleClick);
       cancelAnimationFrame(animationId);
+      labelRenderer.domElement.remove();
       cameraControllerRef.current = null;
       playerController.dispose();
       stallManager.dispose();

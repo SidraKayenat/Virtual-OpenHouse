@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { STALL_CONFIG, HALL_DIMENSIONS } from './utils/constants';
+import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
 export class StallManager {
   constructor(scene) {
@@ -8,6 +9,7 @@ export class StallManager {
     this.loader = new GLTFLoader();
     this.stalls = [];
     this.mixers = [];
+    this.labels = [];
   }
 
   async createStalls(stallCount, stallData) {
@@ -160,6 +162,29 @@ export class StallManager {
     return positions;
   }
 
+  createLabel(x, z, name) {
+  const div = document.createElement('div');
+  div.textContent = name;
+  div.style.cssText = `
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: sans-serif;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    border: 1px solid rgba(255,255,255,0.15);
+  `;
+
+  const label = new CSS2DObject(div);
+  // HITBOX_SIZE is 38, SCALE is 7 — position label above stall
+  label.position.set(x + 3, 28, z); // 👈 tweak y if too high/low
+  this.scene.add(label);
+  this.labels.push(label);
+}
+
   /* ================= STALL CREATION ================= */
 
   async createSingleStall(x, z, stallData, rotation = 0) {
@@ -182,6 +207,8 @@ export class StallManager {
 
       const hitbox = this.createHitbox(x, z, stallData);
       this.stalls.push(hitbox);
+
+      this.createLabel(x, z, stallData.name || `Stall ${stallData.id}`);
 
       if (gltf.animations.length) {
         const mixer = new THREE.AnimationMixer(model);
@@ -238,6 +265,10 @@ export class StallManager {
       stall.geometry.dispose();
       stall.material.dispose();
     });
+     this.labels.forEach((label) => {  // 👈 add this block
+    this.scene.remove(label);
+    label.element.remove();
+  });
     this.stalls = [];
     this.mixers = [];
   }
