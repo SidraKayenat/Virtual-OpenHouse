@@ -29,7 +29,7 @@ export const CAMERA_CONFIG = {
 
 export const STALL_CONFIG = {
   SCALE: 7,
-  HITBOX_SIZE: 35,
+  HITBOX_SIZE: 38,
   DEFAULT_MODEL: "/models/fbx.glb",
 };
 

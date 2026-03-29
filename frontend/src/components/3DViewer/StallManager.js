@@ -208,13 +208,15 @@ export class StallManager {
   createHitbox(x, z, stallData) {
     const hitbox = new THREE.Mesh(
       new THREE.BoxGeometry(
+        STALL_CONFIG.HITBOX_SIZE-15,
         STALL_CONFIG.HITBOX_SIZE,
-        STALL_CONFIG.HITBOX_SIZE,
-        STALL_CONFIG.HITBOX_SIZE
+        STALL_CONFIG.HITBOX_SIZE-15
       ),
-      new THREE.MeshBasicMaterial({ visible: false })
+      new THREE.MeshBasicMaterial({ 
+      visible: false,      
+    })
     );
-    hitbox.position.set(x, 3, z);
+    hitbox.position.set(x + 2 , 3, z);
     hitbox.userData = stallData;
     this.scene.add(hitbox);
     return hitbox;

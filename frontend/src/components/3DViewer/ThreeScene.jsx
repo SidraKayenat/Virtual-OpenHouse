@@ -77,6 +77,7 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
           eventData.stallCount || eventData.numberOfStalls || eventData.stalls?.length || 0,
           eventData.stalls || [],
         );
+        playerController.setHitboxes(stallManager.getStalls());
 
         console.log("✅ Scene initialization complete");
         setIsLoading(false);
