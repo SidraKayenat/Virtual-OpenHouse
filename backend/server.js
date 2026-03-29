@@ -95,7 +95,7 @@ mongoose.connection.on("connected", () => {
 
 // ===== SETUP CRON JOBS FOR SCHEDULED NOTIFICATIONS =====
 // Only setup cron jobs once connection is established
-mongoose.connection.collection.once("connected", () => {
+mongoose.connection.once("open", () => {
   console.log("🕐 Setting up scheduled notification cron jobs...");
 
   // Send event reminders - 24 hours before event goes live
@@ -121,7 +121,9 @@ mongoose.connection.collection.once("connected", () => {
     try {
       const result = await sendEventStartingSoonNotifications();
       if (result.events > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} event starting soon notifications for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} event starting soon notifications for ${result.events} events`,
+        );
       } else {
         console.log("📭 No events starting soon");
       }
@@ -151,7 +153,9 @@ mongoose.connection.collection.once("connected", () => {
     try {
       const result = await updateCompletedEventStatuses();
       if (result.updated > 0) {
-        console.log(`✅ Updated ${result.updated} events to "completed" status`);
+        console.log(
+          `✅ Updated ${result.updated} events to "completed" status`,
+        );
       }
     } catch (error) {
       console.error("❌ Error updating completed event statuses:", error);
@@ -165,7 +169,9 @@ mongoose.connection.collection.once("connected", () => {
     try {
       const result = await sendReminder24hBeforeStart();
       if (result.totalNotificationsSent > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} 24-hour event reminders for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} 24-hour event reminders for ${result.events} events`,
+        );
       } else {
         console.log("📭 No 24-hour event reminders to send");
       }
@@ -181,7 +187,9 @@ mongoose.connection.collection.once("connected", () => {
     try {
       const result = await sendReminder1hBeforeStart();
       if (result.totalNotificationsSent > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} 1-hour event reminders for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} 1-hour event reminders for ${result.events} events`,
+        );
       } else {
         console.log("📭 No 1-hour event reminders to send");
       }
@@ -197,7 +205,9 @@ mongoose.connection.collection.once("connected", () => {
     try {
       const result = await sendEventEndedNotifications();
       if (result.totalNotificationsSent > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} event ended notifications for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} event ended notifications for ${result.events} events`,
+        );
       } else {
         console.log("📭 No event ended notifications to send");
       }
