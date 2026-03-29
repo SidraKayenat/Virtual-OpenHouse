@@ -11,9 +11,28 @@ import { CameraController } from "./CameraController";
 import { CAMERA_CONFIG } from "./utils/constants";
 
 const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
-  // 🔥 Add isUIOpen prop
+  const isUIOpenRef = useRef(isUIOpen);
+  const onStallClickRef = useRef(onStallClick);
+  const cameraControllerRef = useRef(null);
   const canvasRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+  isUIOpenRef.current = isUIOpen;
+}, [isUIOpen]);
+
+useEffect(() => {
+  onStallClickRef.current = onStallClick;
+}, [onStallClick]);
+
+useEffect(() => {
+  isUIOpenRef.current = isUIOpen;
+
+  // When popup closes, release camera focus
+  if (!isUIOpen && cameraControllerRef.current) {
+    cameraControllerRef.current.releaseFocus(); // 👈 this is the key line
+  }
+}, [isUIOpen]);
 
   useEffect(() => {
     if (!canvasRef.current || !eventData) return;
@@ -60,9 +79,10 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
     const stallManager = new StallManager(scene);
     const playerController = new PlayerController(scene, camera);
     const cameraController = new CameraController(camera, controls);
+    cameraControllerRef.current = cameraController;
 
-    // 🔥 SET UP UI OPEN CALLBACK
-    playerController.setUIOpenCallback(() => isUIOpen);
+    //  SET UP UI OPEN CALLBACK
+    playerController.setUIOpenCallback(() => isUIOpenRef.current);
 
     // Load environment and stalls
     const initializeScene = async () => {
@@ -95,7 +115,7 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
 
     const handleClick = (event) => {
       // 🔥 DON'T RAYCAST IF UI IS OPEN
-      if (isUIOpen) {
+      if (isUIOpenRef.current) {
         console.log("⏭️ UI is open, ignoring click");
         return;
       }
@@ -118,9 +138,9 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
 
         cameraController.focusOn(intersects[0].object.position);
 
-        if (onStallClick && typeof onStallClick === "function") {
-          onStallClick(stallData);
-        }
+        if (onStallClickRef.current && typeof onStallClickRef.current === "function") {
+  onStallClickRef.current(stallData); 
+}
       }
     };
 
@@ -155,11 +175,12 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("pointerdown", handleClick);
       cancelAnimationFrame(animationId);
+      cameraControllerRef.current = null;
       playerController.dispose();
       stallManager.dispose();
       renderer.dispose();
     };
-  }, [eventData, onStallClick, isUIOpen]); // 🔥 Add isUIOpen to dependencies
+  }, [eventData]); 
 
   return (
     <>
