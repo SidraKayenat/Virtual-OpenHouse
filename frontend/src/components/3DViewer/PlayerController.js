@@ -128,8 +128,8 @@ export class PlayerController {
     );
     this.player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
 
-    const hw = 130 / 2 - 1;
-    const hd = 140 / 2 - 1;
+    const hw = 330 ;
+    const hd = 340 ;
     this.player.position.x = this.clamp(this.player.position.x, -hw, hw);
     this.player.position.z = this.clamp(this.player.position.z, -hd, hd);
   }
