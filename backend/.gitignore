@@ -1,1 +1,10 @@
+node_modules/
 .env
+__pycache__/
+*.pyc
+*.sqlite3
+ai-chatbot/db/
+backend/node_modules/
+frontend/node_modules/
+dist/
+build/
