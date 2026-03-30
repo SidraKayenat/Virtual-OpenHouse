@@ -1,3 +1,4 @@
+// backend/server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -11,6 +12,9 @@ import registrationRoutes from "./routes/registrationRoutes.js";
 
 
 
+import uploadsRoutes from "./routes/uploads.js";
+import chatbotRoutes from "./routes/chatbot.js";
+import chatbotTrainRoutes from "./routes/chatbotTrain.js";
 // This loads variables from a .env file into process.env
 dotenv.config();
 // app: Initializes an Express application.
@@ -39,6 +43,15 @@ app.use(
     credentials: true,
   }),
 );
+    app.use(cookieParser());
+    app.use(express.json());
+    // app.use("/api/contacts",contactsRoutes);
+    // app.use("/api/messages",messagesRoutes);
+    // app.use("/api/channel",channelRoutes);
+    app.use('/api/auth',authRoutes);
+    app.use('/api/chatbot', chatbotRoutes);
+    app.use('/api/dev', chatbotTrainRoutes);
+    app.use('/api/uploads', uploadsRoutes);
 
 
 app.use("/api/events", eventRoutes);
@@ -82,3 +95,10 @@ mongoose.connection.on("disconnected", () => {
 mongoose.connection.on("connected", () => {
   console.log("Connected to database:", mongoose.connection.db.databaseName);
 });
+    mongoose.connection.on("connected", () => {
+        console.log("Connected to database:", mongoose.connection.db.databaseName);
+      });
+
+
+
+

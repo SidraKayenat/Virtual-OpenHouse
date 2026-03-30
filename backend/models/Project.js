@@ -218,5 +218,5 @@ projectSchema.virtual('fullUrl').get(function() {
   return `/projects/${this._id}`;
 });
 
-const Project = module.exports = mongoose.model('Project', projectSchema);
+const Project = mongoose.model("Project", projectSchema);
 export default Project;
