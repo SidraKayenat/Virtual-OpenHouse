@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { Bell, ChevronRight, Home } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import Notifications from "@/components/Notifications";
-
+import Notifications from "@/components/notifications/Notifications";
+import NotificationBell from "../notifications/notificationBell";
 // ─── Route → breadcrumb map ───────────────────────────────────────────────
 // Each entry: path pattern → array of { label, href? }
 // Dynamic segments (:id) are handled separately below.
@@ -236,53 +236,9 @@ export default function DashboardNavbar() {
       <div className="flex items-center gap-3">
         {/* Notification bell */}
         <div className="relative">
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{
-              color: "rgba(255,255,255,0.45)",
-              background: notifOpen ? "rgba(255,255,255,0.08)" : "transparent",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "rgba(255,255,255,0.07)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = notifOpen
-                ? "rgba(255,255,255,0.08)"
-                : "transparent")
-            }
-          >
-            <Bell size={16} strokeWidth={1.8} />
-            {/* Unread dot — render if you have unread count */}
-            <span
-              className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
-              style={{ background: "#a78bfa" }}
-            />
-          </button>
-
-          {/* Dropdown */}
-          {notifOpen && (
-            <>
-              {/* Backdrop to close */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setNotifOpen(false)}
-              />
-              <div
-                className="absolute right-0 top-full mt-2 w-80 z-50 rounded-2xl overflow-hidden shadow-2xl"
-                style={{
-                  background: "#16141f",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                  boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
-                }}
-              >
-                <Notifications />
-              </div>
-            </>
-          )}
+          <NotificationBell />
         </div>
 
-        {/* Divider */}
         <div
           className="w-px h-5"
           style={{ background: "rgba(255,255,255,0.08)" }}

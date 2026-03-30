@@ -43,8 +43,13 @@ export const eventAPI = {
 
   // Get all events (admin)
   getAll: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return api(`/events?${queryString}`, { method: "GET" });
+    // Remove undefined values
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== ""),
+    );
+    const queryString = new URLSearchParams(cleanParams).toString();
+    const url = queryString ? `/events?${queryString}` : "/events";
+    return api(url, { method: "GET" });
   },
 
   // Get my events
@@ -141,26 +146,36 @@ export const eventAPI = {
   },
 };
 
+// ===== NOTIFICATION API CALLS =====
+// Add this to your api.js file after the other API definitions
+
+// ===== NOTIFICATION API CALLS =====
 export const notificationAPI = {
-  // Get notifications
+  // Get all notifications for current user
   getAll: (limit = 20, skip = 0) =>
     api(`/notifications?limit=${limit}&skip=${skip}`, {
       method: "GET",
     }),
 
-  // Mark as read
+  // Get unread count only (lightweight)
+  getUnreadCount: () =>
+    api(`/notifications/unread-count`, {
+      method: "GET",
+    }),
+
+  // Mark a specific notification as read
   markAsRead: (notificationId) =>
     api(`/notifications/${notificationId}/read`, {
       method: "PATCH",
     }),
 
-  // Mark all as read
+  // Mark all notifications as read
   markAllAsRead: () =>
     api("/notifications/read/all", {
       method: "PATCH",
     }),
 
-  // Delete notification
+  // Delete a notification
   delete: (notificationId) =>
     api(`/notifications/${notificationId}`, {
       method: "DELETE",
@@ -397,4 +412,23 @@ export const userAPI = {
 
   // Delete user - Admin only
   delete: (userId) => api(`/users/${userId}`, { method: "DELETE" }),
+
+  activateUser: (id) =>
+    api(`/users/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ isActive: true }),
+    }),
+
+  deactivateUser: (id) =>
+    api(`/users/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ isActive: false }),
+    }),
+
+  // Update user role (admin only)
+  updateRole: (userId, role) =>
+    api(`/users/${userId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
 };
