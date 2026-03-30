@@ -257,7 +257,7 @@ export default function Sidebar() {
     <motion.aside
       variants={sidebarVariants}
       animate={collapsed ? "collapsed" : "expanded"}
-      className="relative flex flex-col min-h-screen h-full flex-shrink-0 overflow-hidden"
+      className="relative flex flex-col min-h-screen h-full flex-shrink-0 overflow-visible"
       style={{
         background: "linear-gradient(180deg, #0f0f1a 0%, #12101e 100%)",
         borderRight: "1px solid rgba(255,255,255,0.06)",

@@ -251,7 +251,7 @@ export default function TeamsAndManagement() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#0c0c0f] text-white font-sans">
+    <div className="h-screen flex bg-[#0c0c0f] text-white font-sans">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">

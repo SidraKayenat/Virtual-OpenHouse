@@ -507,7 +507,7 @@ export default function NotificationBell() {
               }}
             >
               <Link
-                to="/user/notifications"
+                to="/notifications"
                 onClick={() => setShowDropdown(false)}
                 className="flex items-center justify-center gap-1.5 w-full text-[11px] font-medium py-1.5 rounded-lg transition-all"
                 style={{
