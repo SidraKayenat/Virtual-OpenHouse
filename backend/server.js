@@ -91,7 +91,7 @@ mongoose.connection.on("connected", () => {
 
 // ===== SETUP CRON JOBS FOR SCHEDULED NOTIFICATIONS =====
 // Only setup cron jobs once connection is established
-mongoose.connection.collection.once("connected", () => {
+mongoose.connection.once("open", () => {
   console.log("🕐 Setting up scheduled notification cron jobs...");
 
   // Send event reminders - 24 hours before event goes live
@@ -140,7 +140,7 @@ mongoose.connection.collection.once("connected", () => {
     }
   });
 
-  // Update event statuses to "completed" when endTime is passed
+  // Update event statuses to "completed" when liveDate started AND endTime passed
   // Runs every 5 minutes
   cron.schedule("*/5 * * * *", async () => {
     console.log("⏰ Running: Completed event status update...");

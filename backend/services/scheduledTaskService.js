@@ -107,30 +107,49 @@ export const updateLiveEventStatuses = async () => {
 };
 
 /**
- * Update event status to 'completed' when endTime is passed
+ * Update event status to 'completed' when liveDate started AND endTime passed
+ * Handles startTime and endTime as strings ("HH:MM" format)
  * Should be called frequently
  */
 export const updateCompletedEventStatuses = async () => {
   try {
     const now = new Date();
 
-    const updated = await Event.updateMany(
-      {
-        status: { $in: ["published", "live"] },
-        endTime: { $lte: now },
-      },
-      {
-        $set: { status: "completed" },
-      }
-    );
+    // Get all live events
+    const liveEvents = await Event.find({
+      status: "live",
+      liveDate: { $lte: now },
+      endTime: { $ne: null },
+    });
 
-    if (updated.modifiedCount > 0) {
-      console.log(`Updated ${updated.modifiedCount} events to 'completed' status`);
+    let completedCount = 0;
+
+    // Check each event to see if endTime has passed
+    for (const event of liveEvents) {
+      // Parse endTime string ("HH:MM") and combine with liveDate
+      if (event.endTime && typeof event.endTime === 'string') {
+        const [hours, minutes] = event.endTime.split(':').map(Number);
+        const eventEndDateTime = new Date(event.liveDate);
+        eventEndDateTime.setHours(hours, minutes, 0, 0);
+
+        // If current time has passed the end time, mark as completed
+        if (now >= eventEndDateTime) {
+          await Event.updateOne(
+            { _id: event._id },
+            { $set: { status: "completed" } }
+          );
+          completedCount++;
+        }
+      }
+    }
+
+    if (completedCount > 0) {
+      console.log(`Updated ${completedCount} events to 'completed' status`);
     }
 
     return {
       success: true,
-      updated: updated.modifiedCount,
+      updated: completedCount,
     };
   } catch (error) {
     console.error("Error updating completed event statuses:", error);
