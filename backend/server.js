@@ -146,7 +146,7 @@ mongoose.connection.once("open", () => {
     }
   });
 
-  // Update event statuses to "completed" when endTime is passed
+  // Update event statuses to "completed" when liveDate started AND endTime passed
   // Runs every 5 minutes
   cron.schedule("*/5 * * * *", async () => {
     console.log("⏰ Running: Completed event status update...");
