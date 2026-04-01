@@ -24,7 +24,17 @@ router.get("/:eventId", verifyToken, eventController.getEventById);
 // Admin-only routes (system_admin role required)
 router.patch("/:eventId/approve", verifyToken, eventController.approveEvent);
 router.patch("/:eventId/reject", verifyToken, eventController.rejectEvent);
-
+router.get("/admin/settings", verifyToken, eventController.getSettings);
+router.put(
+  "/admin/settings/system",
+  verifyToken,
+  eventController.updateSystemSettings,
+);
+router.delete(
+  "/admin/settings/default-background",
+  verifyToken,
+  eventController.removeDefaultBackground,
+);
 // Event creator routes
 router.patch("/:eventId/publish", verifyToken, eventController.publishEvent);
 router.put("/:eventId", verifyToken, eventController.updateEvent);
@@ -38,7 +48,7 @@ router.post(
   "/:eventId/upload-thumbnail",
   verifyToken,
   uploadEventThumbnail.single("thumbnail"),
-  eventController.uploadEventThumbnail
+  eventController.uploadEventThumbnail,
 );
 
 // Upload custom background
@@ -46,7 +56,7 @@ router.post(
   "/:eventId/upload-background",
   verifyToken,
   uploadEventBackground.single("background"),
-  eventController.uploadEventBackground
+  eventController.uploadEventBackground,
 );
 
 // Set default background (admin only)
@@ -54,28 +64,28 @@ router.post(
   "/admin/set-default-background",
   verifyToken,
   uploadEventDefaultBackground.single("defaultBackground"),
-  eventController.setDefaultBackground
+  eventController.setDefaultBackground,
 );
 
 // Update background type (switch between default and custom)
 router.patch(
   "/:eventId/background-type",
   verifyToken,
-  eventController.updateBackgroundType
+  eventController.updateBackgroundType,
 );
 
 // Delete thumbnail
 router.delete(
   "/:eventId/thumbnail",
   verifyToken,
-  eventController.deleteEventThumbnail
+  eventController.deleteEventThumbnail,
 );
 
 // Delete custom background
 router.delete(
   "/:eventId/background",
   verifyToken,
-  eventController.deleteCustomBackground
+  eventController.deleteCustomBackground,
 );
 
 // Admin route - get all events

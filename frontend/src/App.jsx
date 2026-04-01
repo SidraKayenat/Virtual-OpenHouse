@@ -29,6 +29,7 @@ import AllUsers from "./pages/users/AllUsers";
 import NotificationsPage from "./pages/notifications/Notifications";
 import EventRequests from "./pages/event/EventRequests";
 import TeamsAndManagement from "./pages/TeamsAndManagement";
+import AdminSettings from "./pages/settings/AdminSettings";
 function App() {
   return (
     <AuthProvider>
@@ -220,6 +221,16 @@ function App() {
           element={
             <ProtectedRoute>
               <TeamsAndManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* // Settings  */}
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute>
+              <AdminSettings />
             </ProtectedRoute>
           }
         />
