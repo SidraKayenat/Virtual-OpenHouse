@@ -28,6 +28,7 @@ const userGroups = [
     links: [
       { name: "Dashboard", path: "/user/dashboard", icon: LayoutDashboard },
       { name: "Browse Events", path: "/user/browseevents", icon: Compass },
+      { name: "Notifications", path: "/notifications", icon: Bell },
     ],
   },
   {
@@ -62,17 +63,31 @@ const adminGroups = [
     label: "Overview",
     links: [
       { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-      { name: "Browse Events", path: "/browseevents", icon: Compass },
+      { name: "Notifications", path: "/notifications", icon: Bell },
+    ],
+  },
+
+  {
+    label: "Management",
+    links: [
+      {
+        name: "Event Requests",
+        path: "/admin/events/requests",
+        icon: CheckSquare,
+      },
+      { name: "All Events", path: "/admin/browseevents", icon: Calendar },
+      { name: "All Users", path: "/admin/users", icon: Users },
+      // { name: "All Stalls", path: "/admin/stalls", icon: ClipboardList },
     ],
   },
   {
     label: "Moderation",
     links: [
-      {
-        name: "Pending Events",
-        path: "/admin/events/requests",
-        icon: CheckSquare,
-      },
+      // {
+      //   name: "Pending Events",
+      //   path: "/admin/events/requests",
+      //   icon: CheckSquare,
+      // },
       {
         name: "Reported Content",
         path: "/admin/reports", // future
@@ -81,20 +96,12 @@ const adminGroups = [
     ],
   },
   {
-    label: "Management",
-    links: [
-      { name: "All Events", path: "/admin/events", icon: Calendar },
-      { name: "All Users", path: "/admin/users", icon: Users },
-      { name: "All Stalls", path: "/admin/stalls", icon: ClipboardList },
-    ],
-  },
-  {
     label: "System",
     links: [
       { name: "Settings", path: "/admin/settings", icon: Settings },
       {
         name: "Team & Management",
-        path: "/admin/team",
+        path: "/admin/teams",
         icon: ShieldCheck,
       },
       {
@@ -250,7 +257,7 @@ export default function Sidebar() {
     <motion.aside
       variants={sidebarVariants}
       animate={collapsed ? "collapsed" : "expanded"}
-      className="relative flex flex-col min-h-screen h-full flex-shrink-0 overflow-hidden"
+      className="relative flex flex-col h-screen flex-shrink-0 overflow-visible"
       style={{
         background: "linear-gradient(180deg, #0f0f1a 0%, #12101e 100%)",
         borderRight: "1px solid rgba(255,255,255,0.06)",

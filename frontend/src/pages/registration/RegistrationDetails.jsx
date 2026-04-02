@@ -454,7 +454,7 @@ export default function RegistrationDetails() {
   // ── Loading ───────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -476,7 +476,7 @@ export default function RegistrationDetails() {
 
   if (!registration) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -502,7 +502,7 @@ export default function RegistrationDetails() {
 
   return (
     <div
-      className="min-h-screen flex"
+      className="h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -519,7 +519,7 @@ export default function RegistrationDetails() {
 
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
