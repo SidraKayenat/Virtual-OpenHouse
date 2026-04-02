@@ -700,6 +700,18 @@ export default function StallEditor() {
     }
   };
 
+  const handleDeleteDocument = async (publicId) => {
+    if (!window.confirm("Are you sure you want to delete this document?"))
+      return;
+
+    try {
+      await stallAPI.deleteDocument(stallId, publicId);
+      await loadStall(); // refresh UI
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const handleSaveCaption = async (publicId) => {
     try {
       await stallAPI.updateImageCaption(stallId, publicId, captionValue);
@@ -1454,9 +1466,7 @@ export default function StallEditor() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-[13px] font-medium truncate">
-                                    {doc.originalName ||
-                                      doc.url?.split("/").pop() ||
-                                      `Document ${i + 1}`}
+                                    {doc.filename || `Document ${i + 1}`}
                                   </p>
                                   {doc.size && (
                                     <p
@@ -1467,19 +1477,39 @@ export default function StallEditor() {
                                     </p>
                                   )}
                                 </div>
-                                <a
-                                  href={doc.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors"
-                                  style={{
-                                    background: "rgba(167,139,250,0.1)",
-                                    color: "#c4b5fd",
-                                    border: "1px solid rgba(167,139,250,0.18)",
-                                  }}
-                                >
-                                  View
-                                </a>
+                                <div className="flex gap-2">
+                                  {/* Download */}
+                                  <a
+                                    href={`${doc.url}?fl_attachment=${doc.filename}`}
+                                    download={doc.filename}
+                                    className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                    style={{
+                                      background: "rgba(167,139,250,0.1)",
+                                      color: "#c4b5fd",
+                                      border:
+                                        "1px solid rgba(167,139,250,0.18)",
+                                    }}
+                                  >
+                                    Download
+                                  </a>
+
+                                  {/* Delete */}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteDocument(
+                                        encodeURIComponent(doc.publicId),
+                                      )
+                                    }
+                                    className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                    style={{
+                                      background: "rgba(239,68,68,0.1)",
+                                      color: "#fca5a5",
+                                      border: "1px solid rgba(239,68,68,0.18)",
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

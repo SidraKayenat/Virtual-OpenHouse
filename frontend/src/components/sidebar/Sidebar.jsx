@@ -27,7 +27,7 @@ const userGroups = [
     label: "Overview",
     links: [
       { name: "Dashboard", path: "/user/dashboard", icon: LayoutDashboard },
-      { name: "Browse Events", path: "/user//browseevents", icon: Compass },
+      { name: "Browse Events", path: "/user/browseevents", icon: Compass },
     ],
   },
   {
