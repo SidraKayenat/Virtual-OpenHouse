@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 
-
 dotenv.config();
 // ===== CLOUDINARY CONFIGURATION =====
 cloudinary.config({
@@ -45,10 +44,17 @@ const videoStorage = new CloudinaryStorage({
 // Document Storage (PDF, DOCX, PPTX)
 const documentStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: "virtual-openhouse/stalls/documents",
-    resource_type: "raw", // For non-image/video files
-    allowed_formats: ["pdf", "doc", "docx", "ppt", "pptx", "txt"],
+  params: async (req, file) => {
+    const originalName = file.originalname.split(".")[0];
+
+    return {
+      folder: "virtual-openhouse/stalls/documents",
+      resource_type: "raw",
+      public_id: originalName, // ✅ use original name
+      use_filename: true,
+      unique_filename: false, // ❗ VERY IMPORTANT
+      format: file.originalname.split(".").pop(), // ✅ keep extension
+    };
   },
 });
 
