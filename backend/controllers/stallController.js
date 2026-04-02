@@ -2,6 +2,7 @@ import Stall from "../models/Stall.js";
 import Registration from "../models/Registration.js";
 import Event from "../models/Event.js";
 import mongoose from "mongoose";
+import { notifyStallCreated, notifyStallPublished } from "../services/notificationService.js";
 
 // ===== CREATE STALL (Auto-created after registration approval or manual) =====
 export const createStall = async (req, res) => {
@@ -66,6 +67,14 @@ export const createStall = async (req, res) => {
       { path: "owner", select: "name email organization" },
       { path: "event", select: "name liveDate" },
     ]);
+
+    // Send notification to stall owner
+    try {
+      await notifyStallCreated(stall._id, stall.event.name, stall.stallNumber, req.user._id);
+    } catch (notifError) {
+      console.error("Error sending stall created notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(201).json({
       success: true,
@@ -260,7 +269,7 @@ export const publishStall = async (req, res) => {
   try {
     const { stallId } = req.params;
 
-    const stall = await Stall.findById(stallId);
+    const stall = await Stall.findById(stallId).populate("event", "name");
 
     if (!stall) {
       return res.status(404).json({
@@ -301,6 +310,14 @@ export const publishStall = async (req, res) => {
 
     // Publish stall
     await stall.publish();
+
+    // Send notification to stall owner
+    try {
+      await notifyStallPublished(stall._id, stall.event.name, req.user._id);
+    } catch (notifError) {
+      console.error("Error sending stall published notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(200).json({
       success: true,
@@ -377,7 +394,7 @@ export const deleteStall = async (req, res) => {
 
     // Check ownership (or admin)
     const isOwner = stall.isOwnedBy(req.user._id);
-    const isAdmin = req.user.role === "system_admin";
+    const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({

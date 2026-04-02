@@ -1,10 +1,10 @@
 // src/components/EventViewer/EventViewerPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback  } from "react";
 import { useParams } from "react-router-dom";
 import ThreeScene from "@/components/3DViewer/ThreeScene";
 import StallPopup from "@/components/ui/StallPopup";
 import LoadingScreen from "@/components/ui/LoadingScreen";
-import { fetchEventData } from "@/services/api/eventApi";
+import { fetchPublicEventData } from "@/services/api/eventApi";
 
 const EventViewerPage = () => {
   const { eventId } = useParams();
@@ -22,9 +22,9 @@ const EventViewerPage = () => {
         setLoading(true);
         setError("");
 
-        const data = await fetchEventData(eventId);
+        const data = await fetchPublicEventData(eventId);
         setEventData(data);
-        } catch (loadError) {
+      } catch (loadError) {
         console.error("Failed to load event:", loadError);
         setError(loadError.message || "Failed to load event");
       } finally {
@@ -35,18 +35,18 @@ const EventViewerPage = () => {
     loadEventData();
   }, [eventId]);
 
-  const handleStallClick = (stallData) => {
-    setSelectedStall(stallData);
-  };
+  const handleStallClick = useCallback((stallData) => {
+  setSelectedStall(stallData);
+}, []);
 
-  const handleClosePopup = () => {
-    setSelectedStall(null);
-  };
+  const handleClosePopup = useCallback(() => {
+  setSelectedStall(null);
+}, []);
 
   if (loading) {
     return <LoadingScreen />;
   }
-   if (error) {
+  if (error) {
     return (
       <div
         style={{

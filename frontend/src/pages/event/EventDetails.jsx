@@ -1,78 +1,140 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { eventAPI } from "@/lib/api"; // adjust path if your api.js lives elsewhere
+import { eventAPI, stallAPI } from "@/lib/api";
+import {
+  Search,
+  Heart,
+  Eye,
+  Users,
+  Hash,
+  X,
+  Building,
+  ChevronRight,
+} from "lucide-react";
 
-// ─── Countdown Hook ────────────────────────────────────────────────────────
-function useCountdown(targetDate) {
-  const [timeLeft, setTimeLeft] = useState({
-    h: "00",
-    m: "00",
-    s: "00",
-    total: 0,
-  });
+// ─── Helpers ──────────────────────────────────────────────────────────────
+const CATEGORY_COLORS = {
+  technology: "#60a5fa",
+  business: "#34d399",
+  art: "#f472b6",
+  science: "#a78bfa",
+  other: "#fb923c",
+};
 
-  useEffect(() => {
-    if (!targetDate) {
-      setTimeLeft({ h: "00", m: "00", s: "00", total: 0 });
-      return;
+/**
+ * Compute the "real" display status based on the event's stored status
+ * + the live date window at render time.
+ *
+ * Rules:
+ *   - If status === "live"      → show "Live Now"  (server already set it)
+ *   - If status === "published" and liveDate has passed → show "Live Now"
+ *                               and liveDate hasn't passed → keep "Published / Upcoming"
+ *   - If status === "completed" → show "Ended"
+ *   - Everything else           → pass through as-is
+ */
+function resolveDisplayStatus(event) {
+  if (!event) return "published";
+  const { status, liveDate, startTime, endTime } = event;
+
+  const now = new Date();
+  const live = liveDate ? new Date(liveDate) : null;
+
+  // Build an end datetime if we have endTime (HH:mm)
+  let endDt = null;
+  if (live && endTime) {
+    const [h, m] = endTime.split(":").map(Number);
+    endDt = new Date(live);
+    endDt.setHours(h, m, 0, 0);
+  }
+
+  // Server says live
+  if (status === "live") return "live";
+
+  // Server says published — derive live vs upcoming from clock
+  if (status === "published") {
+    if (!live) return "published";
+    if (now >= live) {
+      // If we have an end time and it's passed, treat as completed
+      if (endDt && now > endDt) return "completed";
+      return "live";
     }
+    return "published";
+  }
 
+  return status; // pending | approved | rejected | completed | cancelled
+}
+
+const STATUS_META = {
+  pending: {
+    label: "Pending Review",
+    bg: "rgba(251,191,36,0.12)",
+    color: "#fbbf24",
+    border: "rgba(251,191,36,0.25)",
+  },
+  approved: {
+    label: "Approved",
+    bg: "rgba(52,211,153,0.12)",
+    color: "#34d399",
+    border: "rgba(52,211,153,0.25)",
+  },
+  rejected: {
+    label: "Rejected",
+    bg: "rgba(248,113,113,0.12)",
+    color: "#f87171",
+    border: "rgba(248,113,113,0.25)",
+  },
+  published: {
+    label: "Upcoming",
+    bg: "rgba(96,165,250,0.12)",
+    color: "#60a5fa",
+    border: "rgba(96,165,250,0.25)",
+  },
+  live: {
+    label: "Live Now",
+    bg: "rgba(248,113,113,0.15)",
+    color: "#f87171",
+    border: "rgba(248,113,113,0.35)",
+  },
+  completed: {
+    label: "Ended",
+    bg: "rgba(148,163,184,0.1)",
+    color: "#94a3b8",
+    border: "rgba(148,163,184,0.2)",
+  },
+  cancelled: {
+    label: "Cancelled",
+    bg: "rgba(148,163,184,0.1)",
+    color: "#94a3b8",
+    border: "rgba(148,163,184,0.2)",
+  },
+};
+
+// ─── Countdown ────────────────────────────────────────────────────────────
+function useCountdown(targetDate) {
+  const [t, setT] = useState({ h: "00", m: "00", s: "00", total: 0 });
+  useEffect(() => {
+    if (!targetDate) return;
     const calc = () => {
       const diff = new Date(targetDate).getTime() - Date.now();
-      if (diff <= 0)
-        return setTimeLeft({ h: "00", m: "00", s: "00", total: 0 });
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setTimeLeft({
-        h: String(h).padStart(2, "0"),
-        m: String(m).padStart(2, "0"),
-        s: String(s).padStart(2, "0"),
+      if (diff <= 0) {
+        setT({ h: "00", m: "00", s: "00", total: 0 });
+        return;
+      }
+      setT({
+        h: String(Math.floor(diff / 3600000)).padStart(2, "0"),
+        m: String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0"),
+        s: String(Math.floor((diff % 60000) / 1000)).padStart(2, "0"),
         total: diff,
       });
     };
-
     calc();
     const id = setInterval(calc, 1000);
     return () => clearInterval(id);
   }, [targetDate]);
-
-  return timeLeft;
+  return t;
 }
 
-// ─── Status Badge ──────────────────────────────────────────────────────────
-const STATUS_META = {
-  pending: {
-    label: "Pending Review",
-    classes: "bg-amber-100 text-amber-700 border-amber-200",
-  },
-  approved: {
-    label: "Approved",
-    classes: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  },
-  rejected: {
-    label: "Rejected",
-    classes: "bg-red-100 text-red-700 border-red-200",
-  },
-  published: {
-    label: "Published",
-    classes: "bg-blue-100 text-blue-700 border-blue-200",
-  },
-  live: {
-    label: "Live Now",
-    classes: "bg-red-100 text-red-600 border-red-200 animate-pulse",
-  },
-  completed: {
-    label: "Completed",
-    classes: "bg-slate-100 text-slate-500 border-slate-200",
-  },
-  cancelled: {
-    label: "Cancelled",
-    classes: "bg-rose-100 text-rose-700 border-rose-200",
-  },
-};
-
-// ─── Share Button ──────────────────────────────────────────────────────────
+// ─── Share button ─────────────────────────────────────────────────────────
 function ShareBtn({ icon, label, color, href }) {
   return (
     <a
@@ -80,37 +142,377 @@ function ShareBtn({ icon, label, color, href }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Share on ${label}`}
-      className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md hover:scale-110 transition-transform duration-200 ${color}`}
+      className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform duration-200 ${color}`}
     >
       {icon}
     </a>
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────
+// ─── Stall row ────────────────────────────────────────────────────────────
+function StallRow({ stall, likedIds, onLike }) {
+  const catColor = CATEGORY_COLORS[stall.category] || "#a78bfa";
+  const liked = likedIds.has(stall._id);
+  const teamCount = stall.teamMembers?.length || 0;
+  const imgCount = stall.images?.length || 0;
+
+  return (
+    <div
+      className="flex items-start gap-4 p-4 rounded-2xl transition-all duration-150"
+      style={{
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.07)",
+      }}
+    >
+      {/* Stall number badge */}
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold flex-shrink-0 text-white"
+        style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}
+      >
+        #{stall.stallNumber}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="min-w-0">
+            <p
+              className="text-white font-bold text-[14px] leading-tight"
+              style={{ fontFamily: "'Syne',sans-serif" }}
+            >
+              {stall.projectTitle}
+            </p>
+            {/* Owner */}
+            {stall.owner && (
+              <p
+                className="text-[11px] mt-0.5 flex items-center gap-1.5"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                  style={{
+                    background: "linear-gradient(135deg,#7c3aed,#2563eb)",
+                  }}
+                >
+                  {stall.owner.name?.charAt(0)?.toUpperCase()}
+                </div>
+                {stall.owner.name}
+                {stall.owner.organization && (
+                  <span style={{ color: "rgba(255,255,255,0.25)" }}>
+                    · {stall.owner.organization}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+
+          {/* Category + like */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {stall.category && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                style={{
+                  background: `${catColor}18`,
+                  color: catColor,
+                  border: `1px solid ${catColor}30`,
+                }}
+              >
+                {stall.category}
+              </span>
+            )}
+            <button
+              onClick={() => onLike(stall._id)}
+              className="flex items-center gap-1 text-[11px] transition-all"
+              style={{ color: liked ? "#f472b6" : "rgba(255,255,255,0.3)" }}
+            >
+              <Heart size={13} fill={liked ? "#f472b6" : "none"} />
+              {stall.likeCount || 0}
+            </button>
+          </div>
+        </div>
+
+        {/* Description */}
+        {stall.projectDescription && (
+          <p
+            className="text-[12px] mt-2 line-clamp-2 leading-relaxed"
+            style={{ color: "rgba(255,255,255,0.45)" }}
+          >
+            {stall.projectDescription}
+          </p>
+        )}
+
+        {/* Tags + meta */}
+        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+          {stall.tags?.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              style={{
+                background: "rgba(167,139,250,0.1)",
+                color: "#c4b5fd",
+                border: "1px solid rgba(167,139,250,0.18)",
+              }}
+            >
+              #{tag}
+            </span>
+          ))}
+          {teamCount > 0 && (
+            <span
+              className="flex items-center gap-1 text-[10.5px]"
+              style={{ color: "rgba(255,255,255,0.28)" }}
+            >
+              <Users size={10} /> {teamCount} member{teamCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          {imgCount > 0 && (
+            <span
+              className="flex items-center gap-1 text-[10.5px]"
+              style={{ color: "rgba(255,255,255,0.28)" }}
+            >
+              🖼 {imgCount} image{imgCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          <span
+            className="flex items-center gap-1 text-[10.5px] ml-auto"
+            style={{ color: "rgba(255,255,255,0.25)" }}
+          >
+            <Eye size={10} /> {stall.viewCount || 0}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Stalls section ───────────────────────────────────────────────────────
+function StallsSection({ eventId, isLiveOrPublished }) {
+  const [stalls, setStalls] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [likedIds, setLikedIds] = useState(new Set());
+
+  useEffect(() => {
+    if (!isLiveOrPublished) return;
+    setLoading(true);
+    // Use the public route: GET /stalls/event/:eventId?published=true
+    fetch(`http://localhost:8747/api/stalls/event/${eventId}?published=true`, {
+      credentials: "include",
+    })
+      .then((r) => r.json())
+      .then((res) => setStalls(res.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [eventId, isLiveOrPublished]);
+
+  const handleLike = useCallback(
+    async (stallId) => {
+      if (likedIds.has(stallId)) return; // one like per session
+      try {
+        (await stallAPI.like?.(stallId)) ??
+          fetch(`http://localhost:8747/api/stalls/${stallId}/like`, {
+            method: "POST",
+            credentials: "include",
+          });
+        setLikedIds((prev) => new Set([...prev, stallId]));
+        setStalls((prev) =>
+          prev.map((s) =>
+            s._id === stallId ? { ...s, likeCount: (s.likeCount || 0) + 1 } : s,
+          ),
+        );
+      } catch {}
+    },
+    [likedIds],
+  );
+
+  const filtered = useMemo(
+    () =>
+      stalls.filter((s) => {
+        const matchSearch =
+          !search ||
+          [s.projectTitle, s.projectDescription, s.owner?.name]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(search.toLowerCase());
+        const matchCat = !category || s.category === category;
+        return matchSearch && matchCat;
+      }),
+    [stalls, search, category],
+  );
+
+  const categories = [
+    ...new Set(stalls.map((s) => s.category).filter(Boolean)),
+  ];
+
+  if (!isLiveOrPublished) return null;
+
+  return (
+    <div className="glass-card p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-syne text-lg font-bold flex items-center gap-2">
+          <span className="w-1 h-5 rounded-full bg-violet-500 inline-block" />
+          Stalls at this Event
+          {stalls.length > 0 && (
+            <span
+              className="text-[12px] font-semibold px-2.5 py-0.5 rounded-full ml-1"
+              style={{ background: "rgba(167,139,250,0.15)", color: "#c4b5fd" }}
+            >
+              {stalls.length}
+            </span>
+          )}
+        </h2>
+      </div>
+
+      {/* Filters row */}
+      {stalls.length > 0 && (
+        <div className="flex gap-2 flex-wrap mb-4">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search
+              size={13}
+              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: "rgba(255,255,255,0.25)" }}
+            />
+            <input
+              type="text"
+              placeholder="Search stalls…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-8 py-2 rounded-xl text-[12.5px] outline-none"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "rgba(255,255,255,0.88)",
+              }}
+              onFocus={(e) =>
+                (e.target.style.borderColor = "rgba(167,139,250,0.45)")
+              }
+              onBlur={(e) =>
+                (e.target.style.borderColor = "rgba(255,255,255,0.1)")
+              }
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2"
+              >
+                <X size={11} style={{ color: "rgba(255,255,255,0.35)" }} />
+              </button>
+            )}
+          </div>
+
+          {/* Category filter chips */}
+          {categories.map((cat) => {
+            const c = CATEGORY_COLORS[cat] || "#a78bfa";
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategory(category === cat ? "" : cat)}
+                className="text-[11px] font-semibold px-3 py-1.5 rounded-xl capitalize transition-all"
+                style={
+                  category === cat
+                    ? {
+                        background: `${c}25`,
+                        color: c,
+                        border: `1px solid ${c}45`,
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.04)",
+                        color: "rgba(255,255,255,0.45)",
+                        border: "1px solid rgba(255,255,255,0.09)",
+                      }
+                }
+              >
+                {cat}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="h-24 rounded-2xl animate-pulse"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            />
+          ))}
+        </div>
+      ) : stalls.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2">
+          <Building size={28} style={{ color: "rgba(255,255,255,0.1)" }} />
+          <p
+            className="text-[13px]"
+            style={{ color: "rgba(255,255,255,0.28)" }}
+          >
+            No published stalls yet
+          </p>
+          <p
+            className="text-[11px]"
+            style={{ color: "rgba(255,255,255,0.18)" }}
+          >
+            Stalls will appear here once participants publish them
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 gap-2">
+          <p
+            className="text-[13px]"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+          >
+            No stalls match your search
+          </p>
+          <button
+            onClick={() => {
+              setSearch("");
+              setCategory("");
+            }}
+            className="text-[12px]"
+            style={{ color: "#a78bfa" }}
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map((stall) => (
+            <StallRow
+              key={stall._id}
+              stall={stall}
+              likedIds={likedIds}
+              onLike={handleLike}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────
 export default function EventDetails() {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const heroRef = useRef(null);
+
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reminderSet, setReminderSet] = useState(false);
-  const heroRef = useRef(null);
 
-  // Fetch event from real API
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
     setError(null);
     eventAPI
       .getById(eventId)
-      .then((res) => {
-        // Response shape: { success: true, data: { ...event, registrationCount } }
-        setEvent(res.data);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load event");
-      })
+      .then((res) => setEvent(res.data))
+      .catch((err) => setError(err.message || "Failed to load event"))
       .finally(() => setLoading(false));
   }, [eventId]);
 
@@ -120,17 +522,17 @@ export default function EventDetails() {
   );
   const countdown = useCountdown(countdownTarget);
 
-  // Parallax hero
+  // Parallax
   useEffect(() => {
     const onScroll = () => {
-      if (heroRef.current) {
+      if (heroRef.current)
         heroRef.current.style.transform = `translateY(${window.scrollY * 0.35}px)`;
-      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // ── Loading / error / not found ──────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0c0c0f]">
@@ -181,6 +583,14 @@ export default function EventDetails() {
     );
   }
 
+  // ── Derived values ────────────────────────────────────────────────────
+  const displayStatus = resolveDisplayStatus(event);
+  const statusMeta = STATUS_META[displayStatus] || STATUS_META.published;
+  const isLive = displayStatus === "live";
+  const isEnded = displayStatus === "completed";
+  const isUpcoming = !isLive && !isEnded && countdown.total > 0;
+  const showStalls = ["published", "live"].includes(event.status) || isLive;
+
   const liveDateObj = new Date(event.liveDate);
   const dateStr = liveDateObj.toLocaleDateString("en-US", {
     weekday: "long",
@@ -189,95 +599,36 @@ export default function EventDetails() {
     day: "numeric",
   });
   const timeRange = `${event.startTime || "TBD"} – ${event.endTime || "TBD"}`;
-  const isUpcoming = countdown.total > 0;
   const shareUrl = encodeURIComponent(window.location.href);
   const shareTitle = encodeURIComponent(event.name);
-  const statusMeta = STATUS_META[event.status] || STATUS_META.published;
 
   return (
     <div
       className="min-h-screen bg-[#0c0c0f] text-white"
-      style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}
+      style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif" }}
     >
-      {/* ── GOOGLE FONT IMPORT ── */}
       <style>{`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(20px);} to { opacity:1; transform:translateY(0);} }
-        .fade-up { animation: fadeUp 0.55s ease forwards; }
-        .fade-up-1 { animation-delay: 0.05s; opacity:0; }
-        .fade-up-2 { animation-delay: 0.15s; opacity:0; }
-        .fade-up-3 { animation-delay: 0.25s; opacity:0; }
-        .fade-up-4 { animation-delay: 0.35s; opacity:0; }
-        .digit-card {
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.1);
-          backdrop-filter: blur(12px);
-          border-radius: 14px;
-          min-width: 72px;
-          padding: 14px 10px 10px;
-          text-align: center;
-        }
-        .glass-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 20px;
-          backdrop-filter: blur(8px);
-        }
-        .tag-pill {
-          background: rgba(139,92,246,0.12);
-          border: 1px solid rgba(139,92,246,0.3);
-          color: #c4b5fd;
-          border-radius: 999px;
-          padding: 4px 14px;
-          font-size: 12px;
-          font-weight: 500;
-          letter-spacing: 0.02em;
-          transition: background 0.2s;
-        }
-        .tag-pill:hover { background: rgba(139,92,246,0.22); }
-        .register-btn {
-          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-          border-radius: 12px;
-          padding: 14px 32px;
-          font-weight: 600;
-          font-size: 15px;
-          letter-spacing: 0.02em;
-          box-shadow: 0 4px 24px rgba(124,58,237,0.35);
-          transition: all 0.25s ease;
-          border: 1px solid rgba(167,139,250,0.3);
-          width: 100%;
-        }
-        .register-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 32px rgba(124,58,237,0.5);
-        }
-        .register-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-        }
-        .reminder-btn {
-          background: transparent;
-          border: 1.5px solid rgba(255,255,255,0.15);
-          border-radius: 12px;
-          padding: 13px 32px;
-          font-weight: 500;
-          font-size: 15px;
-          width: 100%;
-          transition: all 0.25s;
-        }
-        .reminder-btn:hover { border-color: rgba(167,139,250,0.5); background: rgba(139,92,246,0.08); }
-        .divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 0; }
-        .section-label {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: #6d6d82;
-          margin-bottom: 12px;
-        }
+        
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        .fade-up   { animation: fadeUp 0.55s ease forwards; }
+        .fade-up-1 { animation-delay:0.05s; opacity:0; }
+        .fade-up-2 { animation-delay:0.15s; opacity:0; }
+        .fade-up-3 { animation-delay:0.25s; opacity:0; }
+        .fade-up-4 { animation-delay:0.35s; opacity:0; }
+        .digit-card { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(12px); border-radius:14px; min-width:72px; padding:14px 10px 10px; text-align:center; }
+        .glass-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:20px; backdrop-filter:blur(8px); }
+        .tag-pill   { background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.3); color:#c4b5fd; border-radius:999px; padding:4px 14px; font-size:12px; font-weight:500; transition:background 0.2s; }
+        .tag-pill:hover { background:rgba(139,92,246,0.22); }
+        .register-btn { background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%); border-radius:12px; padding:14px 32px; font-weight:600; font-size:15px; box-shadow:0 4px 24px rgba(124,58,237,0.35); transition:all 0.25s ease; border:1px solid rgba(167,139,250,0.3); width:100%; }
+        .register-btn:hover  { transform:translateY(-2px); box-shadow:0 8px 32px rgba(124,58,237,0.5); }
+        .register-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+        .reminder-btn { background:transparent; border:1.5px solid rgba(255,255,255,0.15); border-radius:12px; padding:13px 32px; font-weight:500; font-size:15px; width:100%; transition:all 0.25s; }
+        .reminder-btn:hover { border-color:rgba(167,139,250,0.5); background:rgba(139,92,246,0.08); }
+        .divider { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:0; }
+        .section-label { font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#6d6d82; margin-bottom:12px; }
       `}</style>
 
-      {/* ── TOP NAV BAR ── */}
+      {/* ── NAV ── */}
       <nav
         className="sticky top-0 z-50 flex items-center px-4 md:px-8 h-14 border-b border-white/5"
         style={{
@@ -317,9 +668,21 @@ export default function EventDetails() {
               ★ Featured
             </span>
           )}
+          {/* Display status badge — derived, not raw event.status */}
           <span
-            className={`text-xs font-semibold px-3 py-1 rounded-full border ${statusMeta.classes}`}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+            style={{
+              background: statusMeta.bg,
+              color: statusMeta.color,
+              border: `1px solid ${statusMeta.border}`,
+            }}
           >
+            {isLive && (
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: statusMeta.color }}
+              />
+            )}
             {statusMeta.label}
           </span>
         </div>
@@ -327,7 +690,6 @@ export default function EventDetails() {
 
       {/* ── HERO ── */}
       <div className="relative h-[420px] md:h-[520px] overflow-hidden">
-        {/* BG */}
         <div ref={heroRef} className="absolute inset-0 w-full h-full">
           {event.thumbnailUrl ? (
             <img
@@ -340,35 +702,23 @@ export default function EventDetails() {
               className="w-full h-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #0f0f1a 0%, #1a1030 40%, #0e1a2e 100%)",
+                  "linear-gradient(135deg,#0f0f1a 0%,#1a1030 40%,#0e1a2e 100%)",
               }}
             >
-              {/* Decorative blobs */}
               <div
                 className="absolute top-0 left-0 w-96 h-96 rounded-full opacity-20"
                 style={{
-                  background:
-                    "radial-gradient(circle, #7c3aed, transparent 70%)",
+                  background: "radial-gradient(circle,#7c3aed,transparent 70%)",
                   filter: "blur(60px)",
                 }}
               />
               <div
                 className="absolute bottom-0 right-0 w-80 h-80 rounded-full opacity-15"
                 style={{
-                  background:
-                    "radial-gradient(circle, #2563eb, transparent 70%)",
+                  background: "radial-gradient(circle,#2563eb,transparent 70%)",
                   filter: "blur(60px)",
                 }}
               />
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 opacity-10"
-                style={{
-                  background:
-                    "radial-gradient(circle, #ec4899, transparent 70%)",
-                  filter: "blur(40px)",
-                }}
-              />
-              {/* Grid lines */}
               <svg
                 className="absolute inset-0 w-full h-full opacity-[0.04]"
                 xmlns="http://www.w3.org/2000/svg"
@@ -396,15 +746,13 @@ export default function EventDetails() {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to top, #0c0c0f 0%, rgba(12,12,15,0.6) 50%, rgba(12,12,15,0.2) 100%)",
+                "linear-gradient(to top,#0c0c0f 0%,rgba(12,12,15,0.6) 50%,rgba(12,12,15,0.2) 100%)",
             }}
           />
         </div>
 
-        {/* Hero content */}
         <div className="relative z-10 h-full flex flex-col justify-end px-4 md:px-10 pb-10">
           <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row md:items-end justify-between gap-6">
-            {/* Left: title */}
             <div>
               <div className="flex items-center gap-2 mb-3 fade-up fade-up-1">
                 <span
@@ -429,7 +777,7 @@ export default function EventDetails() {
                 </span>
               </div>
               <h1
-                className="font-syne text-3xl md:text-5xl font-800 leading-tight max-w-xl fade-up fade-up-2"
+                className="font-syne text-3xl md:text-5xl leading-tight max-w-xl fade-up fade-up-2"
                 style={{
                   fontWeight: 800,
                   textShadow: "0 2px 20px rgba(0,0,0,0.5)",
@@ -454,7 +802,7 @@ export default function EventDetails() {
               </p>
             </div>
 
-            {/* Right: countdown */}
+            {/* Countdown / live / ended indicator */}
             {isUpcoming && (
               <div className="fade-up fade-up-4">
                 <p className="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3 text-center md:text-right">
@@ -481,10 +829,26 @@ export default function EventDetails() {
                 </div>
               </div>
             )}
-            {!isUpcoming && (
+            {isLive && (
+              <div
+                className="fade-up fade-up-4 digit-card px-6 py-4 text-center"
+                style={{
+                  borderColor: "rgba(248,113,113,0.3)",
+                  background: "rgba(248,113,113,0.08)",
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                  <span className="text-red-400 font-bold text-sm uppercase tracking-widest">
+                    Live Now
+                  </span>
+                </div>
+              </div>
+            )}
+            {isEnded && (
               <div className="fade-up fade-up-4 digit-card px-6 py-4 text-center">
-                <div className="text-red-400 font-semibold text-sm uppercase tracking-widest">
-                  Event Live / Ended
+                <div className="text-slate-400 font-semibold text-sm uppercase tracking-widest">
+                  Event Ended
                 </div>
               </div>
             )}
@@ -589,6 +953,9 @@ export default function EventDetails() {
             </div>
           </div>
 
+          {/* ── STALLS SECTION ── */}
+          <StallsSection eventId={eventId} isLiveOrPublished={showStalls} />
+
           {/* Organizer */}
           <div className="glass-card p-6">
             <h2 className="font-syne text-lg font-bold mb-4 flex items-center gap-2">
@@ -599,7 +966,7 @@ export default function EventDetails() {
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
                 style={{
-                  background: "linear-gradient(135deg, #7c3aed, #2563eb)",
+                  background: "linear-gradient(135deg,#7c3aed,#2563eb)",
                 }}
               >
                 {event.createdBy.name.charAt(0)}
@@ -672,7 +1039,6 @@ export default function EventDetails() {
                 {event.availableStalls} / {event.numberOfStalls}
               </span>
             </div>
-            {/* Progress bar */}
             <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden mb-1">
               <div
                 className="h-full rounded-full transition-all duration-700"
@@ -681,7 +1047,7 @@ export default function EventDetails() {
                   background:
                     event.availableStalls === 0
                       ? "#ef4444"
-                      : "linear-gradient(90deg, #7c3aed, #a78bfa)",
+                      : "linear-gradient(90deg,#7c3aed,#a78bfa)",
                 }}
               />
             </div>
@@ -707,47 +1073,35 @@ export default function EventDetails() {
 
             <hr className="divider" />
 
-            {/* Quick info */}
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-xs uppercase tracking-wide font-medium">
-                  Date
-                </span>
-                <span className="text-slate-200 text-xs text-right">
-                  {liveDateObj.toLocaleDateString("en-US", {
+              {[
+                [
+                  "Date",
+                  liveDateObj.toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-xs uppercase tracking-wide font-medium">
-                  Time
-                </span>
-                <span className="text-slate-200 text-xs">{timeRange}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-xs uppercase tracking-wide font-medium">
-                  Format
-                </span>
-                <span className="text-slate-200 text-xs capitalize">
-                  {event.environmentType}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-xs uppercase tracking-wide font-medium">
-                  Type
-                </span>
-                <span className="text-slate-200 text-xs capitalize">
-                  {event.eventType}
-                </span>
-              </div>
+                  }),
+                ],
+                ["Time", timeRange],
+                ["Format", event.environmentType],
+                ["Type", event.eventType],
+                ["Status", statusMeta.label],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between">
+                  <span className="text-slate-500 text-xs uppercase tracking-wide font-medium">
+                    {k}
+                  </span>
+                  <span className="text-slate-200 text-xs text-right capitalize">
+                    {v}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Tags */}
-          {event.tags.length > 0 && (
+          {event.tags?.length > 0 && (
             <div className="glass-card p-5">
               <h3 className="section-label">Tags</h3>
               <div className="flex flex-wrap gap-2">
@@ -810,7 +1164,7 @@ export default function EventDetails() {
         </div>
       </div>
 
-      {/* ── FOOTER ── */}
+      {/* Footer */}
       <div className="border-t border-white/5 mt-4 px-4 md:px-10 py-6 text-center text-xs text-slate-600">
         © {new Date().getFullYear()} VirtualEvents. All rights reserved.
       </div>

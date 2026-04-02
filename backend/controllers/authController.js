@@ -160,6 +160,23 @@ export const register = async (request, response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
+    // Send notifications
+    try {
+      const { notifyAccountCreated, notifyWelcomeNewUser, notifyAdminNewUser } = await import("../services/notificationService.js");
+      
+      // Notify user with welcome and account created messages
+      await Promise.all([
+        notifyAccountCreated(user._id),
+        notifyWelcomeNewUser(user._id, user.name),
+      ]);
+
+      // Notify system admins of new user
+      await notifyAdminNewUser(user._id, user.name, user.email);
+    } catch (notifError) {
+      console.error("Error sending registration notifications:", notifError);
+      // Don't fail the request if notifications fail
+    }
+
     return response.status(201).json({
       user,
       message: "User registered successfully",
@@ -219,9 +236,9 @@ export const login = async (request, response) => {
 
     // Remove password from response
     const userResponse = user.toJSON();
-
     return response.status(200).json({
       user: userResponse,
+      token: token,
       message: "Login successful",
     });
   } catch (error) {

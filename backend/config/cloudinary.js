@@ -1,7 +1,10 @@
 import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 
+
+dotenv.config();
 // ===== CLOUDINARY CONFIGURATION =====
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -76,6 +79,48 @@ const teamImageStorage = new CloudinaryStorage({
   },
 });
 
+// Event Thumbnail Images
+const eventThumbnailStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "virtual-openhouse/events/thumbnails",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 800, height: 450, crop: "fill" }, // Thumbnail size (16:9 aspect ratio)
+      { quality: "auto" },
+      { fetch_format: "auto" },
+    ],
+  },
+});
+
+// Event Background Images (Custom backgrounds)
+const eventBackgroundStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "virtual-openhouse/events/backgrounds",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 2560, height: 1280, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
+      { quality: "auto" },
+      { fetch_format: "auto" },
+    ],
+  },
+});
+
+// Event Default Background (Admin-managed default background)
+const eventDefaultBackgroundStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "virtual-openhouse/events/default-background",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 8704, height: 4352, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
+      { quality: "auto" },
+      { fetch_format: "auto" },
+    ],
+  },
+});
+
 // ===== MULTER UPLOAD MIDDLEWARE =====
 
 // Single image upload
@@ -139,11 +184,14 @@ export const uploadDocument = multer({
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       "text/plain",
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only PDF, DOC, DOCX, PPT, PPTX, TXT files are allowed!"), false);
+      cb(
+        new Error("Only PDF, DOC, DOCX, PPT, PPTX, TXT files are allowed!"),
+        false,
+      );
     }
   },
 });
@@ -178,10 +226,58 @@ export const uploadTeamImage = multer({
   },
 });
 
+// Event Thumbnail upload
+export const uploadEventThumbnail = multer({
+  storage: eventThumbnailStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Event Background upload (custom backgrounds)
+export const uploadEventBackground = multer({
+  storage: eventBackgroundStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
+// Event Default Background upload (admin only)
+export const uploadEventDefaultBackground = multer({
+  storage: eventDefaultBackgroundStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
 // ===== CLOUDINARY HELPER FUNCTIONS =====
 
 // Delete file from Cloudinary
-export const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+export const deleteFromCloudinary = async (
+  publicId,
+  resourceType = "image",
+) => {
   try {
     const result = await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
@@ -194,10 +290,13 @@ export const deleteFromCloudinary = async (publicId, resourceType = "image") => 
 };
 
 // Delete multiple files
-export const deleteMultipleFromCloudinary = async (publicIds, resourceType = "image") => {
+export const deleteMultipleFromCloudinary = async (
+  publicIds,
+  resourceType = "image",
+) => {
   try {
-    const promises = publicIds.map(id => 
-      cloudinary.uploader.destroy(id, { resource_type: resourceType })
+    const promises = publicIds.map((id) =>
+      cloudinary.uploader.destroy(id, { resource_type: resourceType }),
     );
     return await Promise.all(promises);
   } catch (error) {
@@ -218,7 +317,10 @@ export const getCloudinaryFileDetails = async (publicId) => {
 };
 
 // Upload base64 image (for direct uploads)
-export const uploadBase64Image = async (base64String, folder = "virtual-openhouse/misc") => {
+export const uploadBase64Image = async (
+  base64String,
+  folder = "virtual-openhouse/misc",
+) => {
   try {
     const result = await cloudinary.uploader.upload(base64String, {
       folder,

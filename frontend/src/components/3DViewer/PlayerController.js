@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { PLAYER_CONFIG } from "./utils/constants";
+import { PLAYER_CONFIG, STALL_CONFIG } from "./utils/constants";
 
 export class PlayerController {
   constructor(scene, camera) {
@@ -13,6 +13,7 @@ export class PlayerController {
     this.mixer = null;
     this.walkAction = null;
     this.activeAction = null;
+    this.hitboxes = []; 
 
     // ]Function to check if controls should be disabled
     this.isUIOpen = () => false; // Default: UI not open
@@ -20,6 +21,23 @@ export class PlayerController {
     this.setupInputListeners();
     this.loadPlayerModel();
   }
+
+  setHitboxes(hitboxes) {
+  this.hitboxes = hitboxes || [];
+}
+
+checkCollision(newPosition) {
+  // const half = STALL_CONFIG.HITBOX_SIZE / 2;
+  const half = (STALL_CONFIG.HITBOX_SIZE / 2) * 0.9;
+  for (const hitbox of this.hitboxes) {
+    const dx = Math.abs(newPosition.x - hitbox.position.x);
+    const dz = Math.abs(newPosition.z - hitbox.position.z);
+    if (dx < half && dz < half) {
+      return true;
+    }
+  }
+  return false;
+}
 
   setupInputListeners() {
     this.handleKeyDown = (e) => {
@@ -122,16 +140,35 @@ export class PlayerController {
     moveDir.addScaledVector(right, x);
     moveDir.normalize();
 
-    this.player.position.addScaledVector(
-      moveDir,
-      PLAYER_CONFIG.SPEED * deltaTime,
-    );
-    this.player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+   // calculate new position
+const newPosition = this.player.position.clone();
+newPosition.addScaledVector(moveDir, PLAYER_CONFIG.SPEED * deltaTime);
 
-    const hw = 130 / 2 - 1;
-    const hd = 140 / 2 - 1;
-    this.player.position.x = this.clamp(this.player.position.x, -hw, hw);
-    this.player.position.z = this.clamp(this.player.position.z, -hd, hd);
+if (!this.checkCollision(newPosition)) {
+  // no collision - move normally
+  this.player.position.copy(newPosition);
+  this.player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+} else {
+  // try sliding along x only
+  const slideX = this.player.position.clone();
+  slideX.x = newPosition.x;
+  if (!this.checkCollision(slideX)) {
+    this.player.position.copy(slideX);
+    this.player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+  }
+  // try sliding along z only
+  const slideZ = this.player.position.clone();
+  slideZ.z = newPosition.z;
+  if (!this.checkCollision(slideZ)) {
+    this.player.position.copy(slideZ);
+    this.player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+  }
+}
+
+const hw = 330;
+const hd = 340;
+this.player.position.x = this.clamp(this.player.position.x, -hw, hw);
+this.player.position.z = this.clamp(this.player.position.z, -hd, hd);
   }
 
   clamp(value, min, max) {

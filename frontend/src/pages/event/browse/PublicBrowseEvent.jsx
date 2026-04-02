@@ -13,8 +13,6 @@ import {
   Tag,
   RotateCcw,
 } from "lucide-react";
-import DashboardNavbar from "@/components/navbar/DashboardNavbar";
-import Sidebar from "@/components/sidebar/Sidebar";
 import EventCard from "@/components/event/EventCard";
 import { eventAPI } from "@/lib/api";
 
@@ -118,7 +116,7 @@ function SkeletonCard() {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────
-export default function BrowseEvents() {
+export default function PublicBrowseEvents() {
   const [events, setEvents] = useState([]);
   const [search, setSearch] = useState("");
   const [eventType, setEventType] = useState("");
@@ -237,11 +235,7 @@ export default function BrowseEvents() {
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
       `}</style>
 
-      <Sidebar />
-
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <DashboardNavbar />
-
         <div className="flex flex-1 overflow-hidden">
           {/* ══ LEFT FILTER PANEL ═══════════════════════════════════════ */}
           <aside

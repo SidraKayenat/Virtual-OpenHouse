@@ -61,7 +61,7 @@ stallRoutes.get("/my-stalls", verifyToken, getMyStalls);
 stallRoutes.get("/stats/dashboard", verifyToken, getStallStatistics);
 
 // ===== SINGLE STALL ROUTE - OPTIONAL AUTH =====
-stallRoutes.get("/:stallId", optionalAuth, getStallById);
+stallRoutes.get("/:stallId", verifyToken, getStallById);
 
 // ===== PROTECTED MODIFICATION ROUTES =====
 stallRoutes.put("/:stallId", verifyToken, updateStall);
@@ -76,58 +76,46 @@ stallRoutes.post(
   "/:stallId/upload-images",
   verifyToken,
   uploadImages.array("images", 10),
-  uploadStallImages
+  uploadStallImages,
 );
 
 stallRoutes.post(
   "/:stallId/upload-video",
   verifyToken,
   uploadVideo.single("video"),
-  uploadStallVideo
+  uploadStallVideo,
 );
 
 stallRoutes.post(
   "/:stallId/upload-documents",
   verifyToken,
   uploadDocument.array("documents", 10),
-  uploadStallDocuments
+  uploadStallDocuments,
 );
 
 stallRoutes.post(
   "/:stallId/upload-banner",
   verifyToken,
   uploadBanner.single("banner"),
-  uploadStallBanner
+  uploadStallBanner,
 );
 
-stallRoutes.delete(
-  "/:stallId/images/:publicId",
-  verifyToken,
-  deleteStallImage
-);
+stallRoutes.delete("/:stallId/images/:publicId", verifyToken, deleteStallImage);
 
-stallRoutes.delete(
-  "/:stallId/videos/:publicId",
-  verifyToken,
-  deleteStallVideo
-);
+stallRoutes.delete("/:stallId/videos/:publicId", verifyToken, deleteStallVideo);
 
 stallRoutes.delete(
   "/:stallId/documents/:publicId",
   verifyToken,
-  deleteStallDocument
+  deleteStallDocument,
 );
 
 stallRoutes.patch(
   "/:stallId/images/:publicId/caption",
   verifyToken,
-  updateImageCaption
+  updateImageCaption,
 );
 
-stallRoutes.patch(
-  "/:stallId/images/reorder",
-  verifyToken,
-  reorderImages
-);
+stallRoutes.patch("/:stallId/images/reorder", verifyToken, reorderImages);
 
 export default stallRoutes;

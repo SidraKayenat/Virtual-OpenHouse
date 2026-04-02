@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Users, Calendar, ArrowRight, Radio } from "lucide-react";
 
 const EventCard = ({ event, viewMode = "grid" }) => {
+  console.log("Check Event Status:", event.status);
   const isLive = event.status === "live";
   const isFull = event.availableStalls === 0;
   const image = event.thumbnailUrl || event.thumbnail || "/thumbnail.png";

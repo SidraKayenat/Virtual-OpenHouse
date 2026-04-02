@@ -186,7 +186,6 @@ const registrationSchema = new Schema(
 // ===== INDEXES =====
 // Prevent duplicate registration: one user can register only once per event
 registrationSchema.index({ event: 1, user: 1 }, { unique: true });
-registrationSchema.index({ status: 1 });
 registrationSchema.index({ event: 1, status: 1 });
 
 // ===== VIRTUALS =====
