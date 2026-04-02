@@ -3,6 +3,7 @@ import { eventAPI, stallAPI } from "@/lib/api";
 
 const normalizeStall = (stall) => ({
   id: stall._id,
+  eventId: stall.event?._id || stall.event,
   name: stall.projectTitle || `Stall ${stall.stallNumber}`,
   description: stall.projectDescription || "No description available",
   tech: Array.isArray(stall.tags) ? stall.tags : [],

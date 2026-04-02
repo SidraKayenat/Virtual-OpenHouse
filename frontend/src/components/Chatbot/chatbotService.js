@@ -1,67 +1,36 @@
 // src/components/Chatbot/chatbotService.js
 
-/**
- * 🔥 INTEGRATION POINT FOR YOUR TEAMMATE
- * 
- * This file contains the API integration logic for the chatbot.
- * Your teammate should implement the sendMessageToBot function
- * to connect with the actual chatbot backend.
- */
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
-/**
- * Send a message to the chatbot and get a response
- * 
- * @param {string} message - The user's message
- * @param {object} stallData - Data about the current stall (id, name, description, etc.)
- * @returns {Promise<string>} - The bot's response text
- */
+const getEndpoint = (stallData) => {
+  const eventId = stallData?.eventId || stallData?.raw?.event || stallData?.raw?.event?._id;
+  const stallId = stallData?.id || stallData?.raw?._id;
+
+  if (!eventId || !stallId) {
+    throw new Error("Missing eventId or stallId for chatbot request");
+  }
+
+  return `${API_BASE_URL}/chatbot/events/${eventId}/stalls/${stallId}`;
+};
+
+
 export const sendMessageToBot = async (message, stallData) => {
-  try {
-    // 🔥 YOUR TEAMMATE SHOULD REPLACE THIS WITH ACTUAL API CALL
-    
-    // Example implementation:
-    /*
-    const response = await fetch('YOUR_CHATBOT_API_ENDPOINT', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: message,
-        stallId: stallData?.id,
-        stallName: stallData?.name,
-        context: {
-          description: stallData?.description,
-          tech: stallData?.tech,
-          contact: stallData?.contact,
-        }
-      }),
-    });
+   const endpoint = getEndpoint(stallData);
+    const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ query: message }),
+  });
 
-    const data = await response.json();
-    return data.reply; // or whatever field contains the bot's response
-    */
+  const data = await response.json();
 
-    // 🚧 TEMPORARY DEMO RESPONSE (REMOVE THIS)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return `Demo response to: "${message}". Replace this with your API call!`;
-
-  } catch (error) {
-    console.error('Error sending message to chatbot:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || "Chatbot request failed");
   }
+  return data?.response || "I couldn't find enough information in this stall's documents.";
 };
 
-/**
- * Optional: Initialize chatbot session
- * Your teammate can use this to set up context when chat opens
- */
-export const initializeChatSession = async (stallData) => {
-  try {
-    // Example:
-    // await fetch('YOUR_API/init-session', { ... });
-    console.log('Chat session initialized for stall:', stallData?.name);
-  } catch (error) {
-    console.error('Error initializing chat session:', error);
-  }
-};
+export const initializeChatSession = async () => Promise.resolve();
