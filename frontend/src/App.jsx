@@ -28,6 +28,7 @@ import UserDetails from "./pages/users/UserDetails";
 import AllUsers from "./pages/users/AllUsers";
 import NotificationsPage from "./pages/notifications/Notifications";
 import EventRequests from "./pages/event/EventRequests";
+import Notifications from "./pages/notifications/Notifications";
 import TeamsAndManagement from "./pages/TeamsAndManagement";
 import AdminSettings from "./pages/settings/AdminSettings";
 function App() {
