@@ -1,5 +1,5 @@
 // backend/server.js
-import express from "express";
+//import express from "express";
 import { setDefaultResultOrder, setServers } from "dns";
 setDefaultResultOrder("ipv4first");
 setServers(["8.8.8.8", "8.8.4.4"]);
