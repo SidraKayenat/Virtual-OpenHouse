@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { Bell, ChevronRight, Home } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import Notifications from "@/components/Notifications";
+import Notifications from "@/components/notifications/Notifications";
+import NotificationBell from "../notifications/notificationBell";
 
 // ─── Route → breadcrumb map ───────────────────────────────────────────────
 // Each entry: path pattern → array of { label, href? }
@@ -236,7 +237,7 @@ export default function DashboardNavbar() {
       <div className="flex items-center gap-3">
         {/* Notification bell */}
         <div className="relative">
-          <button
+          {/* <button
             onClick={() => setNotifOpen(!notifOpen)}
             className="relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
             style={{
@@ -253,13 +254,13 @@ export default function DashboardNavbar() {
             }
           >
             <Bell size={16} strokeWidth={1.8} />
-            {/* Unread dot — render if you have unread count */}
+           
             <span
               className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
               style={{ background: "#a78bfa" }}
             />
-          </button>
-
+          </button> */}
+          <NotificationBell />
           {/* Dropdown */}
           {notifOpen && (
             <>

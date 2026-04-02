@@ -23,6 +23,7 @@ import StallEditor from "./pages/stall/StallEditor";
 import UpdateRegistration from "./pages/registration/UpdateRegistration";
 import UserSettings from "./pages/settings/UserSettings";
 import EventRequests from "./pages/event/EventRequests";
+import Notifications from "./pages/notifications/Notifications";
 function App() {
   return (
     <BrowserRouter>
@@ -102,6 +103,16 @@ function App() {
               </ProtectedRoute>
             }
           ></Route>
+
+          {/* // Notifications  */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
 
           {/* registrations  */}
 
