@@ -164,7 +164,7 @@ export const uploadStallDocuments = async (req, res) => {
       const ext = file.originalname.split(".").pop();
 
       return {
-        url: `file.path`, // ✅ append extension manually
+        url: file.path, // ✅ append extension manually
         publicId: file.filename,
         filename: file.originalname,
         fileType: ext,
