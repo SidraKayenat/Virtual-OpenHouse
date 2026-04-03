@@ -5,13 +5,34 @@ import Stall from "../models/Stall.js";
 
 const INGEST_ROOT = path.join(process.cwd(), "chatbot_ingest");
 
-const isPdfFile = (file) => {
+const SUPPORTED_EXTENSIONS = new Set([".pdf", ".docx", ".ppt", ".pptx"]);
+
+const getFileExtension = (value) => {
+  if (!value) return "";
+  const normalized = String(value).toLowerCase().split(/[?#]/)[0];
+  const ext = path.extname(normalized);
+  return ext && SUPPORTED_EXTENSIONS.has(ext) ? ext : "";
+};
+
+const inferExtension = (file) => {
+  const directChecks = [
+    getFileExtension(file?.filename),
+    getFileExtension(file?.originalName),
+    getFileExtension(file?.url),
+  ];
+  const matchedDirect = directChecks.find(Boolean);
+  if (matchedDirect) return matchedDirect;
+
+  const type = String(file?.fileType || "").toLowerCase();
+  if (type.includes("pdf")) return ".pdf";
+  if (type.includes("docx") || type.includes("word")) return ".docx";
+  if (type.includes("pptx") || type.includes("ppt") || type.includes("powerpoint")) return ".pptx";
+  return "";
+};
+
+const isSupportedDocFile = (file) => {
   if (!file) return false;
-    const candidates = [file.filename, file.originalName, file.url, file.fileType]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return candidates.includes(".pdf") || candidates.includes("application/pdf") || candidates.includes("pdf");
+      return Boolean(inferExtension(file));
 };
 
     const safe = (value) => String(value).replace(/[^\w.-]/g, "_");
@@ -40,12 +61,15 @@ export const downloadStallFiles = async (stallId, destinationFolder) => {
   let skippedCount = 0;
 
   for (const file of stall.documents || []) {
-    if (!isPdfFile(file) || !file.url) {
+    if (!isSupportedDocFile(file) || !file.url) {
       skippedCount++;
       continue;
     }
     
-    const safeName = `${safe(stall._id)}_${path.basename(file.url)}`.replace(/[^\w.-]/g, "_");
+    const ext = inferExtension(file);
+    const originalBase = path.basename(String(file.filename || file.url || "document")).split(/[?#]/)[0];
+    const nameWithoutExt = path.basename(originalBase, path.extname(originalBase)) || `document_${downloadedCount + 1}`;
+    const safeName = `${safe(stall._id)}_${safe(nameWithoutExt)}${ext}`;
     const dest = path.join(destinationFolder, safeName);
 
     await downloadFile(file.url, dest);
@@ -66,12 +90,15 @@ export const downloadEventFiles = async (eventId, destinationFolder) => {
 
   for (const stall of stalls) {
     for (const file of stall.documents || []) {
-      if (!isPdfFile(file) || !file.url) {
+      if (!isSupportedDocFile(file) || !file.url) {
         skippedCount++;
         continue;
       }
 
-      const safeName = `${safe(stall._id)}_${path.basename(file.url)}`.replace(/[^\w.-]/g, "_");
+      const ext = inferExtension(file);
+      const originalBase = path.basename(String(file.filename || file.url || "document")).split(/[?#]/)[0];
+      const nameWithoutExt = path.basename(originalBase, path.extname(originalBase)) || `document_${downloadedCount + 1}`;
+      const safeName = `${safe(stall._id)}_${safe(nameWithoutExt)}${ext}`;
       const dest = path.join(destinationFolder, safeName);
 
       await downloadFile(file.url, dest);

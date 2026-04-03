@@ -2,6 +2,9 @@ import Stall from "../models/Stall.js";
 import { deleteFromCloudinary } from "../config/cloudinary.js";
 import { ingestStallChatbot } from "../utils/chatbotService.js";
 
+const resolveCloudinaryUrl = (file) =>
+  file?.secure_url || file?.path || file?.url || null;
+
 
 // ===== UPLOAD IMAGES TO STALL =====
 export const uploadStallImages = async (req, res) => {
@@ -161,13 +164,20 @@ export const uploadStallDocuments = async (req, res) => {
 
     // Process uploaded documents
     const uploadedDocs = req.files.map((file) => {
-      const ext = file.originalname.split(".").pop();
+      const ext = file.originalname.split(".").pop()?.toLowerCase();
+      const uploadedUrl = resolveCloudinaryUrl(file);
+
+      if (!uploadedUrl || !uploadedUrl.includes("res.cloudinary.com")) {
+        throw new Error(
+          `Cloudinary URL missing for uploaded file: ${file.originalname}`,
+        );
+      }
 
       return {
-        url: file.path, // ✅ append extension manually
-        publicId: file.filename,
+        url: uploadedUrl,
+        publicId: file.filename || file.public_id,
         filename: file.originalname,
-        fileType: ext,
+        fileType: ext || file.mimetype,
         fileSize: file.size,
       };
     });

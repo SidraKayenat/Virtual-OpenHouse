@@ -4,8 +4,14 @@ import os
 import re
 import shutil
 import sys
+import zipfile
+import xml.etree.ElementTree as ET
+
+from langchain_core.documents import Document
 
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import Docx2txtLoader
+from langchain_community.document_loaders import UnstructuredPowerPointLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -35,6 +41,28 @@ def sanitize_error_message(message):
     sanitized = re.sub(r"gsk_[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
     return sanitized
 
+def extract_docx_text(file_path):
+    with zipfile.ZipFile(file_path) as docx_zip:
+        xml_content = docx_zip.read("word/document.xml")
+
+    root = ET.fromstring(xml_content)
+    texts = [node.text for node in root.iter() if node.tag.endswith("}t") and node.text]
+    return "\n".join(texts).strip()
+
+
+def extract_pptx_slide_texts(file_path):
+    texts = []
+    with zipfile.ZipFile(file_path) as pptx_zip:
+        slide_files = sorted(
+            [name for name in pptx_zip.namelist() if name.startswith("ppt/slides/slide") and name.endswith(".xml")]
+        )
+        for slide_file in slide_files:
+            xml_content = pptx_zip.read(slide_file)
+            root = ET.fromstring(xml_content)
+            slide_text = [node.text for node in root.iter() if node.tag.endswith("}t") and node.text]
+            texts.append("\n".join(slide_text).strip())
+    return texts
+
 
 def process_project(folder, project_id):
     if not os.path.isdir(folder):
@@ -45,13 +73,43 @@ def process_project(folder, project_id):
         shutil.rmtree(persist_directory)
 
     docs = []
+    supported_extensions = (".pdf", ".docx", ".ppt", ".pptx")
+    discovered_files = []
+    failed_files = []
     for file in os.listdir(folder):
-        if file.lower().endswith(".pdf"):
-            loader = PyPDFLoader(os.path.join(folder, file))
-            docs += loader.load()
+        if not file.lower().endswith(supported_extensions):
+            continue
+
+        full_path = os.path.join(folder, file)
+        discovered_files.append(file)
+        try:
+            if file.lower().endswith(".pdf"):
+                loader = PyPDFLoader(full_path)
+                docs += loader.load()
+            elif file.lower().endswith(".docx"):
+                doc_text = extract_docx_text(full_path)
+                if doc_text:
+                    docs.append(Document(page_content=doc_text, metadata={"source": full_path, "page": 0}))
+            elif file.lower().endswith(".pptx"):
+                slide_texts = extract_pptx_slide_texts(full_path)
+                for idx, slide_text in enumerate(slide_texts):
+                    if slide_text:
+                        docs.append(
+                            Document(
+                                page_content=slide_text,
+                                metadata={"source": full_path, "page": idx},
+                            )
+                        )
+            else:
+                failed_files.append({"file": file, "reason": "Legacy .ppt format is not supported in this environment"})
+        except Exception as exc:
+            failed_files.append({"file": file, "reason": sanitize_error_message(str(exc))})
 
     if not docs:
-        raise ValueError(f"No PDF files found in {folder}")
+        raise ValueError(
+            f"No processable files found in {folder}. Expected extensions: {supported_extensions}. Failures: {failed_files}"
+        )
+
 
     # =========================
     # FIX 1: DEBUG - verify title page text is extractable
@@ -97,6 +155,8 @@ def process_project(folder, project_id):
     return {
         "status": "success",
         "project_id": project_id,
+        "files_ingested": discovered_files,
+        "files_failed": failed_files,
         "chunks_indexed": len(chunks),
     }
 

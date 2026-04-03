@@ -12,6 +12,21 @@ const ensureStallInEvent = async (eventId, stallId) => {
   return stall;
 };
 
+const normalizeAxiosDetails = (details) => {
+  if (!details) return null;
+  if (Buffer.isBuffer(details)) {
+    const text = details.toString("utf8").trim();
+    if (!text) return { raw: null, message: "Upstream service returned an empty response body." };
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { raw: text };
+    }
+  }
+  return details;
+};
+
+
 router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
   const { query } = req.body;
   const { eventId, stallId } = req.params;
@@ -31,7 +46,8 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
         eventId,
         stallId,
         query,
-        context: { stallName: stall.projectTitle },
+       context: { stallName: stall.projectTitle, eventName: String(stall.event || eventId) },
+
       });
       return res.json(response);
     } catch (err) {
@@ -43,7 +59,7 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
           const ingestResult = await ingestStallChatbot(eventId, stallId);
       if (ingestResult.skipped) {
         return res.status(400).json({
-          error: "This stall does not have PDF documents for chatbot training yet.",
+          error: "This stall does not have supported documents for chatbot training yet.",
           details: ingestResult.reason,
         });
       }
@@ -52,7 +68,7 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
         eventId,
         stallId,
         query,
-        context: { stallName: stall.projectTitle },
+        context: { stallName: stall.projectTitle, eventName: String(stall.event || eventId) },
       });
 
       return res.json({ ...response, ingestionTriggered: true });
@@ -60,7 +76,7 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       error: "Chatbot failed",
-      details: err.response?.data || err.message,
+      details: normalizeAxiosDetails(err.response?.data) || err.message,
     });
   }
 });
@@ -78,7 +94,7 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
     const result = await ingestStallChatbot(eventId, stallId);
     if (result.skipped) {
       return res.status(400).json({
-        error: "No PDF documents available for ingestion",
+        error: "No supported documents available for ingestion",
         details: result.reason,
       });
     }
@@ -87,7 +103,7 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       error: "Ingestion failed",
-      details: err.response?.data || err.message,
+      details: normalizeAxiosDetails(err.response?.data) || err.message,
     });
   }
 });

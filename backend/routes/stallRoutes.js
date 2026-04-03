@@ -86,12 +86,6 @@ stallRoutes.post(
   uploadStallVideo,
 );
 
-stallRoutes.post(
-  "/:stallId/upload-documents",
-  verifyToken,
-  uploadDocument.array("documents", 10),
-  uploadStallDocuments,
-);
 
 stallRoutes.post(
   "/:stallId/upload-documents",

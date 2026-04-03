@@ -28,25 +28,29 @@ REQUIRED_ENV_VARS = [
     "GROQ_CHAT_MODEL",
 ]
 
-DEFAULT_TOP_K = 8
-# Keep default as plain similarity (most compatible)
-DEFAULT_SEARCH_TYPE = "similarity"
+DEFAULT_TOP_K = 12
+# Use MMR by default to diversify retrieved chunks across uploaded files.
+DEFAULT_SEARCH_TYPE = "mmr"
 # Only used when search_type == "similarity_score_threshold"
 DEFAULT_SCORE_THRESHOLD = 0.0
+DEFAULT_FETCH_K = 50
 
 
-QA_PROMPT = PromptTemplate(
-    input_variables=["context", "question"],
-    template=(
-        "You are a helpful assistant answering questions about the repository.\n"
-        "Use the provided context to answer.\n"
-        "Cite file paths from the context metadata when you make claims.\n"
-        "If the answer is uncertain or the context is insufficient, say so explicitly.\n\n"
-        "Context:\n{context}\n\n"
-        "Question: {question}\n"
-        "Answer:"
-    ),
-)
+
+def build_qa_prompt(scope_instruction: str):
+    return PromptTemplate(
+        input_variables=["context", "question"],
+        template=(
+            "You are a helpful assistant answering questions about a stall project.\n"
+            f"Scope rules: {scope_instruction}\n"
+            "Use only the provided context to answer.\n"
+            "Do not reference section numbers, chapter numbers, or tell users to look up specific sections in documents.\n"
+            "If the answer is uncertain or the context is insufficient, say so explicitly.\n\n"
+            "Context:\n{context}\n\n"
+            "Question: {question}\n"
+            "Answer:"
+        ),
+    )
 
 
 def validate_env():
@@ -90,6 +94,7 @@ def chat():
         data = request.get_json(force=True)
         query = data.get("query")
         project_id = data.get("project_id")
+        context = data.get("context") or {}
 
         if not query or not project_id:
             return (
@@ -106,10 +111,19 @@ def chat():
         if not is_valid:
             return jsonify({"error": error_message}), 404
 
+
         chat_model = os.getenv("GROQ_CHAT_MODEL")
         top_k = data.get("top_k", DEFAULT_TOP_K)
         search_type = data.get("search_type", DEFAULT_SEARCH_TYPE)
         score_threshold = data.get("score_threshold", DEFAULT_SCORE_THRESHOLD)
+        fetch_k = data.get("fetch_k", DEFAULT_FETCH_K)
+        stall_name = context.get("stallName") or "Unknown Stall"  #keep the stall_name 
+        event_name = context.get("eventName") or "Unknown Event"
+        scope_instruction = (
+            f"Answer only for stall '{stall_name}' in event '{event_name}'. "
+            "If asked about other stalls or events, explain your scope is limited."
+        )
+        qa_prompt = build_qa_prompt(scope_instruction)
 
         db = Chroma(
             persist_directory=f"./db/{project_id}",
@@ -121,6 +135,8 @@ def chat():
         search_kwargs = {"k": top_k}
         if search_type == "similarity_score_threshold":
             search_kwargs["score_threshold"] = score_threshold
+        elif search_type == "mmr":
+            search_kwargs["fetch_k"] = fetch_k
 
         retriever = db.as_retriever(
             search_type=search_type,
@@ -131,7 +147,7 @@ def chat():
             llm=ChatGroq(model=chat_model),
             retriever=retriever,
             return_source_documents=True,
-            chain_type_kwargs={"prompt": QA_PROMPT},
+            chain_type_kwargs={"prompt": qa_prompt},
         )
 
         result = qa({"query": query})

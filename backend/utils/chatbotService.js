@@ -11,16 +11,19 @@ export const ingestStallChatbot = async (eventId, stallId) => {
   const botId = getStallBotId(eventId, stallId);
   const folderPath = getIngestFolderForBot(botId);
 
-  const { stall, downloadedCount, skippedCount } = await downloadStallFiles(stallId, folderPath);
-
+  const { stall, downloadedCount, skippedCount, failedCount, failures } = await downloadStallFiles(stallId, folderPath);
   if (!downloadedCount) {
     return {
       botId,
       stall,
       downloadedCount,
       skippedCount,
+      failedCount,
+      failures,
       skipped: true,
-      reason: "No PDF documents found for this stall",
+      reason: failedCount
+        ? "Supported documents were found, but downloads failed. Check file accessibility/permissions."
+        : "No supported documents found for this stall (PDF, DOCX, PPT, PPTX)",
     };
   }
 
@@ -34,6 +37,8 @@ export const ingestStallChatbot = async (eventId, stallId) => {
     stall,
     downloadedCount,
     skippedCount,
+    failedCount,
+    failures,
     skipped: false,
     data,
   };
@@ -41,17 +46,12 @@ export const ingestStallChatbot = async (eventId, stallId) => {
 
 export const queryStallChatbot = async ({ eventId, stallId, query, context = {} }) => {
   const botId = getStallBotId(eventId, stallId);
-
-  const systemPrefix = [
-    `You are answering questions for stall \"${context.stallName || "Unknown Stall"}\" in event \"${context.eventName || "Unknown Event"}\".`,
-    `Only answer about this stall and its project. If asked about another stall, explain your scope is limited to this stall.`,
-  ].join(" ");
-
-  const scopedQuery = `${systemPrefix}\n\nUser question: ${query}`;
+;
 
   const { data } = await axios.post(`${FLASK_BASE_URL}/chat`, {
-    query: scopedQuery,
+    query,
     project_id: botId,
+    context,
   });
 
   return { ...data, botId };

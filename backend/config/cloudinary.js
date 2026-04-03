@@ -45,15 +45,23 @@ const videoStorage = new CloudinaryStorage({
 const documentStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-    const originalName = file.originalname.split(".")[0];
+    const rawBaseName = file.originalname.replace(/\.[^/.]+$/, "");
+    const sanitizedBaseName = rawBaseName
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, "_")
+      .slice(0, 50);
+    const extension = file.originalname.split(".").pop()?.toLowerCase();
+    const uniqueSuffix = `${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+    const stallId = req.params?.stallId || "unknown-stall";
 
     return {
       folder: "virtual-openhouse/stalls/documents",
       resource_type: "raw",
-      public_id: originalName, // ✅ use original name
+      public_id: `${stallId}/${sanitizedBaseName || "document"}_${uniqueSuffix}`,
       use_filename: true,
-      unique_filename: false, // ❗ VERY IMPORTANT
-      format: file.originalname.split(".").pop(), // ✅ keep extension
+      unique_filename: false,
+      overwrite: false,
+      format: extension,
     };
   },
 });
