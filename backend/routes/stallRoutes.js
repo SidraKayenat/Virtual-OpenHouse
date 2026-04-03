@@ -94,10 +94,25 @@ stallRoutes.post(
 );
 
 stallRoutes.post(
-  "/:stallId/upload-banner",
+  "/:stallId/upload-documents",
   verifyToken,
-  uploadBanner.single("banner"),
-  uploadStallBanner,
+  (req, res, next) => {
+    uploadDocument.array("documents", 10)(req, res, function (err) {
+      if (err) {
+        console.error("Multer Error:", err);
+
+        return res.status(400).json({
+          success: false,
+          message:
+            err.code === "LIMIT_FILE_SIZE"
+              ? "File too large (max 10MB)"
+              : err.message || "Upload error",
+        });
+      }
+      next();
+    });
+  },
+  uploadStallDocuments,
 );
 
 stallRoutes.delete("/:stallId/images/:publicId", verifyToken, deleteStallImage);

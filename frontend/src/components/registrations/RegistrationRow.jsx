@@ -13,7 +13,6 @@ const fmt = (d) =>
 import { Link, Navigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import StatusBadge from "./StatusBadge";
-import { stallAPI } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
 const RegistrationRow = ({ registration }) => {
@@ -21,27 +20,6 @@ const RegistrationRow = ({ registration }) => {
   const info = registration.participantInfo || {};
   const image = event.thumbnailUrl || event.thumbnail || "/bg.png";
   const navigate = useNavigate();
-
-  const handleCreateStall = async () => {
-    try {
-      const res = await stallAPI.create(registration._id);
-      navigate(`/user/stalls/${res.data._id}`);
-    } catch (err) {
-      // If already exists → redirect to existing stall
-      if (err.message.includes("already exists")) {
-        const myStalls = await stallAPI.getMyStalls();
-
-        const existing = myStalls.data.find(
-          (s) => s.registration._id === registration._id,
-        );
-
-        if (existing) {
-          navigate(`/user/stalls/${existing._id}`);
-        }
-      }
-    }
-  };
-
   return (
     <motion.div
       layout
@@ -94,20 +72,6 @@ const RegistrationRow = ({ registration }) => {
       )}
 
       <StatusBadge status={registration.status} />
-
-      {registration.status === "approved" && registration.stallNumber && (
-        <Link
-          className="text-[10.5px] font-bold px-2.5 py-1 rounded-sm flex-shrink-0"
-          style={{
-            background: "#3D59EC",
-            color: "white",
-            border: "1px solid rgba(52,211,153,0.2)",
-          }}
-          onClick={handleCreateStall}
-        >
-          Create Stall
-        </Link>
-      )}
 
       <Link
         to={`/registration/${registration._id}`}

@@ -160,13 +160,17 @@ export const uploadStallDocuments = async (req, res) => {
     }
 
     // Process uploaded documents
-    const uploadedDocs = req.files.map((file) => ({
-      url: file.path,
-      publicId: file.filename,
-      filename: file.originalname,
-      fileType: file.mimetype.split("/")[1], // pdf, docx, etc.
-      fileSize: file.size,
-    }));
+    const uploadedDocs = req.files.map((file) => {
+      const ext = file.originalname.split(".").pop();
+
+      return {
+        url: `file.path`, // ✅ append extension manually
+        publicId: file.filename,
+        filename: file.originalname,
+        fileType: ext,
+        fileSize: file.size,
+      };
+    });
 
     // Add documents to stall
     stall.documents.push(...uploadedDocs);
@@ -190,7 +194,7 @@ export const uploadStallDocuments = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Upload Documents Error:", error);
+    console.error("Upload Documents Error:", error.stack || error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to upload documents",
@@ -384,7 +388,8 @@ export const deleteStallVideo = async (req, res) => {
 // ===== DELETE DOCUMENT FROM STALL =====
 export const deleteStallDocument = async (req, res) => {
   try {
-    const { stallId, publicId } = req.params;
+    const stallId = req.params.stallId;
+    const publicId = decodeURIComponent(req.params.publicId); // ✅ FIX HERE
 
     // Find stall
     const stall = await Stall.findById(stallId);
