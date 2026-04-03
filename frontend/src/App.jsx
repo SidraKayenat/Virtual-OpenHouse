@@ -1,29 +1,36 @@
 import "./App.css";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./routes/ProtectedRoute";
+
 import Login from "./pages/auth/Login";
 import Landing from "./pages/landing/Landing";
 import Signup from "./pages/auth/Signup";
+
+import EventViewerPage from "./pages/event/EventViewerPage";
+import EventDetails from "./pages/event/EventDetails";
+import PublicBrowseEvents from "./pages/event/browse/PublicBrowseEvent";
+
 import UserDashboard from "./pages/dashboards/UserDashboard";
 import CreateEvent from "./pages/event/CreateEvent";
+import MyEvents from "./pages/event/MyEvents";
 import EditEvent from "./pages/event/EditEvent";
+import ManageEvent from "./pages/event/ManageEvent";
+import MyRegistrations from "./pages/registration/MyRegistrations";
 import CreateRegistration from "./pages/registration/CreateRegistration";
 import RegistrationDetails from "./pages/registration/RegistrationDetails";
-import AdminDashboard from "./pages/dashboards/AdminDashboard";
-import ManageEvent from "./pages/event/ManageEvent";
-import EventViewerPage from "./pages/event/EventViewerPage";
-import { AuthProvider } from "./context/AuthContext";
-import EventDetails from "./pages/event/EventDetails";
-import BrowseEvents from "./pages/event/browse/BrowseEvents";
-import PublicBrowseEvents from "./pages/event/browse/PublicBrowseEvent";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import MyRegistrations from "./pages/registration/MyRegistrations";
-import MyEvents from "./pages/event/MyEvents";
+import UpdateRegistration from "./pages/registration/UpdateRegistration";
 import MyStalls from "./pages/stall/MyStalls";
 import StallEditor from "./pages/stall/StallEditor";
-import UpdateRegistration from "./pages/registration/UpdateRegistration";
 import UserSettings from "./pages/settings/UserSettings";
-import EventRequests from "./pages/event/EventRequests";
+
+import BrowseEvents from "./pages/event/browse/BrowseEvents";
 import Notifications from "./pages/notifications/Notifications";
+
+import AdminDashboard from "./pages/dashboards/AdminDashboard";
+import EventRequests from "./pages/event/EventRequests";
+import AllEvents from "./pages/event/browse/AdminBrowseEvents";
+
 function App() {
   return (
     <BrowserRouter>
@@ -67,7 +74,7 @@ function App() {
           />
 
           <Route
-            path="/user/browseevents"
+            path="/browseevents"
             element={
               <ProtectedRoute>
                 <BrowseEvents />
@@ -178,6 +185,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/events"
+            element={
+              <ProtectedRoute>
+                <AllEvents />
               </ProtectedRoute>
             }
           />
