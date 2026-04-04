@@ -9,21 +9,9 @@ export class EnvironmentLoader {
     this.currentEnvironment = null;
   }
 
-  
-
-  async loadEnvironment(environmentType, customBackgroundUrl = null) {
+  async loadEnvironment(environmentType) {
     this.clearEnvironment();
 
-    // If custom URL provided, use it directly as skybox
-  if (customBackgroundUrl) {
-    try {
-      return await this.load360Image(customBackgroundUrl);
-    } catch (error) {
-      console.error("Failed to load custom skybox:", error);
-      return this.createPlainGround();
-    }
-  }
-  
     const path = ENVIRONMENT_MODELS[environmentType];
 
     if (!path) {
@@ -83,5 +71,21 @@ export class EnvironmentLoader {
 
   /* ================= FALLBACK ================= */
 
-  
+  createPlainGround() {
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(80, 140),
+      new THREE.MeshStandardMaterial({
+        color: 0x777777,
+        roughness: 1,
+      })
+    );
+
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -50;
+
+    this.scene.add(floor);
+    this.currentEnvironment = floor;
+
+    return floor;
+  }
 }

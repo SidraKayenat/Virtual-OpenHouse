@@ -39,18 +39,16 @@ export const fetchPublicEventData = async (eventId) => {
     );
 
     return {
-  id: event._id,
-  name: event.name,
-  description: event.description,
-  environmentType: event.environmentType || "indoor",
-  backgroundType: event.backgroundType || "default",        
-  customBackground: event.customBackground || null,          
-  stallCount: event.numberOfStalls || stalls.length || 0,
-  liveDate: event.liveDate,
-  status: event.status,
-  stalls,
-  rawEvent: event,
-};
+      id: event._id,
+      name: event.name,
+      description: event.description,
+      environmentType: event.environmentType || "indoor",
+      stallCount: event.numberOfStalls || stalls.length || 0,
+      liveDate: event.liveDate,
+      status: event.status,
+      stalls,
+      rawEvent: event,
+    };
   } catch (error) {
     console.error("Error fetching public event data:", error);
     throw error;
@@ -69,18 +67,16 @@ export const fetchAuthenticatedEventData = async (eventId) => {
     const stalls = (stallsResponse?.data || []).map(normalizeStall);
 
     return {
-  id: event._id,
-  name: event.name,
-  description: event.description,
-  environmentType: event.environmentType || "indoor",
-  backgroundType: event.backgroundType || "default",        // ADD THIS
-  customBackground: event.customBackground || null,          // ADD THIS
-  stallCount: event.numberOfStalls || stalls.length || 0,
-  liveDate: event.liveDate,
-  status: event.status,
-  stalls,
-  rawEvent: event,
-};
+      id: event._id,
+      name: event.name,
+      description: event.description,
+      environmentType: event.environmentType || "indoor",
+      stallCount: event.numberOfStalls || stalls.length || 0,
+      liveDate: event.liveDate,
+      status: event.status,
+      stalls,
+      rawEvent: event,
+    };
   } catch (error) {
     console.error("Error fetching authenticated event data:", error);
     throw error;
