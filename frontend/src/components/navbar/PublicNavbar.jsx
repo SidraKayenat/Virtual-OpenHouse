@@ -26,7 +26,7 @@ export default function PublicNavbar() {
           {/* Center Links */}
           <div className="hidden md:flex items-center gap-12">
             <Link
-              to="/browseevents"
+              to="/publicbrowseevents"
               className="relative text-gray-700 transition group"
             >
               Browse Events

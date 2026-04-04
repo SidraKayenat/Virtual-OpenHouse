@@ -1,7 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "motion/react"; // ← Add motion here
 import {
+  Upload,
+  FileImage,
   Calendar,
   Clock,
   MapPin,
@@ -11,7 +13,6 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
-  Upload,
   Hash,
   Users,
   Palette,
@@ -38,8 +39,8 @@ const STEPS = [
     icon: Building,
     desc: "Capacity & environment",
   },
-  { id: 3, label: "Media", icon: Image, desc: "Thumbnail & 3D model" },
-  { id: 4, label: "Tags", icon: Hash, desc: "Discoverability" },
+  // { id: 3, label: "Media", icon: Image, desc: "Thumbnail" },
+  { id: 3, label: "Tags", icon: Hash, desc: "Discoverability" },
 ];
 
 const EVENT_TYPES = [
@@ -286,122 +287,121 @@ function StepNav({ currentStep, completedSteps, onGoTo }) {
   );
 }
 
-// ─── Thumbnail picker ─────────────────────────────────────────────────────
-function ThumbnailPicker({ value, onChange }) {
-  const [preview, setPreview] = useState(value || "");
-  const [urlInput, setUrlInput] = useState(value || "");
-  const [mode, setMode] = useState("url"); // "url" | "preview"
+// ─── Thumbnail uploader (file upload version) ─────────────────────────────
+// function ThumbnailPicker({ value, onUpload, uploading, onClear }) {
+//   const [preview, setPreview] = useState(value || "");
+//   const fileInputRef = useRef(null);
 
-  const applyUrl = () => {
-    setPreview(urlInput);
-    onChange(urlInput);
-  };
+//   useEffect(() => {
+//     setPreview(value || "");
+//   }, [value]);
 
-  const clearImage = () => {
-    setPreview("");
-    setUrlInput("");
-    onChange("");
-  };
+//   const handleFileSelect = (e) => {
+//     const file = e.target.files[0];
+//     if (file) {
+//       // Show preview immediately
+//       const reader = new FileReader();
+//       reader.onloadend = () => {
+//         setPreview(reader.result);
+//       };
+//       reader.readAsDataURL(file);
+//       onUpload(file);
+//     }
+//   };
 
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Preview box */}
-      <div
-        className="relative w-full rounded-2xl overflow-hidden flex items-center justify-center"
-        style={{
-          height: 180,
-          background: preview ? "transparent" : "rgba(255,255,255,0.03)",
-          border: preview ? "none" : "2px dashed rgba(255,255,255,0.1)",
-        }}
-      >
-        {preview ? (
-          <>
-            <img
-              src={preview}
-              alt="Thumbnail"
-              className="w-full h-full object-cover"
-              onError={() => setPreview("")}
-            />
-            <div
-              className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center"
-              style={{ background: "rgba(0,0,0,0.55)" }}
-            >
-              <button
-                onClick={clearImage}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white"
-                style={{
-                  background: "rgba(239,68,68,0.4)",
-                  border: "1px solid rgba(239,68,68,0.5)",
-                }}
-              >
-                <X size={13} /> Remove
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{
-                background: "rgba(167,139,250,0.1)",
-                border: "1px solid rgba(167,139,250,0.2)",
-              }}
-            >
-              <Image size={22} style={{ color: "#a78bfa" }} />
-            </div>
-            <p
-              className="text-[12px]"
-              style={{ color: "rgba(255,255,255,0.3)" }}
-            >
-              No thumbnail set
-            </p>
-          </div>
-        )}
-      </div>
+//   const clearImage = () => {
+//     setPreview("");
+//     onClear();
+//   };
 
-      {/* URL input row */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Globe
-            size={13}
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "rgba(255,255,255,0.25)" }}
-          />
-          <input
-            type="url"
-            placeholder="Paste image URL…"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && applyUrl()}
-            style={{ ...inputBase, paddingLeft: 34, fontSize: 12.5 }}
-            onFocus={(e) =>
-              (e.target.style.borderColor = "rgba(167,139,250,0.5)")
-            }
-            onBlur={(e) =>
-              (e.target.style.borderColor = "rgba(255,255,255,0.1)")
-            }
-          />
-        </div>
-        <button
-          type="button"
-          onClick={applyUrl}
-          disabled={!urlInput}
-          className="flex-shrink-0 px-4 py-2 rounded-xl text-[12px] font-semibold transition-all"
-          style={{
-            background: urlInput
-              ? "rgba(124,58,237,0.25)"
-              : "rgba(255,255,255,0.04)",
-            color: urlInput ? "#c4b5fd" : "rgba(255,255,255,0.25)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          Apply
-        </button>
-      </div>
-    </div>
-  );
-}
-
+//   return (
+//     <div className="flex flex-col gap-3">
+//       {/* Preview box */}
+//       <div
+//         className="relative w-full rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer group"
+//         style={{
+//           height: 180,
+//           background: preview ? "transparent" : "rgba(255,255,255,0.03)",
+//           border: preview ? "none" : "2px dashed rgba(255,255,255,0.1)",
+//         }}
+//         onClick={() => !preview && fileInputRef.current?.click()}
+//       >
+//         <input
+//           ref={fileInputRef}
+//           type="file"
+//           accept="image/*"
+//           className="hidden"
+//           onChange={handleFileSelect}
+//         />
+//         {preview ? (
+//           <>
+//             <img
+//               src={preview}
+//               alt="Thumbnail"
+//               className="w-full h-full object-cover"
+//             />
+//             <div
+//               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+//               style={{ background: "rgba(0,0,0,0.55)" }}
+//             >
+//               <button
+//                 onClick={(e) => {
+//                   e.stopPropagation();
+//                   clearImage();
+//                 }}
+//                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white"
+//                 style={{
+//                   background: "rgba(239,68,68,0.4)",
+//                   border: "1px solid rgba(239,68,68,0.5)",
+//                 }}
+//               >
+//                 <X size={13} /> Remove
+//               </button>
+//             </div>
+//           </>
+//         ) : (
+//           <div className="flex flex-col items-center gap-2">
+//             {uploading ? (
+//               <>
+//                 <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+//                 <p
+//                   className="text-[11px]"
+//                   style={{ color: "rgba(255,255,255,0.3)" }}
+//                 >
+//                   Uploading...
+//                 </p>
+//               </>
+//             ) : (
+//               <>
+//                 <div
+//                   className="w-12 h-12 rounded-2xl flex items-center justify-center"
+//                   style={{
+//                     background: "rgba(167,139,250,0.1)",
+//                     border: "1px solid rgba(167,139,250,0.2)",
+//                   }}
+//                 >
+//                   <Upload size={22} style={{ color: "#a78bfa" }} />
+//                 </div>
+//                 <p
+//                   className="text-[12px]"
+//                   style={{ color: "rgba(255,255,255,0.3)" }}
+//                 >
+//                   Click to upload thumbnail
+//                 </p>
+//                 <p
+//                   className="text-[10px]"
+//                   style={{ color: "rgba(255,255,255,0.2)" }}
+//                 >
+//                   JPG, PNG, WebP · Max 5MB
+//                 </p>
+//               </>
+//             )}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 // ─── Tag input ────────────────────────────────────────────────────────────
 function TagInput({ value, onChange }) {
   const [input, setInput] = useState("");
@@ -644,14 +644,14 @@ function LivePreview({ form }) {
               })}
             </p>
           )}
-          {form.venue && (
+          {/* {form.venue && (
             <p
               className="text-[11px] flex items-center gap-1.5"
               style={{ color: "rgba(255,255,255,0.38)" }}
             >
               <MapPin size={11} /> {form.venue}
             </p>
-          )}
+          )} */}
           {form.numberOfStalls && (
             <p
               className="text-[11px] flex items-center gap-1.5"
@@ -719,14 +719,17 @@ export default function CreateEvent() {
     startTime: "",
     endTime: "",
     backgroundType: "default",
-    customBackground: "",
+    customBackground: "", // Keep but remove from UI
     environmentType: "indoor",
     eventType: "exhibition",
     tags: "",
-    venue: "",
-    thumbnailUrl: "",
-    modelUrl: "",
+    // REMOVE these lines
+    // thumbnailUrl: "",
+    // thumbnailPublicId: "",
   });
+
+  // const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  // const [uploadingBackground, setUploadingBackground] = useState(false);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const handle = (e) => {
@@ -760,15 +763,24 @@ export default function CreateEvent() {
     setSubmitError(null);
     try {
       const payload = {
-        ...form,
+        name: form.name,
+        description: form.description,
         numberOfStalls: parseInt(form.numberOfStalls),
+        liveDate: form.liveDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        backgroundType: form.backgroundType,
+        environmentType: form.environmentType,
+        eventType: form.eventType,
         tags: form.tags
           ? form.tags
               .split(",")
               .map((t) => t.trim())
               .filter(Boolean)
           : [],
+        // REMOVE thumbnail and background from payload
       };
+
       const res = await eventAPI.create(payload);
       if (res.success) navigate("/user/events");
       else throw new Error(res.message);
@@ -778,6 +790,48 @@ export default function CreateEvent() {
       setLoading(false);
     }
   };
+
+  // Thumbnail upload handler
+  // const handleThumbnailUpload = async (file) => {
+  //   if (!file) return;
+
+  //   const formData = new FormData();
+  //   formData.append("thumbnail", file);
+
+  //   try {
+  //     setUploadingThumbnail(true);
+  //     const response = await eventAPI.uploadThumbnail(formData);
+  //     if (response.success) {
+  //       set("thumbnailUrl", response.data.url);
+  //       set("thumbnailPublicId", response.data.publicId);
+  //     }
+  //   } catch (error) {
+  //     setSubmitError("Failed to upload thumbnail");
+  //   } finally {
+  //     setUploadingThumbnail(false);
+  //   }
+  // };
+
+  // Custom background upload handler
+  // const handleBackgroundUpload = async (file) => {
+  //   if (!file) return;
+
+  //   const formData = new FormData();
+  //   formData.append("background", file);
+
+  //   try {
+  //     setUploadingBackground(true);
+  //     const response = await eventAPI.uploadBackground(formData);
+  //     if (response.success) {
+  //       set("customBackground", response.data.url);
+  //       set("customBackgroundPublicId", response.data.publicId);
+  //     }
+  //   } catch (error) {
+  //     setSubmitError("Failed to upload background");
+  //   } finally {
+  //     setUploadingBackground(false);
+  //   }
+  // };
 
   const fadeUp = {
     initial: { opacity: 0, y: 14 },
@@ -791,7 +845,7 @@ export default function CreateEvent() {
 
   return (
     <div
-      className="min-h-screen flex"
+      className="h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -1074,15 +1128,6 @@ export default function CreateEvent() {
                             />
                           </Field>
                         </div>
-                        <Field label="Venue" hint="Physical or virtual">
-                          <StyledInput
-                            icon={MapPin}
-                            name="venue"
-                            placeholder="e.g. Jakarta Convention Center"
-                            value={form.venue}
-                            onChange={handle}
-                          />
-                        </Field>
                       </>
                     )}
 
@@ -1179,45 +1224,49 @@ export default function CreateEvent() {
                           </div>
                         </Field>
                         {form.backgroundType === "custom" && (
-                          <Field label="Custom Background URL">
-                            <StyledInput
-                              icon={Globe}
-                              name="customBackground"
-                              placeholder="https://…"
-                              value={form.customBackground}
-                              onChange={handle}
-                            />
+                          <Field label="Custom Background">
+                            <div
+                              className="p-4 rounded-xl text-[12px]"
+                              style={{
+                                background: "rgba(251,191,36,0.07)",
+                                border: "1px solid rgba(251,191,36,0.18)",
+                                color: "#fde68a",
+                              }}
+                            >
+                              <Info
+                                size={13}
+                                className="inline mr-1.5 mb-0.5"
+                              />
+                              Custom background can be added after the event is
+                              approved by admin.
+                            </div>
                           </Field>
                         )}
                       </>
                     )}
 
                     {/* STEP 3: Media */}
-                    {step === 3 && (
-                      <>
-                        <Field
-                          label="Event Thumbnail"
-                          hint="Paste an image URL"
-                        >
-                          <ThumbnailPicker
-                            value={form.thumbnailUrl}
-                            onChange={(v) => set("thumbnailUrl", v)}
-                          />
-                        </Field>
-                        <Field label="3D Model URL" hint="Optional">
-                          <StyledInput
-                            icon={Box}
-                            name="modelUrl"
-                            placeholder="https://model.glb or .obj"
-                            value={form.modelUrl}
-                            onChange={handle}
-                          />
-                        </Field>
-                      </>
-                    )}
+                    {/* {step === 3 && ( */}
+                    {/* <>
+                      <Field
+                        label="Event Thumbnail"
+                        hint="Upload an image for the event card"
+                      >
+                        <ThumbnailPicker
+                          value={form.thumbnailUrl}
+                          onUpload={handleThumbnailUpload}
+                          onClear={() => {
+                            set("thumbnailUrl", "");
+                            set("thumbnailPublicId", "");
+                          }}
+                          uploading={uploadingThumbnail}
+                        />
+                      </Field>
+                    </> */}
+                    {/* )} */}
 
                     {/* STEP 4: Tags + Review */}
-                    {step === 4 && (
+                    {step === 3 && (
                       <>
                         <Field label="Tags" hint="Up to 10">
                           <TagInput
@@ -1256,7 +1305,6 @@ export default function CreateEvent() {
                                   ? `${form.startTime} – ${form.endTime || "?"}`
                                   : "—",
                               ],
-                              ["Venue", form.venue || "—"],
                               ["Stalls", form.numberOfStalls],
                               ["Environment", form.environmentType],
                               ["Background", form.backgroundType],

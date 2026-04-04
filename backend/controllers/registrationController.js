@@ -2,6 +2,13 @@ import Registration from "../models/Registration.js";
 import Event from "../models/Event.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
+import {
+  notifyRegistrationReceived,
+  notifyRegistrationSubmitted,
+  notifyRegistrationApproved,
+  notifyRegistrationRejected,
+  notifyRegistrationCancelledAdmin,
+} from "../services/notificationService.js";
 
 // ===== CREATE REGISTRATION (User registers for event stall) =====
 export const createRegistration = async (req, res) => {
@@ -73,7 +80,24 @@ export const createRegistration = async (req, res) => {
       { path: "user", select: "name email organization" },
     ]);
 
-    // TODO: Send notification to Event Admin about new registration
+    // Send notifications
+    try {
+      // Notify participant that registration was submitted
+      await notifyRegistrationSubmitted(registration._id, event.name, req.user._id);
+
+      // Notify event admin about new registration
+      const userName = req.user.name || "A user";
+      await notifyRegistrationReceived(
+        event._id,
+        event.name,
+        event.createdBy,
+        userName,
+        registration._id
+      );
+    } catch (notifError) {
+      console.error("Error sending registration notifications:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(201).json({
       success: true,
@@ -117,7 +141,7 @@ export const getEventRegistrations = async (req, res) => {
     // Only event creator can view registrations
     if (
       event.createdBy.toString() !== req.user._id.toString() &&
-      req.user.role !== "system_admin"
+      req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,
@@ -290,6 +314,14 @@ export const approveRegistration = async (req, res) => {
       { path: "approvedBy", select: "name email" },
     ]);
 
+    // Send notification to participant about approval
+    try {
+      await notifyRegistrationApproved(registration._id, registration.event.name, registration.user._id, stallNumber);
+    } catch (notifError) {
+      console.error("Error sending approval notification:", notifError);
+      // Don't fail the request if notification fails
+    }
+
     // TODO: Send notification to user about approval
 
     res.status(200).json({
@@ -320,7 +352,7 @@ export const rejectRegistration = async (req, res) => {
     }
 
     const registration =
-      await Registration.findById(registrationId).populate("event");
+      await Registration.findById(registrationId).populate("event").populate("user");
 
     if (!registration) {
       return res.status(404).json({
@@ -357,6 +389,14 @@ export const rejectRegistration = async (req, res) => {
       { path: "user", select: "name email" },
       { path: "rejectedBy", select: "name email" },
     ]);
+
+    // Send notification to participant about rejection
+    try {
+      await notifyRegistrationRejected(registration._id, registration.event.name, registration.user._id, rejectionReason);
+    } catch (notifError) {
+      console.error("Error sending rejection notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     // TODO: Send notification to user about rejection
 
@@ -421,7 +461,7 @@ export const getRegistrationById = async (req, res) => {
       registration.user._id.toString() === req.user._id.toString();
     const isEventCreator =
       registration.event.createdBy.toString() === req.user._id.toString();
-    const isSystemAdmin = req.user.role === "system_admin";
+    const isSystemAdmin = req.user.role === "admin";
 
     if (!isOwner && !isEventCreator && !isSystemAdmin) {
       return res.status(403).json({
@@ -450,7 +490,7 @@ export const cancelRegistration = async (req, res) => {
     const { cancellationReason } = req.body || {};
 
     const registration =
-      await Registration.findById(registrationId).populate("event");
+      await Registration.findById(registrationId).populate("event").populate("user");
 
     if (!registration) {
       return res.status(404).json({
@@ -481,6 +521,20 @@ export const cancelRegistration = async (req, res) => {
     registration.cancelledAt = new Date();
 
     await registration.save();
+
+    // Send notification to Event Admin about cancellation
+    try {
+      const userName = registration.user.name || "A user";
+      await notifyRegistrationCancelledAdmin(
+        registration._id,
+        registration.event.name,
+        registration.event.createdBy,
+        userName
+      );
+    } catch (notifError) {
+      console.error("Error sending cancellation notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     // TODO: Notify Event Admin about cancellation
 
@@ -569,7 +623,7 @@ export const getRegistrationStatistics = async (req, res) => {
     // Only event creator can view stats
     if (
       event.createdBy.toString() !== req.user._id.toString() &&
-      req.user.role !== "system_admin"
+      req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,

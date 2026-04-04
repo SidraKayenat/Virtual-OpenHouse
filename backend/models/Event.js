@@ -244,6 +244,16 @@ const eventSchema = new Schema(
       type: String,
       default: null,
     },
+
+    customBackgroundPublicId: {
+      type: String,
+      default: null,
+    },
+
+    defaultBackgroundUrl: {
+      type: String,
+      default: null,
+    },
     
     environmentType: {
       type: String,
@@ -257,6 +267,11 @@ const eventSchema = new Schema(
     },
     
     thumbnailUrl: {
+      type: String,
+      default: null,
+    },
+
+    thumbnailPublicId: {
       type: String,
       default: null,
     },
@@ -278,7 +293,6 @@ const eventSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
     
     // ===== APPROVAL WORKFLOW =====
@@ -294,7 +308,6 @@ const eventSchema = new Schema(
         "cancelled"   // Event was cancelled
       ],
       default: "pending",
-      index: true,
     },
     
     reviewedBy: {

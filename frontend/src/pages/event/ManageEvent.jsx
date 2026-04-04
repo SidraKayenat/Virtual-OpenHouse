@@ -659,7 +659,7 @@ export default function ManageEvent() {
   // ─── Loading ───────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
