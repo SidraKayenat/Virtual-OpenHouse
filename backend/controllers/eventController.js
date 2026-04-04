@@ -168,7 +168,7 @@ export const createEvent = async (req, res) => {
     try {
       // Notify event creator that event was submitted
       await notifyEventSubmitted(event._id, event.name, req.user._id);
-      
+
       // Notify all system admins of pending approval
       const creatorName = req.user.name || "Event Creator";
       await notifyAdminPendingApproval(event._id, event.name, creatorName);
@@ -374,7 +374,12 @@ export const rejectEvent = async (req, res) => {
 
     // Send notification to event creator
     try {
-      await notifyEventRejected(event._id, event.name, event.createdBy._id, rejectionReason);
+      await notifyEventRejected(
+        event._id,
+        event.name,
+        event.createdBy._id,
+        rejectionReason,
+      );
     } catch (notifError) {
       console.error("Error sending rejection notification:", notifError);
       // Don't fail the request if notification fails
@@ -395,126 +400,9 @@ export const rejectEvent = async (req, res) => {
 };
 
 // ===== PUBLISH EVENT (Event Admin) =====
-export const publishEvent = async (req, res) => {
-  try {
-    const { eventId } = req.params;
-
-    const event = await Event.findById(eventId);
-
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: "Event not found",
-      });
-    }
-
-    // Only event creator can publish
-    if (event.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only publish your own events",
-      });
-    }
-
-    // Event must be approved before publishing
-    if (event.status !== "approved") {
-      return res.status(400).json({
-        success: false,
-        message: "Only approved events can be published",
-      });
-    }
-
-    // Update to published
-    event.status = "published";
-    event.publishedAt = new Date();
-    event.publishedBy = req.user._id;
-
-    await event.save();
-
-    // Send notification to event creator
-    try {
-      await notifyEventPublished(event._id, event.name, req.user._id);
-    } catch (notifError) {
-      console.error("Error sending publish notification:", notifError);
-      // Don't fail the request if notification fails
-    }
-
-    // TODO: Send notifications to all attendees/interested users
-
-    res.status(200).json({
-      success: true,
-      message: "Event published successfully",
-      data: event,
-    });
-  } catch (error) {
-    console.error("Publish Event Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to publish event",
-    });
-  }
-};
-
+export const publishEvent = async (req, res) => {};
 // ===== GET PUBLISHED EVENTS (Public) =====
-export const getPublishedEvents = async (req, res) => {
-  try {
-    const { search, eventType, tags, page = 1, limit = 10 } = req.query;
-
-    let query = {
-      status: { $in: ["published", "live"] },
-    };
-
-    // Search filter
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    // Event type filter
-    if (eventType) {
-      query.eventType = eventType;
-    }
-
-    // Tags filter
-    if (tags) {
-      const tagArray = tags.split(",");
-      query.tags = { $in: tagArray };
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const events = await Event.find(query)
-      .populate("createdBy", "name organization")
-      .select("-reviewedBy -rejectionReason")
-      .sort({ liveDate: 1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Event.countDocuments(query);
-    // Update statuses for any events that should be live
-    for (const event of events) {
-      await ensureCorrectStatus(event);
-    }
-
-    res.status(200).json({
-      success: true,
-      data: events,
-      pagination: {
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-      },
-    });
-  } catch (error) {
-    console.error("Get Published Events Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch published events",
-    });
-  }
-};
+export const getPublishedEvents = async (req, res) => {};
 
 // ===== GET SINGLE EVENT =====
 export const getEventById = async (req, res) => {
@@ -1011,6 +899,62 @@ export const setDefaultBackground = async (req, res) => {
   }
 };
 
+// ===== REMOVE DEFAULT BACKGROUND (Admin only) =====
+export const removeDefaultBackground = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can remove default background",
+      });
+    }
+
+    let settings = await Settings.findOne();
+
+    if (!settings || !settings.defaultBackgroundPublicId) {
+      return res.status(404).json({
+        success: false,
+        message: "No default background set",
+      });
+    }
+
+    // Delete from Cloudinary
+    if (settings.defaultBackgroundPublicId) {
+      try {
+        await deleteFromCloudinary(settings.defaultBackgroundPublicId);
+      } catch (error) {
+        console.error(
+          "Error deleting default background from Cloudinary:",
+          error,
+        );
+      }
+    }
+
+    // Clear settings
+    settings.defaultBackgroundUrl = null;
+    settings.defaultBackgroundPublicId = null;
+    settings.lastUpdatedBy = req.user._id;
+    settings.lastUpdatedAt = new Date();
+    await settings.save();
+
+    // Update all events using default background to have null URL
+    await Event.updateMany(
+      { backgroundType: "default" },
+      { $set: { defaultBackgroundUrl: null } },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Default background removed successfully",
+    });
+  } catch (error) {
+    console.error("Remove Default Background Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove default background",
+    });
+  }
+};
 // ===== UPDATE EVENT BACKGROUND TYPE =====
 export const updateBackgroundType = async (req, res) => {
   try {
@@ -1205,6 +1149,136 @@ export const getDefaultBackground = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch default background",
+    });
+  }
+};
+
+// ===== GET CURRENT SETTINGS (Admin only) =====
+export const getSettings = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can view settings",
+      });
+    }
+
+    let settings = await Settings.findOne().populate(
+      "lastUpdatedBy",
+      "name email",
+    );
+
+    if (!settings) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          defaultBackgroundUrl: null,
+          defaultBackgroundPublicId: null,
+          systemName: "Virtual Open House",
+          lastUpdatedBy: null,
+          lastUpdatedAt: null,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: settings,
+    });
+  } catch (error) {
+    console.error("Get Settings Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch settings",
+    });
+  }
+};
+
+// ===== UPDATE SYSTEM SETTINGS (Admin only) =====
+export const updateSystemSettings = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can update settings",
+      });
+    }
+
+    const { systemName } = req.body;
+
+    let settings = await Settings.findOne();
+
+    if (!settings) {
+      settings = await Settings.create({
+        systemName: systemName || "Virtual Open House",
+        lastUpdatedBy: req.user._id,
+        lastUpdatedAt: new Date(),
+      });
+    } else {
+      settings.systemName = systemName || settings.systemName;
+      settings.lastUpdatedBy = req.user._id;
+      settings.lastUpdatedAt = new Date();
+      await settings.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Settings updated successfully",
+      data: settings,
+    });
+  } catch (error) {
+    console.error("Update System Settings Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update settings",
+    });
+  }
+};
+
+// TEMPORARY DEBUG ENDPOINT - Lighter version
+export const testPublished = async (req, res) => {
+  try {
+    // Simple count - no aggregation
+    const publishedLiveCount = await Event.countDocuments({
+      status: { $in: ["published", "live"] },
+    });
+
+    // Simple find - no aggregation
+    const sampleEvent = await Event.findOne({
+      status: { $in: ["published", "live"] },
+    })
+      .select("name status liveDate")
+      .lean();
+
+    // Simple status distribution - using countDocuments instead of aggregation
+    const pendingCount = await Event.countDocuments({ status: "pending" });
+    const approvedCount = await Event.countDocuments({ status: "approved" });
+    const publishedCount = await Event.countDocuments({ status: "published" });
+    const liveCount = await Event.countDocuments({ status: "live" });
+    const completedCount = await Event.countDocuments({ status: "completed" });
+    const rejectedCount = await Event.countDocuments({ status: "rejected" });
+    const cancelledCount = await Event.countDocuments({ status: "cancelled" });
+
+    res.json({
+      success: true,
+      publishedLiveCount,
+      sampleEvent,
+      statusDistribution: {
+        pending: pendingCount,
+        approved: approvedCount,
+        published: publishedCount,
+        live: liveCount,
+        completed: completedCount,
+        rejected: rejectedCount,
+        cancelled: cancelledCount,
+      },
+    });
+  } catch (error) {
+    console.error("Test endpoint error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack,
     });
   }
 };

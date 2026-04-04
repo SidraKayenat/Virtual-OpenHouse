@@ -535,7 +535,7 @@ export default function EventDetails() {
   // ── Loading / error / not found ──────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0c0c0f]">
+      <div className="h-screen flex items-center justify-center bg-[#0c0c0f]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
           <p className="text-slate-400 text-sm tracking-widest uppercase">

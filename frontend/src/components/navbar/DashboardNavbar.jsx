@@ -282,7 +282,6 @@ export default function DashboardNavbar() {
           )}
         </div>
 
-        {/* Divider */}
         <div
           className="w-px h-5"
           style={{ background: "rgba(255,255,255,0.08)" }}

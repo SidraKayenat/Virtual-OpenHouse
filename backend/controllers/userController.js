@@ -98,7 +98,7 @@ export const getAllUsers = async (req, res) => {
 
 // ===== GET USER BY ID =====
 export const getUserById = async (req, res) => {
-  try {  
+  try {
     const { userId } = req.params;
 
     const user = await User.findById(userId).select("-password");
@@ -138,7 +138,7 @@ export const updateUser = async (req, res) => {
         phoneNumber,
         profileImage,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("-password");
 
     if (!user) {
@@ -185,6 +185,79 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete user",
+    });
+  }
+};
+
+// ===== TOGGLE USER ACTIVE =====
+export const toggleUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isActive },
+      { new: true },
+    );
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update status",
+    });
+  }
+};
+
+// ===== UPDATE USER ROLE (Admin only) =====
+export const updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    // Validate role
+    if (!role || !["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Must be 'user' or 'admin'",
+      });
+    }
+
+    // Prevent admin from demoting themselves
+    if (req.user._id.toString() === userId && role === "user") {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot demote yourself from admin role",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true, runValidators: true },
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User role updated to ${role} successfully`,
+      data: user,
+    });
+  } catch (error) {
+    console.error("Update User Role Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update user role",
     });
   }
 };

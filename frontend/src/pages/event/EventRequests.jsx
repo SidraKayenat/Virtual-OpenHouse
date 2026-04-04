@@ -1016,7 +1016,7 @@ export default function EventRequests() {
 
   return (
     <div
-      className="min-h-screen flex"
+      className="h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
