@@ -29,7 +29,7 @@ import Notifications from "./pages/notifications/Notifications";
 
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import EventRequests from "./pages/event/EventRequests";
-import AllEvents from "./pages/event/browse/AdminBrowseEvents";
+import AllEvents from "./pages/event/AllEvents";
 
 function App() {
   return (
@@ -103,7 +103,7 @@ function App() {
           />
 
           <Route
-            path="/admin/events/requests"
+            path="/admin/eventsrequests"
             element={
               <ProtectedRoute>
                 <EventRequests />
