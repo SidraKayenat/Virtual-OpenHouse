@@ -45,10 +45,31 @@ export const ENVIRONMENT_TYPES = {
 };
 
 export const ENVIRONMENT_MODELS = {
-  [ENVIRONMENT_TYPES.PLAIN_GROUND]: "/Environments/RetroSpaceSkybox.webp",
-  [ENVIRONMENT_TYPES.MCS_HALL]: "/Environments/RetroSpaceSkybox.webp",
-  [ENVIRONMENT_TYPES.INDOOR]: "/Environments/RetroSpaceSkybox.webp",
-  [ENVIRONMENT_TYPES.OUTDOOR]: "/Environments/RetroSpaceSkybox.webp",
-  [ENVIRONMENT_TYPES.OUTDOOR_PARK]: "/Environments/RetroSpaceSkybox.webp",
-  [ENVIRONMENT_TYPES.HYBRID]: "/Environments/RetroSpaceSkybox.webp",
+  [ENVIRONMENT_TYPES.PLAIN_GROUND]: "/Environments/McsHallWebp.webp",
+  [ENVIRONMENT_TYPES.MCS_HALL]: "/Environments/McsHallWebp.webp",
+  [ENVIRONMENT_TYPES.INDOOR]: "/Environments/McsHallWebp.webp",
+  [ENVIRONMENT_TYPES.OUTDOOR]: "/Environments/McsHallWebp.webp",
+  [ENVIRONMENT_TYPES.OUTDOOR_PARK]: "/Environments/McsHallWebp.webp",
+  [ENVIRONMENT_TYPES.HYBRID]: "/Environments/McsHallWebp.webp",
 };
+
+/* ================= PLAYER MODELS ================= */
+
+// export const PLAYER_MODEL_TYPES = {
+//   MALE: "male",
+//   FEMALE: "female",
+//   ROBOT: "robot",
+//   AVATAR_1: "avatar_1",
+//   AVATAR_2: "avatar_2",
+// };
+
+// export const PLAYER_MODELS = {
+//   [PLAYER_MODEL_TYPES.MALE]: "/models/male.glb",
+//   [PLAYER_MODEL_TYPES.FEMALE]: "/models/Avatar 1 Walking.fbx",
+//   [PLAYER_MODEL_TYPES.ROBOT]: "/models/robot.glb",
+//   [PLAYER_MODEL_TYPES.AVATAR_1]: "/models/avatar1.fbx",
+//   [PLAYER_MODEL_TYPES.AVATAR_2]: "/models/avatar2.fbx",
+// };
+
+// // Default player model to use if none selected
+// export const DEFAULT_PLAYER_MODEL = PLAYER_MODEL_TYPES.FEMALE;
