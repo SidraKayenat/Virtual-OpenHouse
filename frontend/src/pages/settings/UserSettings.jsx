@@ -38,12 +38,12 @@ const SECTIONS = [
     icon: Bell,
     desc: "Email & alert preferences",
   },
-  {
-    id: "preferences",
-    label: "Preferences",
-    icon: Sliders,
-    desc: "Display & defaults",
-  },
+  // {
+  //   id: "preferences",
+  //   label: "Preferences",
+  //   icon: Sliders,
+  //   desc: "Display & defaults",
+  // },
   {
     id: "danger",
     label: "Danger Zone",
@@ -665,13 +665,13 @@ export default function UserSettings() {
 
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardNavbar />
 
-        <div className="">
+        <div className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
           {/* ── top nav ── */}
           <div
-            className="w-full shrink-0 overflow-x-auto py-7 px-4"
+            className="w-full shrink-0 overflow-x-auto py-7"
             style={{ borderRight: "1px solid rgba(255,255,255,0.06)" }}
           >
             {/* User card at top */}
@@ -765,7 +765,7 @@ export default function UserSettings() {
           </div>
 
           {/* ── Main scroll area ── */}
-          <main className="flex-1 overflow-y-auto px-6 md:px-10 py-7 flex flex-col gap-6">
+          <main className="flex-1 overflow-y-auto py-7 flex flex-col gap-6">
             {/* Page header */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -1166,7 +1166,7 @@ export default function UserSettings() {
             </motion.div>
 
             {/* ══ PREFERENCES ══════════════════════════════════════════ */}
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -1184,7 +1184,7 @@ export default function UserSettings() {
                   These are saved in your browser and applied across the app.
                 </p>
 
-                {/* Default view mode */}
+               
                 <div>
                   <p
                     className="text-[12px] font-semibold uppercase tracking-wide mb-3"
@@ -1247,7 +1247,7 @@ export default function UserSettings() {
                   </div>
                 </div>
 
-                {/* Default event type */}
+               
                 <div>
                   <p
                     className="text-[12px] font-semibold uppercase tracking-wide mb-3"
@@ -1292,7 +1292,7 @@ export default function UserSettings() {
                   </div>
                 </div>
 
-                {/* Compact sidebar */}
+             
                 <Toggle
                   checked={prefs.compactSidebar}
                   onChange={(v) => setPref("compactSidebar", v)}
@@ -1300,7 +1300,7 @@ export default function UserSettings() {
                   desc="Start with the sidebar collapsed on every page load"
                 />
               </SectionCard>
-            </motion.div>
+            </motion.div> */}
 
             {/* ══ DANGER ZONE ══════════════════════════════════════════ */}
             <motion.div

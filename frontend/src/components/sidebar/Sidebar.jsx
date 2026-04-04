@@ -27,7 +27,7 @@ const userGroups = [
     label: "Overview",
     links: [
       { name: "Dashboard", path: "/user/dashboard", icon: LayoutDashboard },
-      { name: "Browse Events", path: "/user/browseevents", icon: Compass },
+      { name: "Browse Events", path: "/browseevents", icon: Compass },
       { name: "Notifications", path: "/notifications", icon: Bell },
     ],
   },
@@ -64,6 +64,7 @@ const adminGroups = [
     links: [
       { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
       { name: "Notifications", path: "/notifications", icon: Bell },
+      { name: "Browse Events", path: "/browseevents", icon: Compass },
     ],
   },
 
@@ -75,7 +76,7 @@ const adminGroups = [
         path: "/admin/events/requests",
         icon: CheckSquare,
       },
-      { name: "All Events", path: "/admin/browseevents", icon: Calendar },
+      { name: "All Events", path: "/admin/events", icon: Calendar },
       { name: "All Users", path: "/admin/users", icon: Users },
       // { name: "All Stalls", path: "/admin/stalls", icon: ClipboardList },
     ],
@@ -257,7 +258,7 @@ export default function Sidebar() {
     <motion.aside
       variants={sidebarVariants}
       animate={collapsed ? "collapsed" : "expanded"}
-      className="relative flex flex-col min-h-screen h-full flex-shrink-0 overflow-visible"
+      className="relative flex flex-col h-screen flex-shrink-0 overflow-visible"
       style={{
         background: "linear-gradient(180deg, #0f0f1a 0%, #12101e 100%)",
         borderRight: "1px solid rgba(255,255,255,0.06)",

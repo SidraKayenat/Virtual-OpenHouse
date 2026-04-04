@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { stallAPI } from "@/lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -297,6 +298,9 @@ export default function RegistrationDetails() {
   const [rejectionError, setRejectionError] = useState("");
   const [modal, setModal] = useState(null); // "approve" | "reject" | "cancel"
 
+  const [existingStallId, setExistingStallId] = useState(null);
+  const [checkingStall, setCheckingStall] = useState(false);
+
   // User action state
   const [cancelModal, setCancelModal] = useState(false);
 
@@ -315,6 +319,58 @@ export default function RegistrationDetails() {
   useEffect(() => {
     load();
   }, [registrationId]);
+
+  // Role detection - MOVED HERE before being used
+  const isOwner = user && registration && registration.user?._id === user._id;
+  const isEventAdmin =
+    user &&
+    registration &&
+    (registration.event?.createdBy === user._id ||
+      registration.event?.createdBy?._id === user._id);
+
+  const isPending = registration?.status === "pending";
+  const isApproved = registration?.status === "approved";
+  const isRejected = registration?.status === "rejected";
+  const isCancelled = registration?.status === "cancelled";
+
+  const eventLiveDate = registration?.event?.liveDate
+    ? new Date(registration.event.liveDate)
+    : null;
+  const beforeLive = eventLiveDate ? new Date() < eventLiveDate : true;
+  const canCancel = isOwner && (isPending || isApproved) && beforeLive;
+  const canUpdate = isOwner && isPending;
+  const canCreateStall = isOwner && isApproved;
+
+  // Function to check if user already has a stall for this registration - MOVED HERE
+  const checkExistingStall = async () => {
+    if (!isOwner || !isApproved) return;
+
+    try {
+      setCheckingStall(true);
+      const myStalls = await stallAPI.getMyStalls();
+      const existing = myStalls.data.find(
+        (s) => s.registration?._id === registration._id,
+      );
+
+      if (existing) {
+        setExistingStallId(existing._id);
+      } else {
+        setExistingStallId(null);
+      }
+    } catch (err) {
+      console.error("Error checking stall:", err);
+      setExistingStallId(null);
+    } finally {
+      setCheckingStall(false);
+    }
+  };
+
+  // Call this when registration loads and user is owner & approved - MOVED HERE
+  useEffect(() => {
+    if (registration && isOwner && isApproved) {
+      checkExistingStall();
+    }
+  }, [registration, isOwner, isApproved]);
 
   const handleApprove = async () => {
     if (!stallNumber || parseInt(stallNumber) < 1) {
@@ -370,26 +426,23 @@ export default function RegistrationDetails() {
     }
   };
 
-  // Role detection
-  const isOwner = user && registration && registration.user?._id === user._id;
-  const isEventAdmin =
-    user &&
-    registration &&
-    (registration.event?.createdBy === user._id ||
-      registration.event?.createdBy?._id === user._id);
-
-  const isPending = registration?.status === "pending";
-  const isApproved = registration?.status === "approved";
-  const isRejected = registration?.status === "rejected";
-  const isCancelled = registration?.status === "cancelled";
-
-  const eventLiveDate = registration?.event?.liveDate
-    ? new Date(registration.event.liveDate)
-    : null;
-  const beforeLive = eventLiveDate ? new Date() < eventLiveDate : true;
-  const canCancel = isOwner && (isPending || isApproved) && beforeLive;
-  const canUpdate = isOwner && isPending;
-  const canCreateStall = isOwner && isApproved;
+  const handleCreateStall = async () => {
+    try {
+      const res = await stallAPI.create(registration._id);
+      navigate(`/user/stalls/${res.data._id}`);
+    } catch (err) {
+      // If already exists → redirect to existing stall
+      if (err.message.includes("already exists")) {
+        const myStalls = await stallAPI.getMyStalls();
+        const existing = myStalls.data.find(
+          (s) => s.registration._id === registration._id,
+        );
+        if (existing) {
+          navigate(`/user/stalls/${existing._id}`);
+        }
+      }
+    }
+  };
 
   const s = registration
     ? STATUS_META[registration.status] || STATUS_META.pending
@@ -423,7 +476,7 @@ export default function RegistrationDetails() {
 
   if (!registration) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -449,7 +502,7 @@ export default function RegistrationDetails() {
 
   return (
     <div
-      className="min-h-screen flex"
+      className="h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -466,7 +519,7 @@ export default function RegistrationDetails() {
 
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
@@ -846,24 +899,47 @@ export default function RegistrationDetails() {
                 >
                   <Section title="Your Actions" icon={Eye} accent="#60a5fa">
                     <div className="flex flex-wrap gap-3">
-                      {canCreateStall && (
-                        <button
-                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
-                          style={{
-                            background:
-                              "linear-gradient(135deg,#7c3aed,#6d28d9)",
-                            border: "1px solid rgba(167,139,250,0.3)",
-                            boxShadow: "0 4px 16px rgba(124,58,237,0.28)",
-                          }}
-                          onClick={() =>
-                            alert(
-                              "Create stall flow — connect to your stall creation page",
-                            )
-                          }
-                        >
-                          <Box size={14} /> Create Stall
-                        </button>
-                      )}
+                      {canCreateStall &&
+                        (checkingStall ? (
+                          <button
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all opacity-70"
+                            style={{
+                              background:
+                                "linear-gradient(135deg,#7c3aed,#6d28d9)",
+                              border: "1px solid rgba(167,139,250,0.3)",
+                            }}
+                            disabled
+                          >
+                            <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                            Checking...
+                          </button>
+                        ) : existingStallId ? (
+                          <Link
+                            to={`/user/stalls/${existingStallId}`}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
+                            style={{
+                              background:
+                                "linear-gradient(135deg,#10b981,#059669)",
+                              border: "1px solid rgba(16,185,129,0.3)",
+                              boxShadow: "0 4px 16px rgba(16,185,129,0.28)",
+                            }}
+                          >
+                            <Eye size={14} /> View Your Stall
+                          </Link>
+                        ) : (
+                          <button
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
+                            style={{
+                              background:
+                                "linear-gradient(135deg,#7c3aed,#6d28d9)",
+                              border: "1px solid rgba(167,139,250,0.3)",
+                              boxShadow: "0 4px 16px rgba(124,58,237,0.28)",
+                            }}
+                            onClick={handleCreateStall}
+                          >
+                            <Box size={14} /> Create Stall
+                          </button>
+                        ))}
                       {canUpdate && (
                         <Link
                           to={`/registration/${registrationId}/edit`}

@@ -316,7 +316,7 @@ function SkeletonCard() {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────
-export default function NotificationsPage() {
+export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);

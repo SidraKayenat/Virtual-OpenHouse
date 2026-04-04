@@ -91,7 +91,7 @@ const STATUS_BADGES = {
   },
 };
 
-export default function AdminBrowseEvents() {
+export default function AllEvents() {
   const [events, setEvents] = useState([]);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [search, setSearch] = useState("");
@@ -126,15 +126,13 @@ export default function AdminBrowseEvents() {
           search: search || undefined,
           eventType: eventType || undefined,
           sort: sort || undefined,
-          status: TAB_FILTERS[tab] || undefined,
+          //   status: TAB_FILTERS[tab] || undefined,
         };
 
         const response = await eventAPI.getAll(params);
 
         if (response.success) {
-          setEvents((prev) =>
-            resetPage ? response.data : [...prev, ...response.data],
-          );
+          setEvents(resetPage ? data : [...prev, ...data]);
           setTotal(response.pagination?.total || 0);
           setTotalPages(response.pagination?.pages || 0);
           setError(null);

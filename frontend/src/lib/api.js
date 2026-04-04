@@ -238,17 +238,7 @@ export const stallAPI = {
     const querySuffix = queryString ? `?${queryString}` : "";
     return api(`/stalls/event/${eventId}${querySuffix}`, { method: "GET" });
   },
-
-  getMyStalls: () =>
-    api("/stalls/my-stalls", {
-      method: "GET",
-    }),
-
-  getById: (stallId) =>
-    api(`/stalls/${stallId}`, {
-      method: "GET",
-    }),
-
+  // Create stall (after approval)
   create: (registrationId) =>
     api("/stalls/create", {
       method: "POST",
@@ -335,6 +325,22 @@ export const stallAPI = {
       method: "POST",
       credentials: "include",
       body: formData,
+    }).then(async (res) => {
+      const text = await res.text();
+
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error("Non-JSON response:", text);
+        throw new Error("Server error (not JSON)");
+      }
+    });
+  },
+
+  deleteDocument: (stallId, publicId) => {
+    return fetch(`${API_BASE_URL}/stalls/${stallId}/documents/${publicId}`, {
+      method: "DELETE",
+      credentials: "include",
     }).then((res) => res.json());
   },
 };

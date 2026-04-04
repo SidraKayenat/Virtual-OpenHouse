@@ -90,8 +90,11 @@ useEffect(() => {
       try {
         console.log("🌍 Loading environment...");
         await environmentLoader.loadEnvironment(
-          eventData.environmentType || "plain_ground",
-        );
+  eventData.environmentType || "plain_ground",
+  ["custom", "upload"].includes(eventData.backgroundType)
+    ? eventData.customBackground
+    : null,
+);
 
         console.log("🏗️ Creating stalls...");
         await stallManager.createStalls(

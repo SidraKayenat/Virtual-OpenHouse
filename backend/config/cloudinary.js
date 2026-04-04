@@ -100,7 +100,7 @@ const eventBackgroundStorage = new CloudinaryStorage({
     folder: "virtual-openhouse/events/backgrounds",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
     transformation: [
-      { width: 2560, height: 1280, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
+      { width: 8704, height: 4352, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
       { quality: "auto" },
       { fetch_format: "auto" },
     ],
@@ -245,7 +245,7 @@ export const uploadEventThumbnail = multer({
 export const uploadEventBackground = multer({
   storage: eventBackgroundStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 20 * 1024 * 1024, // 20MB
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
@@ -260,7 +260,7 @@ export const uploadEventBackground = multer({
 export const uploadEventDefaultBackground = multer({
   storage: eventDefaultBackgroundStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 20 * 1024 * 1024,  // 5MB limit
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
