@@ -2,7 +2,10 @@
 import express from "express";
 import Stall from "../models/Stall.js";
 import Event from "../models/Event.js";
-import { ingestStallChatbot, queryStallChatbot } from "../utils/chatbotService.js";
+import {
+  ingestStallChatbot,
+  queryStallChatbot,
+} from "../utils/chatbotService.js";
 
 const router = express.Router();
 
@@ -17,7 +20,11 @@ const normalizeAxiosDetails = (details) => {
   if (!details) return null;
   if (Buffer.isBuffer(details)) {
     const text = details.toString("utf8").trim();
-    if (!text) return { raw: null, message: "Upstream service returned an empty response body." };
+    if (!text)
+      return {
+        raw: null,
+        message: "Upstream service returned an empty response body.",
+      };
     try {
       return JSON.parse(text);
     } catch {
@@ -36,7 +43,9 @@ const resolveEventName = async (stall, eventId) => {
 };
 
 const toPublicChatPayload = (responseData) => {
-  const response = responseData?.response || "I couldn't find enough information in this stall's documents.";
+  const response =
+    responseData?.response ||
+    "I couldn't find enough information in this stall's documents.";
   const sources = Array.isArray(responseData?.sources)
     ? responseData.sources.map((source) => ({
         source_file: source?.source_file || null,
@@ -47,7 +56,6 @@ const toPublicChatPayload = (responseData) => {
 
   return { response, sources };
 };
-
 
 router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
   const { query } = req.body;
@@ -64,13 +72,12 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
     }
     const eventName = await resolveEventName(stall, eventId);
 
-        try {
+    try {
       const response = await queryStallChatbot({
         eventId,
         stallId,
         query,
         context: { stallName: stall.projectTitle, eventName },
-
       });
       return res.json(toPublicChatPayload(response));
     } catch (err) {
@@ -79,10 +86,11 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
         throw err;
       }
 
-          const ingestResult = await ingestStallChatbot(eventId, stallId);
+      const ingestResult = await ingestStallChatbot(eventId, stallId);
       if (ingestResult.skipped) {
         return res.status(400).json({
-          error: "This stall does not have supported documents for chatbot training yet.",
+          error:
+            "This stall does not have supported documents for chatbot training yet.",
           details: ingestResult.reason,
         });
       }
@@ -94,7 +102,10 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
         context: { stallName: stall.projectTitle, eventName },
       });
 
-      return res.json({ ...toPublicChatPayload(response), ingestionTriggered: true });
+      return res.json({
+        ...toPublicChatPayload(response),
+        ingestionTriggered: true,
+      });
     }
   } catch (err) {
     return res.status(500).json({
@@ -104,9 +115,8 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
   }
 });
 
-  router.post("/events/:eventId/stalls/:stallId/ingest", async (req, res) => {
-    const { eventId, stallId } = req.params;
-
+router.post("/events/:eventId/stalls/:stallId/ingest", async (req, res) => {
+  const { eventId, stallId } = req.params;
 
   try {
     const stall = await ensureStallInEvent(eventId, stallId);

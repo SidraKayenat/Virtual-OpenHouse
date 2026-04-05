@@ -162,8 +162,9 @@ export const register = async (request, response) => {
 
     // Send notifications
     try {
-      const { notifyAccountCreated, notifyWelcomeNewUser, notifyAdminNewUser } = await import("../services/notificationService.js");
-      
+      const { notifyAccountCreated, notifyWelcomeNewUser, notifyAdminNewUser } =
+        await import("../services/notificationService.js");
+
       // Notify user with welcome and account created messages
       await Promise.all([
         notifyAccountCreated(user._id),

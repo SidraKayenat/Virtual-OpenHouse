@@ -28,8 +28,6 @@ import {
 } from "./services/scheduledTaskService.js";
 import userRoutes from "./routes/userRoutes.js";
 
-
-
 import uploadsRoutes from "./routes/uploads.js";
 import chatbotRoutes from "./routes/chatbot.js";
 import chatbotTrainRoutes from "./routes/chatbotTrain.js";
@@ -60,15 +58,15 @@ app.use(
     credentials: true,
   }),
 );
-    app.use(cookieParser());
-    app.use(express.json());
-    // app.use("/api/contacts",contactsRoutes);
-    // app.use("/api/messages",messagesRoutes);
-    // app.use("/api/channel",channelRoutes);
-    app.use('/api/auth',authRoutes);
-    app.use('/api/chatbot', chatbotRoutes);
-    app.use('/api/dev', chatbotTrainRoutes);
-    app.use('/api/uploads', uploadsRoutes);
+app.use(cookieParser());
+app.use(express.json());
+// app.use("/api/contacts",contactsRoutes);
+// app.use("/api/messages",messagesRoutes);
+// app.use("/api/channel",channelRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/dev", chatbotTrainRoutes);
+app.use("/api/uploads", uploadsRoutes);
 
 app.use("/api/events", eventRoutes);
 app.use("/api/auth", authRoutes);
@@ -110,13 +108,9 @@ mongoose.connection.on("disconnected", () => {
 mongoose.connection.on("connected", () => {
   console.log("Connected to database:", mongoose.connection.db.databaseName);
 });
-    mongoose.connection.on("connected", () => {
-        console.log("Connected to database:", mongoose.connection.db.databaseName);
-      });
-
-
-
-
+mongoose.connection.on("connected", () => {
+  console.log("Connected to database:", mongoose.connection.db.databaseName);
+});
 
 // ===== SETUP CRON JOBS FOR SCHEDULED NOTIFICATIONS =====
 // Only setup cron jobs once connection is established
@@ -146,7 +140,9 @@ mongoose.connection.once("open", () => {
     try {
       const result = await sendEventStartingSoonNotifications();
       if (result.events > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} event starting soon notifications for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} event starting soon notifications for ${result.events} events`,
+        );
       } else {
         console.log("📭 No events starting soon");
       }
@@ -176,7 +172,9 @@ mongoose.connection.once("open", () => {
     try {
       const result = await updateCompletedEventStatuses();
       if (result.updated > 0) {
-        console.log(`✅ Updated ${result.updated} events to "completed" status`);
+        console.log(
+          `✅ Updated ${result.updated} events to "completed" status`,
+        );
       }
     } catch (error) {
       console.error("❌ Error updating completed event statuses:", error);
@@ -190,7 +188,9 @@ mongoose.connection.once("open", () => {
     try {
       const result = await sendReminder24hBeforeStart();
       if (result.totalNotificationsSent > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} 24-hour event reminders for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} 24-hour event reminders for ${result.events} events`,
+        );
       } else {
         console.log("📭 No 24-hour event reminders to send");
       }
@@ -206,7 +206,9 @@ mongoose.connection.once("open", () => {
     try {
       const result = await sendReminder1hBeforeStart();
       if (result.totalNotificationsSent > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} 1-hour event reminders for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} 1-hour event reminders for ${result.events} events`,
+        );
       } else {
         console.log("📭 No 1-hour event reminders to send");
       }
@@ -222,7 +224,9 @@ mongoose.connection.once("open", () => {
     try {
       const result = await sendEventEndedNotifications();
       if (result.totalNotificationsSent > 0) {
-        console.log(`✅ Sent ${result.totalNotificationsSent} event ended notifications for ${result.events} events`);
+        console.log(
+          `✅ Sent ${result.totalNotificationsSent} event ended notifications for ${result.events} events`,
+        );
       } else {
         console.log("📭 No event ended notifications to send");
       }

@@ -2,7 +2,10 @@ import Stall from "../models/Stall.js";
 import Registration from "../models/Registration.js";
 import Event from "../models/Event.js";
 import mongoose from "mongoose";
-import { notifyStallCreated, notifyStallPublished } from "../services/notificationService.js";
+import {
+  notifyStallCreated,
+  notifyStallPublished,
+} from "../services/notificationService.js";
 
 // ===== CREATE STALL (Auto-created after registration approval or manual) =====
 export const createStall = async (req, res) => {
@@ -70,7 +73,12 @@ export const createStall = async (req, res) => {
 
     // Send notification to stall owner
     try {
-      await notifyStallCreated(stall._id, stall.event.name, stall.stallNumber, req.user._id);
+      await notifyStallCreated(
+        stall._id,
+        stall.event.name,
+        stall.stallNumber,
+        req.user._id,
+      );
     } catch (notifError) {
       console.error("Error sending stall created notification:", notifError);
       // Don't fail the request if notification fails
@@ -298,7 +306,8 @@ export const publishStall = async (req, res) => {
     if (!stall.isReadyToPublish) {
       return res.status(400).json({
         success: false,
-        message: "Stall is not ready to publish. Ensure you have added title, description, images, and banner.",
+        message:
+          "Stall is not ready to publish. Ensure you have added title, description, images, and banner.",
         requirements: {
           projectTitle: !!stall.projectTitle,
           projectDescription: !!stall.projectDescription,

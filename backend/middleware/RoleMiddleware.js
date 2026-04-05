@@ -5,7 +5,9 @@ export const checkRole = (...allowedRoles) => {
     }
 
     if (!allowedRoles.includes(request.userRole)) {
-      return response.status(403).send("You do not have permission to perform this action");
+      return response
+        .status(403)
+        .send("You do not have permission to perform this action");
     }
 
     next();

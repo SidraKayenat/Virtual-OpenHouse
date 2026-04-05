@@ -9,25 +9,25 @@ export class EnvironmentLoader {
     this.currentEnvironment = null;
   }
 
-  
-
   async loadEnvironment(environmentType, customBackgroundUrl = null) {
     this.clearEnvironment();
 
     // If custom URL provided, use it directly as skybox
-  if (customBackgroundUrl) {
-    try {
-      return await this.load360Image(customBackgroundUrl);
-    } catch (error) {
-      console.error("Failed to load custom skybox:", error);
-      return this.createPlainGround();
+    if (customBackgroundUrl) {
+      try {
+        return await this.load360Image(customBackgroundUrl);
+      } catch (error) {
+        console.error("Failed to load custom skybox:", error);
+        return this.createPlainGround();
+      }
     }
-  }
-  
+
     const path = ENVIRONMENT_MODELS[environmentType];
 
     if (!path) {
-      console.warn(`Environment type "${environmentType}" not found. Using plain ground.`);
+      console.warn(
+        `Environment type "${environmentType}" not found. Using plain ground.`,
+      );
       return this.createPlainGround();
     }
 
@@ -65,7 +65,7 @@ export class EnvironmentLoader {
           resolve(texture);
         },
         undefined,
-        reject
+        reject,
       );
     });
   }
@@ -82,6 +82,4 @@ export class EnvironmentLoader {
   }
 
   /* ================= FALLBACK ================= */
-
-  
 }

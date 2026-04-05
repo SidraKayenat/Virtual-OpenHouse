@@ -22,35 +22,23 @@ const registrationRoutes = express.Router();
 registrationRoutes.post(
   "/events/:eventId/register",
   verifyToken,
-  createRegistration
+  createRegistration,
 );
 
 // Get my registrations
-registrationRoutes.get(
-  "/my-registrations",
-  verifyToken,
-  getMyRegistrations
-);
+registrationRoutes.get("/my-registrations", verifyToken, getMyRegistrations);
 
 // Get single registration
-registrationRoutes.get(
-  "/:registrationId",
-  verifyToken,
-  getRegistrationById
-);
+registrationRoutes.get("/:registrationId", verifyToken, getRegistrationById);
 
 // Update registration (participant info only, when status is pending)
-registrationRoutes.put(
-  "/:registrationId",
-  verifyToken,
-  updateRegistration
-);
+registrationRoutes.put("/:registrationId", verifyToken, updateRegistration);
 
 // Cancel registration
 registrationRoutes.patch(
   "/:registrationId/cancel",
   verifyToken,
-  cancelRegistration
+  cancelRegistration,
 );
 
 // ===== EVENT ADMIN ROUTES =====
@@ -59,35 +47,35 @@ registrationRoutes.patch(
 registrationRoutes.get(
   "/events/:eventId/all",
   verifyToken,
-  getEventRegistrations
+  getEventRegistrations,
 );
 
 // Get pending registrations for an event
 registrationRoutes.get(
   "/events/:eventId/pending",
   verifyToken,
-  getPendingRegistrations
+  getPendingRegistrations,
 );
 
 // Approve registration (assign stall number)
 registrationRoutes.patch(
   "/:registrationId/approve",
   verifyToken,
-  approveRegistration
+  approveRegistration,
 );
 
 // Reject registration
 registrationRoutes.patch(
   "/:registrationId/reject",
   verifyToken,
-  rejectRegistration
+  rejectRegistration,
 );
 
 // Get registration statistics for an event
 registrationRoutes.get(
   "/events/:eventId/statistics",
   verifyToken,
-  getRegistrationStatistics
+  getRegistrationStatistics,
 );
 
 export default registrationRoutes;

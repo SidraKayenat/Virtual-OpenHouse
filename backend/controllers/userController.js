@@ -98,7 +98,7 @@ export const getAllUsers = async (req, res) => {
 
 // ===== GET USER BY ID =====
 export const getUserById = async (req, res) => {
-  try {  
+  try {
     const { userId } = req.params;
 
     const user = await User.findById(userId).select("-password");
@@ -138,7 +138,7 @@ export const updateUser = async (req, res) => {
         phoneNumber,
         profileImage,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("-password");
 
     if (!user) {

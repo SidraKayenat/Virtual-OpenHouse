@@ -1,5 +1,5 @@
 // src/components/EventViewer/EventViewerPage.jsx
-import React, { useState, useEffect, useCallback  } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import ThreeScene from "@/components/3DViewer/ThreeScene";
 import StallPopup from "@/components/ui/StallPopup";
@@ -36,12 +36,12 @@ const EventViewerPage = () => {
   }, [eventId]);
 
   const handleStallClick = useCallback((stallData) => {
-  setSelectedStall(stallData);
-}, []);
+    setSelectedStall(stallData);
+  }, []);
 
   const handleClosePopup = useCallback(() => {
-  setSelectedStall(null);
-}, []);
+    setSelectedStall(null);
+  }, []);
 
   if (loading) {
     return <LoadingScreen />;

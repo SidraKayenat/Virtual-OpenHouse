@@ -35,7 +35,7 @@ const settingsSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("Settings", settingsSchema);
