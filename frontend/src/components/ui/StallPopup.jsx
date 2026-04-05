@@ -28,7 +28,7 @@ const StallPopup = ({ stallData, onClose }) => {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-    }, [stallData, isChatbotOpen, handleClose]);
+  }, [stallData, isChatbotOpen, handleClose]);
 
   if (!stallData) return null;
 
@@ -93,7 +93,10 @@ const StallPopup = ({ stallData, onClose }) => {
           )}
 
           <div className="popup-actions">
-            <button className="action-btn" onClick={() => setIsChatbotOpen(true)}>
+            <button
+              className="action-btn"
+              onClick={() => setIsChatbotOpen(true)}
+            >
               🤖 Talk to ExpoBot
             </button>
 

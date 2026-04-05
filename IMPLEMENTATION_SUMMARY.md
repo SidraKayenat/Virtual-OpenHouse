@@ -3,24 +3,29 @@
 ## Files Created
 
 ✅ **backend/controllers/userController.js** (NEW)
+
 - 6 controller functions for user management
 - User statistics, recent users, CRUD operations
 
 ✅ **backend/routes/userRoutes.js** (NEW)
+
 - 6 API routes for user endpoints
 - Public and admin-protected access levels
 
 ## Files Updated
 
 ✅ **backend/server.js**
+
 - Import user routes
 - Register `/api/users` route
 
 ✅ **frontend/src/lib/api.js**
+
 - New `userAPI` object with 6 methods
 - Endpoints: `getStats()`, `getRecent()`, `getAll()`, `getById()`, `update()`, `delete()`
 
 ✅ **frontend/src/pages/dashboards/AdminDashboard.jsx**
+
 - Import userAPI
 - Add `recentUsers` state
 - Call `userAPI.getStats()` and `userAPI.getRecent(3)` in loadDashboardData()
@@ -33,6 +38,7 @@
 ## What Works Now
 
 ### ✅ Total Users Stat Card
+
 ```
 Source: userAPI.getStats()
 Data: Count of all users with role="user"
@@ -40,6 +46,7 @@ Real Data: YES
 ```
 
 ### ✅ Total Admins Stat Card
+
 ```
 Source: userAPI.getStats()
 Data: Count of all users with role="admin"
@@ -47,6 +54,7 @@ Real Data: YES
 ```
 
 ### ✅ Recent Live Events Table
+
 ```
 Filter: status === "live"
 Sort: createdAt DESC
@@ -55,6 +63,7 @@ Real Data: YES (already working)
 ```
 
 ### ✅ Upcoming Events Table
+
 ```
 Filter: status === "published"
 Date: liveDate > today
@@ -64,6 +73,7 @@ Real Data: YES (updated filters)
 ```
 
 ### ✅ Recent Users Table
+
 ```
 Filter: role === "user"
 Sort: createdAt DESC (latest first)
@@ -77,6 +87,7 @@ Details shown: name, email, profile image
 ## Backend API Endpoints
 
 ### User Stats (Public)
+
 ```
 GET /api/users/stats
 Response:
@@ -90,6 +101,7 @@ Response:
 ```
 
 ### Recent Users (Public)
+
 ```
 GET /api/users/recent?limit=3
 Response:
@@ -149,16 +161,16 @@ AdminDashboard
 ## Database Queries Used
 
 ### Get Total User Counts
+
 ```javascript
-User.countDocuments({ role: "user" })    // totalUsers
-User.countDocuments({ role: "admin" })   // totalAdmins
+User.countDocuments({ role: "user" }); // totalUsers
+User.countDocuments({ role: "admin" }); // totalAdmins
 ```
 
 ### Get Recent Users (3 latest)
+
 ```javascript
-User.find({ role: "user" })
-  .sort({ createdAt: -1 })
-  .limit(3)
+User.find({ role: "user" }).sort({ createdAt: -1 }).limit(3);
 ```
 
 ---

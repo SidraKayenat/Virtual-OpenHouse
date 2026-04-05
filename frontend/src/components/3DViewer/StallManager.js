@@ -1,7 +1,7 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { STALL_CONFIG, HALL_DIMENSIONS } from './utils/constants';
-import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { STALL_CONFIG, HALL_DIMENSIONS } from "./utils/constants";
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 export class StallManager {
   constructor(scene) {
@@ -18,7 +18,12 @@ export class StallManager {
     for (let i = 0; i < stallCount; i++) {
       const position = positions[i];
       const data = stallData[i] || { id: i + 1, name: `Stall ${i + 1}` };
-      await this.createSingleStall(position.x, position.z, data, position.rotation);
+      await this.createSingleStall(
+        position.x,
+        position.z,
+        data,
+        position.rotation,
+      );
     }
   }
 
@@ -34,29 +39,37 @@ export class StallManager {
     const walls = [
       {
         name: "top",
-        fixedAxis: "z", fixedVal: -maxZ + 150,
-        spreadAxis: "x", spreadMax: maxX,
+        fixedAxis: "z",
+        fixedVal: -maxZ + 150,
+        spreadAxis: "x",
+        spreadMax: maxX,
         rotation: Math.PI,
         spacing: 60,
       },
       {
         name: "bottom",
-        fixedAxis: "z", fixedVal: maxZ - 150,
-        spreadAxis: "x", spreadMax: maxX,
+        fixedAxis: "z",
+        fixedVal: maxZ - 150,
+        spreadAxis: "x",
+        spreadMax: maxX,
         rotation: 0,
         spacing: 60,
       },
       {
         name: "left",
-        fixedAxis: "x", fixedVal: -maxX,
-        spreadAxis: "z", spreadMax: maxZ,
+        fixedAxis: "x",
+        fixedVal: -maxX,
+        spreadAxis: "z",
+        spreadMax: maxZ,
         rotation: -Math.PI / 2,
         spacing: 40,
       },
       {
         name: "right",
-        fixedAxis: "x", fixedVal: maxX,
-        spreadAxis: "z", spreadMax: maxZ,
+        fixedAxis: "x",
+        fixedVal: maxX,
+        spreadAxis: "z",
+        spreadMax: maxZ,
         rotation: Math.PI / 2,
         spacing: 40,
       },
@@ -80,7 +93,7 @@ export class StallManager {
         const spreadVal = startSpread + i * wallSpacing;
         const clampedSpread = Math.max(
           -spreadMax + PADDING,
-          Math.min(spreadMax - PADDING, spreadVal)
+          Math.min(spreadMax - PADDING, spreadVal),
         );
 
         const x = wall.fixedAxis === "x" ? wall.fixedVal : clampedSpread;
@@ -99,7 +112,7 @@ export class StallManager {
     if (stallIndex < count) {
       const overflowPositions = this.calculateCenterGrid(
         count - stallIndex,
-        60
+        60,
       );
       positions.push(...overflowPositions);
     }
@@ -140,8 +153,8 @@ export class StallManager {
     const cols = Math.ceil(Math.sqrt(count));
     const rows = Math.ceil(count / cols);
 
-    const startX = -(cols - 1) * spacing / 2;
-    const startZ = -(rows - 1) * spacing / 2;
+    const startX = (-(cols - 1) * spacing) / 2;
+    const startZ = (-(rows - 1) * spacing) / 2;
 
     for (let i = 0; i < count; i++) {
       const row = Math.floor(i / cols);
@@ -149,11 +162,11 @@ export class StallManager {
 
       const x = Math.max(
         -(HALL_DIMENSIONS.WIDTH - 50),
-        Math.min(HALL_DIMENSIONS.WIDTH - 50, startX + col * spacing)
+        Math.min(HALL_DIMENSIONS.WIDTH - 50, startX + col * spacing),
       );
       const z = Math.max(
         -(HALL_DIMENSIONS.DEPTH - 50),
-        Math.min(HALL_DIMENSIONS.DEPTH - 50, startZ + row * spacing)
+        Math.min(HALL_DIMENSIONS.DEPTH - 50, startZ + row * spacing),
       );
 
       positions.push({ x, z, rotation: 0 });
@@ -163,9 +176,9 @@ export class StallManager {
   }
 
   createLabel(x, z, name) {
-  const div = document.createElement('div');
-  div.textContent = name;
-  div.style.cssText = `
+    const div = document.createElement("div");
+    div.textContent = name;
+    div.style.cssText = `
     background: rgba(0, 0, 0, 0.65);
     color: white;
     padding: 4px 10px;
@@ -178,12 +191,12 @@ export class StallManager {
     border: 1px solid rgba(255,255,255,0.15);
   `;
 
-  const label = new CSS2DObject(div);
-  // HITBOX_SIZE is 38, SCALE is 7 — position label above stall
-  label.position.set(x + 3, 28, z); // 👈 tweak y if too high/low
-  this.scene.add(label);
-  this.labels.push(label);
-}
+    const label = new CSS2DObject(div);
+    // HITBOX_SIZE is 38, SCALE is 7 — position label above stall
+    label.position.set(x + 3, 28, z); // 👈 tweak y if too high/low
+    this.scene.add(label);
+    this.labels.push(label);
+  }
 
   /* ================= STALL CREATION ================= */
 
@@ -192,7 +205,11 @@ export class StallManager {
       const gltf = await this.loadStallModel();
       const model = gltf.scene;
 
-      model.scale.set(STALL_CONFIG.SCALE, STALL_CONFIG.SCALE, STALL_CONFIG.SCALE);
+      model.scale.set(
+        STALL_CONFIG.SCALE,
+        STALL_CONFIG.SCALE,
+        STALL_CONFIG.SCALE,
+      );
       model.position.set(x, 0, z);
       model.rotation.y = rotation;
 
@@ -200,6 +217,16 @@ export class StallManager {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+
+          // Change floor color — adjust the name to match what console shows
+          if (
+            child.name.toLowerCase().includes("floor") ||
+            child.name.toLowerCase().includes("ground") ||
+            child.name.toLowerCase().includes("plane")
+          ) {
+            child.material = child.material.clone();
+            child.material.color.set(0xffffff); // your color here
+          }
         }
       });
 
@@ -215,7 +242,6 @@ export class StallManager {
         mixer.clipAction(gltf.animations[0]).play();
         this.mixers.push(mixer);
       }
-
     } catch (error) {
       console.error(`Failed to load stall at (${x}, ${z}):`, error);
     }
@@ -227,7 +253,7 @@ export class StallManager {
         STALL_CONFIG.DEFAULT_MODEL,
         (gltf) => resolve(gltf),
         undefined,
-        (error) => reject(error)
+        (error) => reject(error),
       );
     });
   }
@@ -235,15 +261,15 @@ export class StallManager {
   createHitbox(x, z, stallData) {
     const hitbox = new THREE.Mesh(
       new THREE.BoxGeometry(
-        STALL_CONFIG.HITBOX_SIZE-15,
+        STALL_CONFIG.HITBOX_SIZE - 15,
         STALL_CONFIG.HITBOX_SIZE,
-        STALL_CONFIG.HITBOX_SIZE-15
+        STALL_CONFIG.HITBOX_SIZE - 15,
       ),
-      new THREE.MeshBasicMaterial({ 
-      visible: false,      
-    })
+      new THREE.MeshBasicMaterial({
+        visible: false,
+      }),
     );
-    hitbox.position.set(x + 2 , 3, z);
+    hitbox.position.set(x + 2, 3, z);
     hitbox.userData = stallData;
     this.scene.add(hitbox);
     return hitbox;
@@ -265,10 +291,11 @@ export class StallManager {
       stall.geometry.dispose();
       stall.material.dispose();
     });
-     this.labels.forEach((label) => {  // 👈 add this block
-    this.scene.remove(label);
-    label.element.remove();
-  });
+    this.labels.forEach((label) => {
+      // 👈 add this block
+      this.scene.remove(label);
+      label.element.remove();
+    });
     this.stalls = [];
     this.mixers = [];
   }

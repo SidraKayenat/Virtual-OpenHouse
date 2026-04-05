@@ -26,26 +26,34 @@ const inferExtension = (file) => {
   const type = String(file?.fileType || "").toLowerCase();
   if (type.includes("pdf")) return ".pdf";
   if (type.includes("docx") || type.includes("word")) return ".docx";
-  if (type.includes("pptx") || type.includes("ppt") || type.includes("powerpoint")) return ".pptx";
+  if (
+    type.includes("pptx") ||
+    type.includes("ppt") ||
+    type.includes("powerpoint")
+  )
+    return ".pptx";
   return "";
 };
 
 const isSupportedDocFile = (file) => {
   if (!file) return false;
-      return Boolean(inferExtension(file));
+  return Boolean(inferExtension(file));
 };
 
-    const safe = (value) => String(value).replace(/[^\w.-]/g, "_");
+const safe = (value) => String(value).replace(/[^\w.-]/g, "_");
 
-    export const getStallBotId = (eventId, stallId) => `${safe(eventId)}__${safe(stallId)}`;
+export const getStallBotId = (eventId, stallId) =>
+  `${safe(eventId)}__${safe(stallId)}`;
 
-    export const getIngestFolderForBot = (botId) => path.join(INGEST_ROOT, safe(botId));
+export const getIngestFolderForBot = (botId) =>
+  path.join(INGEST_ROOT, safe(botId));
 
-    export const getEventIngestFolder = (eventId) => getIngestFolderForBot(`event_${eventId}`);
+export const getEventIngestFolder = (eventId) =>
+  getIngestFolderForBot(`event_${eventId}`);
 
-  const downloadFile = async (url, destination) => {
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-    fs.writeFileSync(destination, response.data);
+const downloadFile = async (url, destination) => {
+  const response = await axios.get(url, { responseType: "arraybuffer" });
+  fs.writeFileSync(destination, response.data);
 };
 
 export const downloadStallFiles = async (stallId, destinationFolder) => {
@@ -65,10 +73,14 @@ export const downloadStallFiles = async (stallId, destinationFolder) => {
       skippedCount++;
       continue;
     }
-    
+
     const ext = inferExtension(file);
-    const originalBase = path.basename(String(file.filename || file.url || "document")).split(/[?#]/)[0];
-    const nameWithoutExt = path.basename(originalBase, path.extname(originalBase)) || `document_${downloadedCount + 1}`;
+    const originalBase = path
+      .basename(String(file.filename || file.url || "document"))
+      .split(/[?#]/)[0];
+    const nameWithoutExt =
+      path.basename(originalBase, path.extname(originalBase)) ||
+      `document_${downloadedCount + 1}`;
     const safeName = `${safe(stall._id)}_${safe(nameWithoutExt)}${ext}`;
     const dest = path.join(destinationFolder, safeName);
 
@@ -80,7 +92,7 @@ export const downloadStallFiles = async (stallId, destinationFolder) => {
 };
 
 export const downloadEventFiles = async (eventId, destinationFolder) => {
-    const stalls = await Stall.find({ event: eventId }).lean();
+  const stalls = await Stall.find({ event: eventId }).lean();
 
   fs.rmSync(destinationFolder, { recursive: true, force: true });
   fs.mkdirSync(destinationFolder, { recursive: true });
@@ -96,8 +108,12 @@ export const downloadEventFiles = async (eventId, destinationFolder) => {
       }
 
       const ext = inferExtension(file);
-      const originalBase = path.basename(String(file.filename || file.url || "document")).split(/[?#]/)[0];
-      const nameWithoutExt = path.basename(originalBase, path.extname(originalBase)) || `document_${downloadedCount + 1}`;
+      const originalBase = path
+        .basename(String(file.filename || file.url || "document"))
+        .split(/[?#]/)[0];
+      const nameWithoutExt =
+        path.basename(originalBase, path.extname(originalBase)) ||
+        `document_${downloadedCount + 1}`;
       const safeName = `${safe(stall._id)}_${safe(nameWithoutExt)}${ext}`;
       const dest = path.join(destinationFolder, safeName);
 

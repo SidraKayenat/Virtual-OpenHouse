@@ -11,14 +11,13 @@
 
 // const authRoutes = express.Router();
 
-// authRoutes.post("/register", registerAdmin);     
+// authRoutes.post("/register", registerAdmin);
 // authRoutes.post("/login", loginAdmin);
 // authRoutes.get("/me", protect, getCurrentAdmin);
 // authRoutes.delete("/delete", protect, deleteAdmin);
 // authRoutes.post("/logout", protect, logoutAdmin);
 
 // export default authRoutes;
-
 
 import express from "express";
 import {

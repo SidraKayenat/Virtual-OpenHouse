@@ -80,7 +80,7 @@ const notificationSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index for fast unread count

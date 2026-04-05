@@ -15,6 +15,11 @@ router.put("/:userId", verifyToken, userController.updateUser);
 
 // Admin-only routes (require admin role)
 router.get("/", verifyToken, checkRole("admin"), userController.getAllUsers);
-router.delete("/:userId", verifyToken, checkRole("admin"), userController.deleteUser);
+router.delete(
+  "/:userId",
+  verifyToken,
+  checkRole("admin"),
+  userController.deleteUser,
+);
 
 export default router;

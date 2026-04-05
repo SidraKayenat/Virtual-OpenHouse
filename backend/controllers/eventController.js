@@ -168,7 +168,7 @@ export const createEvent = async (req, res) => {
     try {
       // Notify event creator that event was submitted
       await notifyEventSubmitted(event._id, event.name, req.user._id);
-      
+
       // Notify all system admins of pending approval
       const creatorName = req.user.name || "Event Creator";
       await notifyAdminPendingApproval(event._id, event.name, creatorName);
@@ -374,7 +374,12 @@ export const rejectEvent = async (req, res) => {
 
     // Send notification to event creator
     try {
-      await notifyEventRejected(event._id, event.name, event.createdBy._id, rejectionReason);
+      await notifyEventRejected(
+        event._id,
+        event.name,
+        event.createdBy._id,
+        rejectionReason,
+      );
     } catch (notifError) {
       console.error("Error sending rejection notification:", notifError);
       // Don't fail the request if notification fails
