@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import sys
+import chromadb
 
 print("MODEL:", os.getenv("GROQ_CHAT_MODEL"))
 print("KEY SET:", bool(os.getenv("GROQ_API_KEY")))
@@ -82,6 +83,12 @@ def build_qa_prompt(scope_instruction: str, response_style: str):
 
 def validate_env():
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+    if use_cloud_chroma():
+        missing += [
+            var
+            for var in ["CHROMA_API_KEY", "CHROMA_TENANT", "CHROMA_DATABASE"]
+            if not os.getenv(var)
+        ]
     if missing:
         logging.error("Missing required environment variables: %s", ", ".join(missing))
         logging.error("Set them before starting. Example: set GROQ_API_KEY=... GROQ_CHAT_MODEL=...")
@@ -98,11 +105,57 @@ def sanitize_error_message(message: str) -> str:
         sanitized = re.sub(r"gsk_[A-Za-z0-9]{10,}", "[REDACTED]", sanitized)
     return sanitized
 
+def use_cloud_chroma():
+    return os.getenv("CHROMA_USE_CLOUD", "false").lower() in {"1", "true", "yes"}
+
+
+def get_cloud_client():
+    return chromadb.CloudClient(
+        api_key=os.getenv("CHROMA_API_KEY"),
+        tenant=os.getenv("CHROMA_TENANT"),
+        database=os.getenv("CHROMA_DATABASE"),
+    )
+
+
+def get_vector_store(project_id: str):
+    embeddings = HuggingFaceEmbeddings()
+    if use_cloud_chroma():
+        return Chroma(
+            client=get_cloud_client(),
+            collection_name=project_id,
+            embedding_function=embeddings,
+        )
+    return Chroma(
+        persist_directory=f"./db/{project_id}",
+        embedding_function=embeddings,
+    )
 
 validate_env()
 
+logging.info(
+    "Chroma mode: %s",
+    "cloud"
+    if use_cloud_chroma()
+    else "local",
+)
+if use_cloud_chroma():
+    logging.info(
+        "Chroma cloud target tenant=%s database=%s",
+        os.getenv("CHROMA_TENANT"),
+        os.getenv("CHROMA_DATABASE"),
+    )
+else:
+    logging.info("Chroma local target: ./db/<project_id>")
 
 def validate_project_db(project_id: str):
+    if use_cloud_chroma():
+        try:
+            collection = get_cloud_client().get_collection(name=project_id)
+            if collection.count() <= 0:
+                return False, f"Vector database collection is empty for project '{project_id}'."
+            return True, None
+        except Exception:
+            return False, f"Vector database collection not found for project '{project_id}'."
     persist_directory = f"./db/{project_id}"
     sqlite_path = os.path.join(persist_directory, "chroma.sqlite3")
 
@@ -157,10 +210,7 @@ def chat():
         )
         qa_prompt = build_qa_prompt(scope_instruction, response_style)
 
-        db = Chroma(
-            persist_directory=f"./db/{project_id}",
-            embedding_function=HuggingFaceEmbeddings(),
-        )
+        db = get_vector_store(project_id)
 
         # FIX: Only pass score_threshold when the retriever type supports it.
         # Some Chroma versions error if score_threshold is passed for plain similarity search.

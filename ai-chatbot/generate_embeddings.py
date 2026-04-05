@@ -6,6 +6,7 @@ import shutil
 import sys
 import zipfile
 import xml.etree.ElementTree as ET
+import chromadb
 
 from langchain_core.documents import Document
 
@@ -25,6 +26,12 @@ REQUIRED_ENV_VARS = [
 
 def validate_env():
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+    if use_cloud_chroma():
+        missing += [
+            var
+            for var in ["CHROMA_API_KEY", "CHROMA_TENANT", "CHROMA_DATABASE"]
+            if not os.getenv(var)
+        ]
     if missing:
         logging.error("Missing required environment variables: %s", ", ".join(missing))
         logging.error("Set them before running embeddings generation.")
@@ -63,13 +70,47 @@ def extract_pptx_slide_texts(file_path):
             texts.append("\n".join(slide_text).strip())
     return texts
 
+def use_cloud_chroma():
+    return os.getenv("CHROMA_USE_CLOUD", "false").lower() in {"1", "true", "yes"}
+
+
+def get_cloud_client():
+    return chromadb.CloudClient(
+        api_key=os.getenv("CHROMA_API_KEY"),
+        tenant=os.getenv("CHROMA_TENANT"),
+        database=os.getenv("CHROMA_DATABASE"),
+    )
+
+
+def describe_storage_target(project_id):
+    if use_cloud_chroma():
+        return {
+            "storage_mode": "cloud",
+            "collection_name": project_id,
+            "tenant": os.getenv("CHROMA_TENANT"),
+            "database": os.getenv("CHROMA_DATABASE"),
+        }
+    return {
+        "storage_mode": "local",
+        "persist_directory": f"./db/{project_id}",
+    }
 
 def process_project(folder, project_id):
     if not os.path.isdir(folder):
         raise FileNotFoundError(f"Upload folder not found: {folder}")
 
     persist_directory = f"./db/{project_id}"
-    if os.path.isdir(persist_directory):
+    cloud_mode = use_cloud_chroma()
+    cloud_client = get_cloud_client() if cloud_mode else None
+    storage_target = describe_storage_target(project_id)
+    logging.info("Ingestion target: %s", storage_target)
+    if cloud_mode:
+        # keep ingestion idempotent like local mode (fresh index per project/stall)
+        try:
+            cloud_client.delete_collection(name=project_id)
+        except Exception:
+            pass
+    elif os.path.isdir(persist_directory):
         shutil.rmtree(persist_directory)
 
     docs = []
@@ -146,15 +187,25 @@ def process_project(folder, project_id):
         if "is_title_page" not in chunk.metadata:
             chunk.metadata["is_title_page"] = False
 
-    Chroma.from_documents(
-        chunks,
-        HuggingFaceEmbeddings(),
-        persist_directory=persist_directory,
-    ).persist()
+    embedding_model = HuggingFaceEmbeddings()
+    if cloud_mode:
+        Chroma.from_documents(
+            chunks,
+            embedding_model,
+            collection_name=project_id,
+            client=cloud_client,
+        )
+    else:
+        Chroma.from_documents(
+            chunks,
+            embedding_model,
+            persist_directory=persist_directory,
+        )
 
     return {
         "status": "success",
         "project_id": project_id,
+        **storage_target,
         "files_ingested": discovered_files,
         "files_failed": failed_files,
         "chunks_indexed": len(chunks),
