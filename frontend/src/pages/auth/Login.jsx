@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom"; // ← Add useLocation
 import {
   Eye,
   EyeOff,
@@ -183,6 +183,11 @@ function PasswordStrength({ password }) {
 export default function Login() {
   const { setUser, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // ← Make sure this line exists
+
+  const from = location.state?.from?.pathname || "/";
+  console.log("Redirect path:", from); // Add this to debug
+  console.log("Location state:", location.state); // Add this to debug
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -192,11 +197,11 @@ export default function Login() {
 
   // If already logged in, redirect
   useEffect(() => {
-    if (user)
-      navigate(user.role === "admin" ? "/admin/dashboard" : "/user/dashboard", {
-        replace: true,
-      });
-  }, [user]);
+    if (user) {
+      // Redirect to the page they were trying to access, or home
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
 
   const validate = () => {
     const e = {};
@@ -221,21 +226,22 @@ export default function Login() {
         method: "POST",
         body: JSON.stringify(form),
       });
+
+      // ✅ STORE THE TOKEN IN LOCALSTORAGE
+      if (res.token) {
+        localStorage.setItem("token", res.token);
+        console.log("Token stored in localStorage");
+      }
+
       // Use AuthContext login to set user state
       await setUser(res.user || res);
-      navigate(
-        res.user?.role === "admin" || res.role === "admin"
-          ? "/admin/dashboard"
-          : "/user/dashboard",
-        { replace: true },
-      );
+      navigate(from, { replace: true });
     } catch (err) {
       setApiError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <>
       <AuthBg />

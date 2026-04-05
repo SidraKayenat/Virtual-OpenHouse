@@ -2,11 +2,17 @@ export const API_BASE_URL = "http://localhost:8747/api";
 import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export const api = async (endpoint, options = {}) => {
+  // Get token from localStorage
+  const token = localStorage.getItem("token");
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }), // Add token if exists
+  };
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include", // VERY IMPORTANT (cookies)
+    headers,
+    credentials: "include", // Keep this for cookie fallback
     ...options,
   });
 

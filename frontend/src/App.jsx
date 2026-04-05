@@ -40,9 +40,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Signup />} />
-          <Route path="/events/:eventId" element={<EventDetails />} />
           <Route path="/publicbrowseevents" element={<PublicBrowseEvents />} />
-          <Route path="/event/view/:eventId" element={<EventViewerPage />} />
 
           {/* User */}
           <Route
@@ -50,6 +48,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/events/:eventId"
+            element={
+              <ProtectedRoute>
+                <EventDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/event/view/:eventId"
+            element={
+              <ProtectedRoute>
+                <EventViewerPage />
               </ProtectedRoute>
             }
           />

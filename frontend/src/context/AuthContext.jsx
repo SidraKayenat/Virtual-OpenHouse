@@ -9,28 +9,48 @@ export function AuthProvider({ children }) {
 
   const loadUser = async () => {
     try {
+      console.log("Loading user profile...");
       const resp = await api("/auth/profile", { method: "GET" });
       const userData = resp.user || resp;
       setUser(userData);
+      // Store in sessionStorage as backup
+      sessionStorage.setItem("user", JSON.stringify(userData));
+      return true;
     } catch (err) {
-      // It's normal for unauthenticated users to hit this endpoint.
-      // Avoid console noise and simply treat as "no user".
+      console.error("Failed to load user:", err);
       setUser(null);
+      sessionStorage.removeItem("user");
+      // If token is invalid, clear it
+      localStorage.removeItem("token");
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const hasJwtCookie = document.cookie
-      .split(";")
-      .some((cookie) => cookie.trim().startsWith("jwt="));
+    const initAuth = async () => {
+      const token = localStorage.getItem("token");
+      console.log("Token in localStorage:", token ? "Yes" : "No");
 
-    if (hasJwtCookie) {
-      loadUser();
-    } else {
-      setLoading(false);
-    }
+      if (token) {
+        await loadUser();
+      } else {
+        // No token, check sessionStorage for cached user
+        const cachedUser = sessionStorage.getItem("user");
+        if (cachedUser) {
+          try {
+            const parsedUser = JSON.parse(cachedUser);
+            setUser(parsedUser);
+          } catch (e) {
+            console.error("Failed to parse cached user");
+          }
+        }
+        setLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const logout = async () => {
@@ -39,6 +59,8 @@ export function AuthProvider({ children }) {
     } catch {
       console.error("Failed to logout");
     }
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("user");
     setUser(null);
   };
 

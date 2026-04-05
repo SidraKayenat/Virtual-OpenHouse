@@ -500,7 +500,7 @@ export default function Landing() {
               }}
             >
               <Link
-                to="/browseevents"
+                to="/publicbrowseevents"
                 className="cta-btn inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-[15px] font-semibold text-white"
               >
                 Explore Events <ArrowRight size={16} />
@@ -1023,7 +1023,7 @@ export default function Landing() {
                 Get Started Free <ArrowRight size={16} />
               </Link>
               <Link
-                to="/browseevents"
+                to="/publicbrowseevents"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl text-[15px] font-semibold transition-all"
                 style={{
                   background: "rgba(255,255,255,0.06)",
@@ -1090,7 +1090,7 @@ export default function Landing() {
                 links: [
                   { label: "Features", href: "#features" },
                   { label: "How It Works", href: "#how-it-works" },
-                  { label: "Browse Events", href: "/browseevents" },
+                  { label: "Browse Events", href: "/publicbrowseevents" },
                 ],
               },
               {
