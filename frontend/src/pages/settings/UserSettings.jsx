@@ -32,12 +32,12 @@ const SECTIONS = [
     desc: "Name, contact & avatar",
   },
   { id: "security", label: "Security", icon: Lock, desc: "Password & login" },
-  {
-    id: "notifications",
-    label: "Notifications",
-    icon: Bell,
-    desc: "Email & alert preferences",
-  },
+  // {
+  //   id: "notifications",
+  //   label: "Notifications",
+  //   icon: Bell,
+  //   desc: "Email & alert preferences",
+  // },
   // {
   //   id: "preferences",
   //   label: "Preferences",
@@ -589,13 +589,13 @@ export default function UserSettings() {
   };
 
   // ── Notifications ────────────────────────────────────────────────────
-  const [notifs, setNotifs] = useState(loadNotifs);
-  const setNotif = (k, v) => {
-    const next = { ...notifs, [k]: v };
-    setNotifs(next);
-    saveNotifs(next);
-    showToast("Notification preference saved");
-  };
+  // const [notifs, setNotifs] = useState(loadNotifs);
+  // const setNotif = (k, v) => {
+  //   const next = { ...notifs, [k]: v };
+  //   setNotifs(next);
+  //   saveNotifs(next);
+  //   showToast("Notification preference saved");
+  // };
 
   // ── Preferences ──────────────────────────────────────────────────────
   const [prefs, setPrefs] = useState(loadPrefs);
@@ -1084,7 +1084,7 @@ export default function UserSettings() {
             </motion.div>
 
             {/* ══ NOTIFICATIONS ════════════════════════════════════════ */}
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
@@ -1163,7 +1163,7 @@ export default function UserSettings() {
                   />
                 </div>
               </SectionCard>
-            </motion.div>
+            </motion.div> */}
 
             {/* ══ PREFERENCES ══════════════════════════════════════════ */}
             {/* <motion.div

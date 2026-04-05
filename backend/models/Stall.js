@@ -168,7 +168,31 @@ const stallSchema = new Schema(
           type: Number, // in bytes
         },
       },
+<<<<<<< HEAD
     ],
+=======
+      publicId: {
+        type: String,
+        required: true,
+      },
+      filename: {
+        type: String,
+        required: true,
+      },
+      fileType: {
+        type: String, // pdf, docx, pptx, etc.
+        required: true,
+      },
+      fileSize: {
+        type: Number, // in bytes
+      },
+      resourceType: {
+        type: String, // "image" for PDFs, "raw" for other documents
+        enum: ["image", "raw"],
+        default: "raw",
+      },
+    }],
+>>>>>>> archived-events
 
     // Banner/Thumbnail image (main display image)
     bannerImage: {

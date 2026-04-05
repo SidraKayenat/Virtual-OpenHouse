@@ -8,20 +8,30 @@ import {
   TrendingUp,
   Users,
   Calendar,
-  BarChart3,
   AlertCircle,
   Zap,
   ChevronRight,
+  LayoutGrid,
+  Eye,
+  ThumbsUp,
+  Activity,
 } from "lucide-react";
 import {
+  BarChart,
+  Bar,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
@@ -47,16 +57,18 @@ const cardChild = {
   },
 };
 
-// Date formatters
-const fmt = (d) =>
-  new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-const fmtShort = (d) =>
-  new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+// Colors
+const COLORS = {
+  primary: "#a78bfa",
+  secondary: "#60a5fa",
+  success: "#34d399",
+  warning: "#fbbf24",
+  danger: "#f87171",
+  info: "#60a5fa",
+  pink: "#ec4899",
+  purple: "#8b5cf6",
+  gray: "#94a3b8",
+};
 
 // Status maps
 const STATUS_EVENT = {
@@ -72,11 +84,6 @@ const STATUS_EVENT = {
     color: "#60a5fa",
   },
   live: { label: "Live", bg: "rgba(248,113,113,0.12)", color: "#f87171" },
-  rejected: {
-    label: "Rejected",
-    bg: "rgba(248,113,113,0.12)",
-    color: "#f87171",
-  },
   completed: {
     label: "Completed",
     bg: "rgba(148,163,184,0.1)",
@@ -89,7 +96,6 @@ const STATUS_EVENT = {
   },
 };
 
-// ─── Reusable components ──────────────────────────────────────────────────
 function Card({ children, className = "", style = {} }) {
   return (
     <div
@@ -120,7 +126,7 @@ function StatCard({ icon: Icon, label, value, accent }) {
             className="text-3xl font-bold text-white leading-none"
             style={{ fontFamily: "'Syne', sans-serif" }}
           >
-            {value ?? "—"}
+            {value?.toLocaleString() ?? "—"}
           </p>
           <p
             className="text-xs mt-1"
@@ -236,23 +242,60 @@ function Skeleton({ className = "" }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        className="rounded-xl p-3 shadow-lg"
+        style={{
+          background: "#0C0C0F",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "12px",
+        }}
+      >
+        <p
+          className="text-[11px] font-semibold mb-2"
+          style={{ color: "rgba(255,255,255,0.6)" }}
+        >
+          {label}
+        </p>
+        {payload.map((item, idx) => (
+          <p key={idx} className="text-[12px] flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ background: item.color }}
+            />
+            <span style={{ color: "rgba(255,255,255,0.8)" }}>{item.name}:</span>
+            <span style={{ color: item.color, fontWeight: "bold" }}>
+              {item.value.toLocaleString()}
+            </span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     pending: 0,
     approved: 0,
     live: 0,
     published: 0,
+    completed: 0,
     totalUsers: 0,
     totalAdmins: 0,
+    totalRegistrations: 0, // Changed from totalStalls
+    approvedRegistrations: 0, // New
+    pendingRegistrations: 0, // New
   });
 
-  const [chartData, setChartData] = useState({
-    eventsOverTime: [],
-    topEventsRegistrations: [],
-  });
-
-  const [allEvents, setAllEvents] = useState([]);
+  const [eventStatusData, setEventStatusData] = useState([]);
+  const [weeklyEvents, setWeeklyEvents] = useState([]);
+  const [topEvents, setTopEvents] = useState([]);
+  const [registrationTrend, setRegistrationTrend] = useState([]);
+  const [recentEvents, setRecentEvents] = useState([]);
   const [recentUsers, setRecentUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -261,45 +304,231 @@ export default function AdminDashboard() {
     loadDashboardData();
   }, []);
 
+  // Helper function to get day of week name
+  const getDayName = (date) => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return days[date.getDay()];
+  };
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Load event statistics
-      const statsData = await eventAPI.getStats();
-      const eventStats = statsData.data || {};
+      // 1. Load Event Statistics
+      const eventStatsData = await eventAPI.getStats();
+      console.log("Event Stats:", eventStatsData);
+      const eventStats = eventStatsData.data || eventStatsData || {};
 
-      // Load user statistics
+      // 2. Load User Statistics
       const userStatsData = await userAPI.getStats();
-      const userStats = userStatsData.data || {};
+      console.log("User Stats:", userStatsData);
+      const userStats = userStatsData.data || userStatsData || {};
 
-      // Calculate approved requests (approved + live + published)
+      // 3. Fetch all events first (needed for registration calculations)
+      const allEventsRes = await eventAPI.getAll({ limit: 100 });
+      const events = allEventsRes.data || [];
+      setRecentEvents(events.slice(0, 5));
+
+      // 4. Initialize registration counters
+      let allRegistrationsCount = 0;
+      let approvedRegistrationsCount = 0;
+      let pendingRegistrationsCount = 0;
+
+      // 5. Collect registration trends (last 6 months)
+      const registrationTrendMap = new Map();
+
+      // Initialize last 6 months
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthName = date.toLocaleString("default", { month: "short" });
+        const year = date.getFullYear();
+        const key = `${year}-${monthName}`;
+        registrationTrendMap.set(key, {
+          month: `${monthName} ${year}`,
+          count: 0,
+        });
+      }
+
+      // Count registrations per event
+      for (const event of events) {
+        try {
+          const regStats = await registrationAPI.getStats(event._id);
+          const regData = regStats.data || {};
+          const totalRegs = regData.total || 0;
+
+          // Add to running totals
+          allRegistrationsCount += totalRegs;
+          approvedRegistrationsCount += regData.approved || 0;
+          pendingRegistrationsCount += regData.pending || 0;
+
+          // For trend, distribute based on event creation date as a proxy
+          if (event.createdAt && totalRegs > 0) {
+            const date = new Date(event.createdAt);
+            const monthName = date.toLocaleString("default", {
+              month: "short",
+            });
+            const year = date.getFullYear();
+            const key = `${year}-${monthName}`;
+            const existing = registrationTrendMap.get(key);
+            if (existing) {
+              existing.count += totalRegs;
+            }
+          }
+        } catch (err) {
+          console.warn(
+            `Failed to load registration stats for event ${event._id}:`,
+            err,
+          );
+        }
+      }
+
+      // Calculate approved count
       const approvedCount =
         (eventStats.approved || 0) +
         (eventStats.live || 0) +
         (eventStats.published || 0);
 
+      // Update stats state
       setStats({
         pending: eventStats.pending || 0,
         approved: approvedCount,
         live: eventStats.live || 0,
         published: eventStats.published || 0,
+        completed: eventStats.completed || 0,
         totalUsers: userStats.totalUsers || 0,
         totalAdmins: userStats.totalAdmins || 0,
+        totalRegistrations: allRegistrationsCount,
+        approvedRegistrations: approvedRegistrationsCount,
+        pendingRegistrations: pendingRegistrationsCount,
       });
 
-      // Fetch all events for tables
-      const allEventsRes = await eventAPI.getAll({ limit: 1000 });
-      const events = allEventsRes.data || [];
-      setAllEvents(events);
+      // 6. Event Status Distribution for Pie Chart
+      const statusDist = [
+        {
+          name: "Pending",
+          value: eventStats.pending || 0,
+          color: COLORS.warning,
+        },
+        {
+          name: "Approved",
+          value: eventStats.approved || 0,
+          color: COLORS.success,
+        },
+        {
+          name: "Published",
+          value: eventStats.published || 0,
+          color: COLORS.secondary,
+        },
+        { name: "Live", value: eventStats.live || 0, color: COLORS.danger },
+        {
+          name: "Completed",
+          value: eventStats.completed || 0,
+          color: COLORS.gray,
+        },
+      ].filter((item) => item.value > 0);
+      setEventStatusData(statusDist);
 
-      // Fetch recent users
-      const recentUsersRes = await userAPI.getRecent(3);
-      setRecentUsers(recentUsersRes.data || []);
+      // 7. Process Weekly Events (Last 7 days)
+      const weeklyMap = new Map();
+      const today = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
 
-      // Load chart data
-      await loadChartData(events);
+      const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      daysOfWeek.forEach((day) => {
+        weeklyMap.set(day, { day, count: 0 });
+      });
+
+      events.forEach((event) => {
+        if (event.createdAt) {
+          const date = new Date(event.createdAt);
+          if (date >= sevenDaysAgo && date <= today) {
+            const dayName = getDayName(date);
+            const existing = weeklyMap.get(dayName);
+            if (existing) {
+              existing.count += 1;
+            }
+          }
+        }
+      });
+
+      const weeklyData = daysOfWeek.map(
+        (day) => weeklyMap.get(day) || { day, count: 0 },
+      );
+      setWeeklyEvents(weeklyData);
+
+      // 8. Fetch recent users
+      try {
+        const recentUsersRes = await userAPI.getRecent(5);
+        console.log("Recent Users:", recentUsersRes);
+        setRecentUsers(recentUsersRes.data || []);
+      } catch (err) {
+        console.warn("Failed to load recent users:", err);
+        setRecentUsers([]);
+      }
+
+      // 9. Get top events by registrations - Sort by highest registrations
+      const eventsWithRegistrations = [];
+
+      // Collect all events with their registration counts
+      for (const event of events) {
+        try {
+          const regStats = await registrationAPI.getStats(event._id);
+          const regData = regStats.data || {};
+          eventsWithRegistrations.push({
+            event: event,
+            registrations: regData.registered || 0,
+          });
+        } catch (err) {
+          eventsWithRegistrations.push({
+            event: event,
+            registrations: 0,
+          });
+        }
+      }
+
+      // Sort by registrations (highest first) and take top 5
+      const sortedEvents = eventsWithRegistrations
+        .sort((a, b) => b.registrations - a.registrations)
+        .slice(0, 5);
+
+      // Build the chart data
+      const topEventsData = sortedEvents.map((item) => ({
+        name:
+          item.event.name?.length > 20
+            ? item.event.name.substring(0, 17) + "..."
+            : item.event.name || "Unknown",
+        registrations: item.registrations,
+      }));
+
+      setTopEvents(topEventsData);
+
+      // 10. Process registration trend data
+      const trendData = Array.from(registrationTrendMap.values()).sort(
+        (a, b) => {
+          const [monthA, yearA] = a.month.split(" ");
+          const [monthB, yearB] = b.month.split(" ");
+          if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          return months.indexOf(monthA) - months.indexOf(monthB);
+        },
+      );
+      setRegistrationTrend(trendData);
     } catch (err) {
       console.error("Failed to load admin dashboard:", err);
       setError(err.message);
@@ -307,65 +536,6 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
-
-  const loadChartData = async (allEvents = []) => {
-    try {
-      // Process data for "Events Created Over Time" chart
-      const eventsByMonth = {};
-      allEvents.forEach((event) => {
-        const date = new Date(event.createdAt);
-        const monthKey = `${date.getFullYear()}-${String(
-          date.getMonth() + 1,
-        ).padStart(2, "0")}`;
-
-        if (!eventsByMonth[monthKey]) {
-          eventsByMonth[monthKey] = 0;
-        }
-        eventsByMonth[monthKey]++;
-      });
-
-      const eventsChartData = Object.entries(eventsByMonth)
-        .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-        .map(([month, count]) => ({
-          month,
-          events: count,
-        }));
-
-      setChartData((prev) => ({
-        ...prev,
-        eventsOverTime: eventsChartData,
-      }));
-
-      // Process data for "Top Events: Registrations vs Attendance"
-      const topEventsData = [];
-      for (const event of allEvents.slice(0, 5)) {
-        try {
-          const regStats = await registrationAPI.getStats(event._id);
-          const regData = regStats.data || {};
-
-          topEventsData.push({
-            name: event.name.substring(0, 15),
-            registrations: regData.totalRegistrations || 0,
-            attendance: regData.totalAttendance || 0,
-          });
-        } catch (err) {
-          console.warn(
-            `Could not load stats for event ${event._id}:`,
-            err.message,
-          );
-        }
-      }
-
-      setChartData((prev) => ({
-        ...prev,
-        topEventsRegistrations: topEventsData,
-      }));
-    } catch (err) {
-      console.error("Failed to load chart data:", err);
-      // Continue without chart data if it fails
-    }
-  };
-
   const greeting =
     new Date().getHours() < 12
       ? "morning"
@@ -394,7 +564,6 @@ export default function AdminDashboard() {
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7 space-y-7">
-          {/* Error */}
           {error && (
             <motion.div {...fadeUp(0)}>
               <div
@@ -405,7 +574,7 @@ export default function AdminDashboard() {
                   color: "#fca5a5",
                 }}
               >
-                {error}
+                Error: {error}
               </div>
             </motion.div>
           )}
@@ -413,33 +582,23 @@ export default function AdminDashboard() {
           {/* Greeting */}
           <motion.div {...fadeUp(0)}>
             <h1
-              className="text-white text-2xl font-bold leading-tight"
+              className="text-white text-2xl font-bold"
               style={{ fontFamily: "'Syne',sans-serif" }}
             >
-              Good {greeting},{" "}
-              <span
-                style={{
-                  background: "linear-gradient(90deg,#a78bfa,#60a5fa)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                Admin
-              </span>{" "}
-              👋
+              Good {greeting}, Admin 👋
             </h1>
             <p
               className="text-xs mt-1"
               style={{ color: "rgba(255,255,255,0.38)" }}
             >
-              Welcome back! Here's an overview of your platform activity.
+              Here's your platform overview
             </p>
           </motion.div>
 
-          {/* Stat Cards */}
+          {/* Stats Row 1 */}
           {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-              {[...Array(6)].map((_, i) => (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-28 rounded-2xl" />
               ))}
             </div>
@@ -448,165 +607,175 @@ export default function AdminDashboard() {
               variants={stagger}
               initial="initial"
               animate="animate"
-              className="grid grid-cols-2 lg:grid-cols-6 gap-4"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4"
             >
               <StatCard
-                icon={Clock}
-                label="Pending Requests"
-                value={stats.pending}
-                accent="#fbbf24"
-              />
-              <StatCard
-                icon={CheckCircle}
-                label="Approved Requests"
-                value={stats.approved}
-                accent="#34d399"
-              />
-              <StatCard
-                icon={TrendingUp}
-                label="Live Events"
-                value={stats.live}
-                accent="#ef4444"
-              />
-              <StatCard
                 icon={Calendar}
-                label="Published Events"
-                value={stats.published}
-                accent="#3b82f6"
+                label="Total Events"
+                value={stats.published + stats.live + stats.completed}
+                accent={COLORS.primary}
               />
               <StatCard
                 icon={Users}
                 label="Total Users"
                 value={stats.totalUsers}
-                accent="#8b5cf6"
+                accent={COLORS.secondary}
               />
               <StatCard
-                icon={Zap}
-                label="Total Admins"
-                value={stats.totalAdmins}
-                accent="#ec4899"
+                icon={LayoutGrid}
+                label="Total Registrations"
+                value={stats.totalRegistrations}
+                accent={COLORS.success}
+              />
+              <StatCard
+                icon={Activity}
+                label="Live Events"
+                value={stats.live}
+                accent={COLORS.danger}
               />
             </motion.div>
           )}
 
-          {/* Charts Section */}
+          {/* Stats Row 2 */}
+          {loading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-28 rounded-2xl" />
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              variants={stagger}
+              initial="initial"
+              animate="animate"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+            >
+              <StatCard
+                icon={Clock}
+                label="Pending Approvals"
+                value={stats.pending}
+                accent={COLORS.warning}
+              />
+              <StatCard
+                icon={CheckCircle}
+                label="Approved Events"
+                value={stats.approved}
+                accent={COLORS.success}
+              />
+              <StatCard
+                icon={Users}
+                label="Pending Registrations"
+                value={stats.pendingRegistrations}
+                accent={COLORS.info}
+              />
+              <StatCard
+                icon={CheckCircle}
+                label="Approved Regs"
+                value={stats.approvedRegistrations}
+                accent={COLORS.success}
+              />
+            </motion.div>
+          )}
+
+          {/* Charts Row 1 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Events Created Over Time Chart */}
-            <motion.div {...fadeUp(0.12)}>
+            {/* Weekly Events - Changed to weekly view */}
+            <motion.div {...fadeUp(0.1)}>
               <Card>
                 <SectionHeader
-                  title="Events Created Over Time"
-                  subtitle="Monthly event creation trend"
+                  title="Events Created This Week"
+                  subtitle="Daily creation trend (last 7 days)"
                 />
-                {chartData.eventsOverTime.length > 0 ? (
-                  <div className="w-full h-80 -mx-6 px-6">
+                {weeklyEvents.length > 0 ? (
+                  <div
+                    className="w-full h-80"
+                    style={{ background: "#0c0c0f", borderRadius: "12px" }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData.eventsOverTime}>
+                      <BarChart
+                        data={weeklyEvents}
+                        margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                        style={{ backgroundColor: "transparent" }}
+                      >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="rgba(255,255,255,0.1)"
+                          stroke="rgba(255,255,255,0.06)"
                         />
                         <XAxis
-                          dataKey="month"
-                          tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 12 }}
+                          dataKey="day"
+                          tick={{
+                            fill: "rgba(255,255,255,0.45)",
+                            fontSize: 11,
+                          }}
                         />
                         <YAxis
-                          tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 12 }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "rgba(0,0,0,0.8)",
-                            border: "1px solid rgba(255,255,255,0.1)",
-                            borderRadius: "8px",
-                            color: "white",
+                          tick={{
+                            fill: "rgba(255,255,255,0.45)",
+                            fontSize: 11,
                           }}
-                          cursor={{ stroke: "rgba(255,255,255,0.1)" }}
+                          domain={[0, "auto"]}
+                          allowDecimals={false}
                         />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="events"
-                          stroke="#a78bfa"
-                          strokeWidth={2.5}
-                          dot={{
-                            fill: "#a78bfa",
-                            r: 5,
-                          }}
-                          activeDot={{ r: 7 }}
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="count"
+                          fill={COLORS.primary}
                           name="Events Created"
+                          radius={[8, 8, 0, 0]}
                         />
-                      </LineChart>
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-64 flex items-center justify-center text-gray-400">
+                  <div className="h-80 flex items-center justify-center text-gray-400">
                     No data available
                   </div>
                 )}
               </Card>
             </motion.div>
 
-            {/* Top Events: Registrations vs Attendance Chart */}
-            <motion.div {...fadeUp(0.14)}>
+            {/* Event Status Pie - Now includes Pending */}
+            <motion.div {...fadeUp(0.12)}>
               <Card>
                 <SectionHeader
-                  title="Registrations vs Attendance"
-                  subtitle="Top events comparison"
+                  title="Event Status Distribution"
+                  subtitle="Current breakdown"
                 />
-                {chartData.topEventsRegistrations.length > 0 ? (
-                  <div className="w-full h-80 -mx-6 px-6">
+                {eventStatusData.length > 0 ? (
+                  <div
+                    className="w-full h-80"
+                    style={{ background: "#0c0c0f", borderRadius: "12px" }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData.topEventsRegistrations}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="rgba(255,255,255,0.1)"
-                        />
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 12 }}
-                        />
-                        <YAxis
-                          tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 12 }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "rgba(0,0,0,0.8)",
-                            border: "1px solid rgba(255,255,255,0.1)",
-                            borderRadius: "8px",
-                            color: "white",
-                          }}
-                          cursor={{ stroke: "rgba(255,255,255,0.1)" }}
-                        />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="registrations"
-                          stroke="#60a5fa"
-                          strokeWidth={2.5}
-                          dot={{
-                            fill: "#60a5fa",
-                            r: 5,
-                          }}
-                          activeDot={{ r: 7 }}
-                          name="Registrations"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="attendance"
-                          stroke="#34d399"
-                          strokeWidth={2.5}
-                          dot={{
-                            fill: "#34d399",
-                            r: 5,
-                          }}
-                          activeDot={{ r: 7 }}
-                          name="Attendance"
-                        />
-                      </LineChart>
+                      <PieChart>
+                        <Pie
+                          data={eventStatusData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, percent }) =>
+                            `${name}: ${(percent * 100).toFixed(0)}%`
+                          }
+                          labelLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                        >
+                          {eventStatusData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.color}
+                              stroke="rgba(0,0,0,0.2)"
+                              strokeWidth={2}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                      </PieChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-64 flex items-center justify-center text-gray-400">
+                  <div className="h-80 flex items-center justify-center text-gray-400">
                     No data available
                   </div>
                 )}
@@ -614,114 +783,166 @@ export default function AdminDashboard() {
             </motion.div>
           </div>
 
-          {/* Data Tables Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Recent Live Events */}
-            <motion.div {...fadeUp(0.15)}>
+          {/* Charts Row 2 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Events - Fixed X axis domain */}
+            <motion.div {...fadeUp(0.14)}>
               <Card>
                 <SectionHeader
-                  title="Recent Live Events"
-                  linkTo="/admin/events?status=live"
-                  linkLabel="View all"
+                  title="Top Events"
+                  subtitle="Most popular by registrations"
+                  linkTo={"/admin/events"}
                 />
-                {loading ? (
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} />
-                    ))}
-                  </div>
-                ) : allEvents.filter((e) => e.status === "live").length > 0 ? (
-                  <div className="space-y-3">
-                    {allEvents
-                      .filter((e) => e.status === "live")
-                      .sort(
-                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-                      )
-                      .slice(0, 3)
-                      .map((event) => (
-                        <RowItem
-                          key={event._id}
-                          to={`/admin/events/${event._id}`}
-                          thumbnail={event.thumbnailUrl}
-                          title={event.name}
-                          sub={fmt(event.createdAt)}
-                          badge={
-                            <StatusBadge
-                              status={event.status}
-                              map={STATUS_EVENT}
-                            />
-                          }
-                          accentBg="linear-gradient(135deg,#ef4444,#dc2626)"
+                {topEvents.length > 0 ? (
+                  <div
+                    className="w-full h-80"
+                    style={{ background: "#0c0c0f", borderRadius: "12px" }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={topEvents}
+                        layout="vertical"
+                        margin={{ left: 0, right: 30, top: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="rgba(255,255,255,0.06)"
                         />
-                      ))}
+                        <XAxis
+                          type="number"
+                          domain={[1, 10]}
+                          tick={{
+                            fill: "rgba(255,255,255,0.45)",
+                            fontSize: 11,
+                          }}
+                          tickCount={10}
+                          allowDecimals={false}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          tick={{
+                            fill: "rgba(255,255,255,0.45)",
+                            fontSize: 11,
+                          }}
+                          width={120}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="registrations"
+                          fill={COLORS.secondary}
+                          name="Registrations"
+                          radius={[0, 8, 8, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-gray-400">
-                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No live events currently</p>
+                  <div className="h-80 flex items-center justify-center text-gray-400">
+                    No data available
                   </div>
                 )}
               </Card>
             </motion.div>
 
-            {/* Upcoming Events */}
+            {/* Registration Trend */}
             <motion.div {...fadeUp(0.16)}>
               <Card>
                 <SectionHeader
-                  title="Upcoming Events"
+                  title="Registration Trend"
+                  subtitle="Last 6 months registration activity"
+                />
+                {registrationTrend.length > 0 ? (
+                  <div
+                    className="w-full h-80"
+                    style={{ background: "#0c0c0f", borderRadius: "12px" }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={registrationTrend}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="rgba(255,255,255,0.06)"
+                        />
+                        <XAxis
+                          dataKey="month"
+                          tick={{
+                            fill: "rgba(255,255,255,0.45)",
+                            fontSize: 11,
+                          }}
+                        />
+                        <YAxis
+                          tick={{
+                            fill: "rgba(255,255,255,0.45)",
+                            fontSize: 11,
+                          }}
+                          allowDecimals={false}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke={COLORS.success}
+                          strokeWidth={2.5}
+                          dot={{ r: 4, fill: COLORS.success }}
+                          activeDot={{ r: 6 }}
+                          name="Registrations"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center text-gray-400">
+                    No registration data available
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          </div>
+
+          {/* Tables */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Events */}
+            <motion.div {...fadeUp(0.18)}>
+              <Card>
+                <SectionHeader
+                  title="Recent Events"
                   linkTo="/admin/events"
                   linkLabel="View all"
                 />
                 {loading ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} />
+                      <Skeleton key={i} className="h-16 rounded-xl" />
                     ))}
                   </div>
-                ) : allEvents.filter(
-                    (e) =>
-                      e.status === "published" &&
-                      new Date(e.liveDate) > new Date(),
-                  ).length > 0 ? (
-                  <div className="space-y-3">
-                    {allEvents
-                      .filter(
-                        (e) =>
-                          e.status === "published" &&
-                          new Date(e.liveDate) > new Date(),
-                      )
-                      .sort(
-                        (a, b) => new Date(a.liveDate) - new Date(b.liveDate),
-                      )
-                      .slice(0, 3)
-                      .map((event) => (
-                        <RowItem
-                          key={event._id}
-                          to={`/admin/events/${event._id}`}
-                          thumbnail={event.thumbnailUrl}
-                          title={event.name}
-                          sub={fmtShort(event.liveDate)}
-                          badge={
-                            <StatusBadge
-                              status={event.status}
-                              map={STATUS_EVENT}
-                            />
-                          }
-                          accentBg="linear-gradient(135deg,#3b82f6,#1d4ed8)"
-                        />
-                      ))}
+                ) : recentEvents.length > 0 ? (
+                  <div className="space-y-2">
+                    {recentEvents.map((event) => (
+                      <RowItem
+                        key={event._id}
+                        to={`/admin/events/${event._id}`}
+                        thumbnail={event.thumbnailUrl}
+                        title={event.name}
+                        sub={`Created ${new Date(event.createdAt).toLocaleDateString()}`}
+                        badge={
+                          <StatusBadge
+                            status={event.status}
+                            map={STATUS_EVENT}
+                          />
+                        }
+                      />
+                    ))}
                   </div>
                 ) : (
                   <div className="py-8 text-center text-gray-400">
-                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No upcoming events scheduled</p>
+                    No events found
                   </div>
                 )}
               </Card>
             </motion.div>
 
             {/* Recent Users */}
-            <motion.div {...fadeUp(0.17)}>
+            <motion.div {...fadeUp(0.2)}>
               <Card>
                 <SectionHeader
                   title="Recent Users"
@@ -729,20 +950,20 @@ export default function AdminDashboard() {
                   linkLabel="View all"
                 />
                 {loading ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-12 rounded-xl" />
+                      <Skeleton key={i} className="h-16 rounded-xl" />
                     ))}
                   </div>
                 ) : recentUsers.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {recentUsers.map((user) => (
                       <RowItem
                         key={user._id}
                         to={`/admin/users/${user._id}`}
                         thumbnail={user.profileImage}
                         title={user.name}
-                        sub={`${user.email}`}
+                        sub={user.email}
                         badge={
                           <span
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
@@ -755,17 +976,15 @@ export default function AdminDashboard() {
                               className="w-1.5 h-1.5 rounded-full"
                               style={{ background: "#34d399" }}
                             />
-                            User
+                            {user.role === "admin" ? "Admin" : "User"}
                           </span>
                         }
-                        accentBg="linear-gradient(135deg,#8b5cf6,#6366f1)"
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="py-8 text-center text-gray-400">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No users registered yet</p>
+                    No users found
                   </div>
                 )}
               </Card>

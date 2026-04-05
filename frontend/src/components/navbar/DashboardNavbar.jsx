@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation} from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import NotificationBell from "../notifications/notificationBell";
+import NotificationBell from "../notifications/NotificationBell";
 
 // ─── Route → breadcrumb map ───────────────────────────────────────────────
 // Each entry: path pattern → array of { label, href? }

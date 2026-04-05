@@ -7,6 +7,12 @@ const router = express.Router();
 
 // Public routes
 router.get("/stats", userController.getUserStatistics);
+// NEW: Get user personal stats (events, registrations, stalls)
+router.get(
+  "/:userId/personal-stats",
+  verifyToken,
+  userController.getUserPersonalStats,
+);
 router.get("/recent", userController.getRecentUsers);
 
 // Protected routes (require authentication)
@@ -20,6 +26,19 @@ router.delete(
   verifyToken,
   checkRole("admin"),
   userController.deleteUser,
+);
+router.put(
+  "/:userId/status",
+  verifyToken,
+  checkRole("admin"),
+  userController.toggleUserStatus,
+);
+// Admin-only route to update user role
+router.patch(
+  "/:userId/role",
+  verifyToken,
+  checkRole("admin"),
+  userController.updateUserRole,
 );
 
 export default router;

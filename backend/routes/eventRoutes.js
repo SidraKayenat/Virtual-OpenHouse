@@ -78,7 +78,53 @@ router.delete(
   eventController.deleteCustomBackground,
 );
 
+// ===== EVENT REMINDER ROUTES =====
+// Set a reminder for the event (24 hours before going live)
+router.post(
+  "/:eventId/reminder",
+  verifyToken,
+  eventController.setEventReminder
+);
+
+// Remove a reminder for the event
+router.delete(
+  "/:eventId/reminder",
+  verifyToken,
+  eventController.removeEventReminder
+);
+
+// Check if user has set a reminder
+router.get(
+  "/:eventId/reminder/status",
+  verifyToken,
+  eventController.hasUserSetReminder
+);
+
+// ===== EVENT ARCHIVE ROUTES =====
+// Toggle archive status for an event (creator only)
+router.patch(
+  "/:eventId/archive",
+  verifyToken,
+  eventController.toggleArchiveEvent
+);
+
+// Get user's archived (past) events
+router.get(
+  "/archived/my-past-events",
+  verifyToken,
+  eventController.getArchivedEvents
+);
+
+// Get public archived events (past events)
+router.get("/public/archived", eventController.getPublicArchivedEvents);
+
 // Admin route - get all events
 router.get("/", verifyToken, eventController.getAllEvents);
+
+router.get(
+  "/top-events",
+  verifyToken,
+  eventController.getTopEventsByRegistrations,
+);
 
 export default router;

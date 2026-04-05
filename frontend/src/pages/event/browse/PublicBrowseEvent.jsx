@@ -28,8 +28,9 @@ const EVENT_TYPES = [
 
 const SORT_OPTIONS = [
   { value: "latest", label: "Latest" },
-  { value: "popular", label: "Most Popular" },
-  { value: "soon", label: "Soonest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "asc_alphabetically", label: "A to Z" },
+  { value: "desc_alphabetically", label: "Z to A" },
 ];
 
 const TABS = [
@@ -143,19 +144,16 @@ export default function PublicBrowseEvents() {
           search,
           eventType,
           tags,
-          sort,
+          sortBy: sort, // CHANGE THIS: map 'sort' to 'sortBy'
           page: reset ? 1 : page,
           limit: 12,
         });
         const data = res.data || [];
         const tot = res.pagination?.total ?? data.length;
-
         if (reset) {
           setEvents(data);
           setPage(1);
-        } else {
-          setEvents((prev) => [...prev, ...data]);
-        }
+        } else setEvents((prev) => [...prev, ...data]);
         setTotal(tot);
         setHasMore(data.length === 12);
       } catch (err) {

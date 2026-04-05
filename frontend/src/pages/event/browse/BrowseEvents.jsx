@@ -28,8 +28,9 @@ const EVENT_TYPES = [
 ];
 const SORT_OPTIONS = [
   { value: "latest", label: "Latest" },
-  { value: "popular", label: "Most Popular" },
-  { value: "soon", label: "Soonest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "asc_alphabetically", label: "A to Z" },
+  { value: "desc_alphabetically", label: "Z to A" },
 ];
 const TABS = [
   { id: "all", label: "All", icon: LayoutGrid },
@@ -78,7 +79,7 @@ export default function BrowseEvents() {
           search,
           eventType,
           tags,
-          sort,
+          sortBy: sort, // CHANGE THIS: map 'sort' to 'sortBy'
           page: reset ? 1 : page,
           limit: 12,
         });

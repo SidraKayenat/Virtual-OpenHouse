@@ -145,6 +145,27 @@ export const eventAPI = {
       body: formData,
     }).then((res) => res.json());
   },
+
+  getTopEvents: (limit = 5) =>
+    api(`/events/top-events?limit=${limit}`, { method: "GET" }),
+
+  // Set reminder for event
+  setReminder: (eventId) =>
+    api(`/events/${eventId}/reminder`, {
+      method: "POST",
+    }),
+
+  // Remove reminder
+  removeReminder: (eventId) =>
+    api(`/events/${eventId}/reminder`, {
+      method: "DELETE",
+    }),
+
+  // Check reminder status
+  checkReminderStatus: (eventId) =>
+    api(`/events/${eventId}/reminder/status`, {
+      method: "GET",
+    }),
 };
 
 export const notificationAPI = {
@@ -383,34 +404,81 @@ export const stallAPI = {
       credentials: "include",
     }).then((res) => res.json());
   },
+
+  // Get stall statistics for dashboard
+  getStats: () => api("/stalls/stats/dashboard", { method: "GET" }),
 };
 
 // ===== USER API CALLS =====
 export const userAPI = {
-  // Get user statistics (total users & admins) - Public
   getStats: () => api("/users/stats", { method: "GET" }),
 
-  // Get recent users (latest 3 users with role "user") - Public
+  getUserPersonalStats: (userId) =>
+    api(`/users/${userId}/personal-stats`, { method: "GET" }),
+
   getRecentUsers: (limit = 3) =>
     api(`/users/recent?limit=${limit}`, { method: "GET" }),
 
-  // Get all users - Admin only
   getAllUsers: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const querySuffix = queryString ? `?${queryString}` : "";
     return api(`/users${querySuffix}`, { method: "GET" });
   },
 
-  // Get user by ID - Authenticated
   getById: (userId) => api(`/users/${userId}`, { method: "GET" }),
 
-  // Update user profile - Authenticated
   update: (userId, userData) =>
     api(`/users/${userId}`, {
       method: "PUT",
       body: JSON.stringify(userData),
     }),
 
-  // Delete user - Admin only
   delete: (userId) => api(`/users/${userId}`, { method: "DELETE" }),
+
+  activateUser: (id) =>
+    api(`/users/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ isActive: true }),
+    }),
+
+  deactivateUser: (id) =>
+    api(`/users/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ isActive: false }),
+    }),
+
+  updateRole: (userId, role) =>
+    api(`/users/${userId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+};
+
+export const settingsAPI = {
+  getSettings: () => api("/events/admin/settings", { method: "GET" }),
+
+  updateSystemSettings: (settings) =>
+    api("/events/admin/settings/system", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+
+  uploadDefaultBackground: (formData) => {
+    return fetch(`${API_BASE_URL}/events/admin/set-default-background`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to upload background");
+      }
+      return res.json();
+    });
+  },
+
+  removeDefaultBackground: () =>
+    api("/events/admin/settings/default-background", {
+      method: "DELETE",
+    }),
 };

@@ -132,6 +132,7 @@ export const createEvent = async (req, res) => {
       eventType,
       tags,
       venue,
+      archive,
     } = req.body;
 
     // If backgroundType is "default", fetch the default background URL from Settings
@@ -158,6 +159,7 @@ export const createEvent = async (req, res) => {
       eventType,
       tags,
       venue,
+      archive: archive || false, // Default to false if not specified
       createdBy: req.user._id,
       status: "pending", // Awaiting System Admin approval
     });
@@ -196,7 +198,7 @@ export const createEvent = async (req, res) => {
 // Role: System Admin views all events for approval
 export const getAllEvents = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 10 } = req.query;
+    const { status, search, page = 1, limit = 10, sortBy = "latest" } = req.query;
 
     let query = {};
 
@@ -213,12 +215,22 @@ export const getAllEvents = async (req, res) => {
       ];
     }
 
+    // Determine sort order
+    let sortObject = { createdAt: -1 }; // default
+    if (sortBy === "oldest") {
+      sortObject = { createdAt: 1 };
+    } else if (sortBy === "asc_alphabetically") {
+      sortObject = { name: 1 };
+    } else if (sortBy === "desc_alphabetically") {
+      sortObject = { name: -1 };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const events = await Event.find(query)
       .populate("createdBy", "name email organization")
       .populate("reviewedBy", "name email")
-      .sort({ createdAt: -1 })
+      .sort(sortObject)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -463,7 +475,7 @@ export const publishEvent = async (req, res) => {
 // ===== GET PUBLISHED EVENTS (Public) =====
 export const getPublishedEvents = async (req, res) => {
   try {
-    const { search, eventType, tags, page = 1, limit = 10 } = req.query;
+    const { search, eventType, tags, page = 1, limit = 10, sortBy = "latest" } = req.query;
 
     let query = {
       status: { $in: ["published", "live"] },
@@ -488,12 +500,22 @@ export const getPublishedEvents = async (req, res) => {
       query.tags = { $in: tagArray };
     }
 
+    // Determine sort order
+    let sortObject = { createdAt: -1 }; // default
+    if (sortBy === "oldest") {
+      sortObject = { createdAt: 1 };
+    } else if (sortBy === "asc_alphabetically") {
+      sortObject = { name: 1 };
+    } else if (sortBy === "desc_alphabetically") {
+      sortObject = { name: -1 };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const events = await Event.find(query)
       .populate("createdBy", "name organization")
       .select("-reviewedBy -rejectionReason")
-      .sort({ liveDate: 1 })
+      .sort(sortObject)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -1183,6 +1205,321 @@ export const deleteCustomBackground = async (req, res) => {
   }
 };
 
+// ===== SET EVENT REMINDER (for users who want 24hr notification) =====
+export const setEventReminder = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check if user already has a reminder set
+    const reminderExists = event.reminders.some(
+      (reminder) => reminder.user.toString() === userId.toString()
+    );
+
+    if (reminderExists) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already set a reminder for this event",
+      });
+    }
+
+    // Add reminder
+    event.reminders.push({
+      user: userId,
+      setAt: new Date(),
+      reminderSent: false,
+    });
+
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Reminder set successfully. You will receive a notification 24 hours before the event goes live.",
+      data: {
+        eventId: event._id,
+        eventName: event.name,
+        liveDate: event.liveDate,
+      },
+    });
+  } catch (error) {
+    console.error("Set Event Reminder Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to set reminder",
+    });
+  }
+};
+
+// ===== REMOVE EVENT REMINDER =====
+export const removeEventReminder = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Remove reminder
+    event.reminders = event.reminders.filter(
+      (reminder) => reminder.user.toString() !== userId.toString()
+    );
+
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Reminder removed successfully",
+      data: {
+        eventId: event._id,
+      },
+    });
+  } catch (error) {
+    console.error("Remove Event Reminder Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to remove reminder",
+    });
+  }
+};
+
+// ===== CHECK IF USER HAS REMINDER SET =====
+export const hasUserSetReminder = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    const hasReminder = event.reminders.some(
+      (reminder) => reminder.user.toString() === userId.toString()
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        hasReminder,
+      },
+    });
+  } catch (error) {
+    console.error("Check Reminder Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to check reminder status",
+    });
+  }
+};
+
+// ===== TOGGLE ARCHIVE STATUS =====
+export const toggleArchiveEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Only event creator can toggle archive
+    if (event.createdBy.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Only event creator can modify archive status",
+      });
+    }
+
+    // Toggle archive status
+    event.archive = !event.archive;
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Event ${event.archive ? "archived" : "unarchived"} successfully`,
+      data: {
+        eventId: event._id,
+        archive: event.archive,
+      },
+    });
+  } catch (error) {
+    console.error("Toggle Archive Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to toggle archive status",
+    });
+  }
+};
+
+// ===== GET ARCHIVED/PAST EVENTS (User's Past Events) =====
+export const getArchivedEvents = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, sortBy = "latest" } = req.query;
+    const userId = req.user._id;
+
+    // Determine sort order
+    let sortObject = { createdAt: -1 }; // default
+    if (sortBy === "oldest") {
+      sortObject = { createdAt: 1 };
+    } else if (sortBy === "asc_alphabetically") {
+      sortObject = { name: 1 };
+    } else if (sortBy === "desc_alphabetically") {
+      sortObject = { name: -1 };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Find archived events created by the user that are completed
+    const archivedEvents = await Event.find({
+      createdBy: userId,
+      archive: true,
+      status: "completed",
+    })
+      .sort(sortObject)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate("createdBy", "name email organization")
+      .select("-rejectionReason");
+
+    const total = await Event.countDocuments({
+      createdBy: userId,
+      archive: true,
+      status: "completed",
+    });
+
+    res.status(200).json({
+      success: true,
+      data: archivedEvents,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get Archived Events Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch archived events",
+    });
+  }
+};
+
+// ===== GET PUBLIC ARCHIVED EVENTS (Public Past Events) =====
+export const getPublicArchivedEvents = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, sortBy = "latest" } = req.query;
+
+    // Determine sort order
+    let sortObject = { createdAt: -1 }; // default
+    if (sortBy === "oldest") {
+      sortObject = { createdAt: 1 };
+    } else if (sortBy === "asc_alphabetically") {
+      sortObject = { name: 1 };
+    } else if (sortBy === "desc_alphabetically") {
+      sortObject = { name: -1 };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Find public archived events that are completed
+    const archivedEvents = await Event.find({
+      archive: true,
+      status: "completed",
+    })
+      .sort(sortObject)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate("createdBy", "name organization")
+      .select({
+        name: 1,
+        description: 1,
+        eventType: 1,
+        tags: 1,
+        liveDate: 1,
+        startTime: 1,
+        endTime: 1,
+        venue: 1,
+        bannerImage: 1,
+        thumbnailUrl: 1,
+        createdBy: 1,
+      });
+
+    const total = await Event.countDocuments({
+      archive: true,
+      status: "completed",
+    });
+
+    res.status(200).json({
+      success: true,
+      data: archivedEvents,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get Public Archived Events Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch archived events",
+    });
+  }
+};
+
 // ===== GET DEFAULT BACKGROUND SETTINGS (Public) =====
 // Frontend can call this to get the current default background URL
 export const getDefaultBackground = async (req, res) => {
@@ -1211,5 +1548,41 @@ export const getDefaultBackground = async (req, res) => {
       success: false,
       message: error.message || "Failed to fetch default background",
     });
+  }
+};
+
+// In eventController.js
+export const getTopEventsByRegistrations = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+
+    const topEvents = await Registration.aggregate([
+      { $match: { status: "approved" } },
+      { $group: { _id: "$event", registrations: { $sum: 1 } } },
+      { $sort: { registrations: -1 } },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "events",
+          localField: "_id",
+          foreignField: "_id",
+          as: "eventDetails",
+        },
+      },
+      { $unwind: "$eventDetails" },
+      {
+        $project: {
+          name: "$eventDetails.name",
+          registrations: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: topEvents,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

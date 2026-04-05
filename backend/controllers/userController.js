@@ -1,5 +1,7 @@
 import User from "../models/User.js";
-
+import Event from "../models/Event.js";
+import Registration from "../models/Registration.js";
+import Stall from "../models/Stall.js";
 // ===== GET USER STATISTICS (Total Users & Admins) =====
 export const getUserStatistics = async (req, res) => {
   try {
@@ -21,6 +23,77 @@ export const getUserStatistics = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch user statistics",
+    });
+  }
+};
+
+// ===== GET USER PERSONAL STATISTICS (Events, Registrations, Stalls) =====
+// This is different from getUserStatistics above - this gets stats for a specific user
+export const getUserPersonalStats = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check permissions (admin or viewing own stats)
+    const isAdmin = req.user.role === "admin";
+    const isSelf = req.user._id.toString() === userId;
+
+    if (!isAdmin && !isSelf) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view these statistics",
+      });
+    }
+
+    // Get counts - using try/catch for each in case models aren't imported
+    let eventsCount = 0;
+    let registrationsCount = 0;
+    let stallsCount = 0;
+
+    try {
+      const Event = await import("../models/Event.js").then((m) => m.default);
+      eventsCount = await Event.countDocuments({ createdBy: userId });
+    } catch (err) {
+      console.error("Error counting events:", err);
+    }
+
+    try {
+      const Registration = await import("../models/Registration.js").then(
+        (m) => m.default,
+      );
+      registrationsCount = await Registration.countDocuments({ user: userId });
+    } catch (err) {
+      console.error("Error counting registrations:", err);
+    }
+
+    try {
+      const Stall = await import("../models/Stall.js").then((m) => m.default);
+      stallsCount = await Stall.countDocuments({ owner: userId });
+    } catch (err) {
+      console.error("Error counting stalls:", err);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        events: eventsCount,
+        registrations: registrationsCount,
+        stalls: stallsCount,
+      },
+    });
+  } catch (error) {
+    console.error("Get User Personal Stats Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch user statistics",
     });
   }
 };
@@ -185,6 +258,79 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete user",
+    });
+  }
+};
+
+// ===== TOGGLE USER ACTIVE =====
+export const toggleUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isActive },
+      { new: true },
+    );
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update status",
+    });
+  }
+};
+
+// ===== UPDATE USER ROLE (Admin only) =====
+export const updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    // Validate role
+    if (!role || !["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Must be 'user' or 'admin'",
+      });
+    }
+
+    // Prevent admin from demoting themselves
+    if (req.user._id.toString() === userId && role === "user") {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot demote yourself from admin role",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true, runValidators: true },
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User role updated to ${role} successfully`,
+      data: user,
+    });
+  } catch (error) {
+    console.error("Update User Role Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update user role",
     });
   }
 };
