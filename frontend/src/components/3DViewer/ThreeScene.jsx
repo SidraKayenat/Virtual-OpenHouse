@@ -9,7 +9,10 @@ import { StallManager } from "./StallManager";
 import { PlayerController } from "./PlayerController";
 import { CameraController } from "./CameraController";
 import { CAMERA_CONFIG } from "./utils/constants";
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import {
+  CSS2DRenderer,
+  CSS2DObject,
+} from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
   const isUIOpenRef = useRef(isUIOpen);
@@ -19,21 +22,21 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-  isUIOpenRef.current = isUIOpen;
-}, [isUIOpen]);
+    isUIOpenRef.current = isUIOpen;
+  }, [isUIOpen]);
 
-useEffect(() => {
-  onStallClickRef.current = onStallClick;
-}, [onStallClick]);
+  useEffect(() => {
+    onStallClickRef.current = onStallClick;
+  }, [onStallClick]);
 
-useEffect(() => {
-  isUIOpenRef.current = isUIOpen;
+  useEffect(() => {
+    isUIOpenRef.current = isUIOpen;
 
-  // When popup closes, release camera focus
-  if (!isUIOpen && cameraControllerRef.current) {
-    cameraControllerRef.current.releaseFocus(); // 👈 this is the key line
-  }
-}, [isUIOpen]);
+    // When popup closes, release camera focus
+    if (!isUIOpen && cameraControllerRef.current) {
+      cameraControllerRef.current.releaseFocus(); // 👈 this is the key line
+    }
+  }, [isUIOpen]);
 
   useEffect(() => {
     if (!canvasRef.current || !eventData) return;
@@ -90,15 +93,15 @@ useEffect(() => {
       try {
         console.log("🌍 Loading environment...");
         await environmentLoader.loadEnvironment(
-  eventData.environmentType || "plain_ground",
-  ["custom", "upload"].includes(eventData.backgroundType)
-    ? eventData.customBackground
-    : null,
-);
+          eventData.environmentType || "plain_ground",
+          ["custom", "upload"].includes(eventData.backgroundType)
+            ? eventData.customBackground
+            : null,
+        );
 
         console.log("🏗️ Creating stalls...");
         await stallManager.createStalls(
-          eventData.stallCount || eventData.numberOfStalls || eventData.stalls?.length || 0,
+          eventData.stalls?.length || 0,
           eventData.stalls || [],
         );
         playerController.setHitboxes(stallManager.getStalls());
@@ -118,12 +121,12 @@ useEffect(() => {
     const mouse = new THREE.Vector2();
 
     // After creating the main renderer
-const labelRenderer = new CSS2DRenderer();
-labelRenderer.setSize(window.innerWidth, window.innerHeight);
-labelRenderer.domElement.style.position = 'absolute';
-labelRenderer.domElement.style.top = '0px';
-labelRenderer.domElement.style.pointerEvents = 'none'; // so clicks pass through to Three.js
-canvasRef.current.parentElement.appendChild(labelRenderer.domElement);
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = "absolute";
+    labelRenderer.domElement.style.top = "0px";
+    labelRenderer.domElement.style.pointerEvents = "none"; // so clicks pass through to Three.js
+    canvasRef.current.parentElement.appendChild(labelRenderer.domElement);
 
     const handleClick = (event) => {
       // 🔥 DON'T RAYCAST IF UI IS OPEN
@@ -150,9 +153,12 @@ canvasRef.current.parentElement.appendChild(labelRenderer.domElement);
 
         cameraController.focusOn(intersects[0].object.position);
 
-        if (onStallClickRef.current && typeof onStallClickRef.current === "function") {
-  onStallClickRef.current(stallData); 
-}
+        if (
+          onStallClickRef.current &&
+          typeof onStallClickRef.current === "function"
+        ) {
+          onStallClickRef.current(stallData);
+        }
       }
     };
 
@@ -195,7 +201,7 @@ canvasRef.current.parentElement.appendChild(labelRenderer.domElement);
       stallManager.dispose();
       renderer.dispose();
     };
-  }, [eventData]); 
+  }, [eventData]);
 
   return (
     <>

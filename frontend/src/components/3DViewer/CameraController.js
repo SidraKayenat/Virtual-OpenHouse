@@ -6,13 +6,13 @@ export class CameraController {
     this.camera = camera;
     this.controls = controls;
     this.interacting = false;
-    this.returning = false; // 👈 new state
+    this.returning = false; 
     this.focusTarget = new THREE.Vector3();
     this.lastTarget = new THREE.Vector3();
 
     // Saved state for smooth return
-    this.savedCameraPosition = new THREE.Vector3(); // 👈
-    this.savedTarget = new THREE.Vector3();          // 👈
+    this.savedCameraPosition = new THREE.Vector3(); 
+    this.savedTarget = new THREE.Vector3(); 
 
     this.controls.maxPolarAngle = CAMERA_CONFIG.MAX_POLAR_ANGLE;
     this.controls.minPolarAngle = CAMERA_CONFIG.MIN_POLAR_ANGLE;
@@ -40,7 +40,7 @@ export class CameraController {
   releaseFocus() {
     // Don't snap — start smooth return instead
     this.interacting = false;
-    this.returning = true;   // 👈 trigger return lerp
+    this.returning = true; // trigger return lerp
     this.controls.enabled = false; // keep controls off during return
   }
 
@@ -53,11 +53,10 @@ export class CameraController {
       this._tempVec.set(
         this.focusTarget.x + offset.x,
         this.focusTarget.y + offset.y,
-        this.focusTarget.z + offset.z
+        this.focusTarget.z + offset.z,
       );
       this.camera.position.lerp(this._tempVec, 0.05);
       this.controls.target.lerp(this.focusTarget, 0.05);
-
     } else if (this.returning) {
       // Smoothly lerp back to saved position
       this.camera.position.lerp(this.savedCameraPosition, 0.08);
@@ -69,9 +68,8 @@ export class CameraController {
         this.camera.position.copy(this.savedCameraPosition);
         this.controls.target.copy(this.savedTarget);
         this.returning = false;
-        this.controls.enabled = true; // 👈 re-enable controls only when fully back
+        this.controls.enabled = true; //  re-enable controls only when fully back
       }
-
     } else {
       // Normal follow player mode
       this.lastTarget.copy(this.controls.target);

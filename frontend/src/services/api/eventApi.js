@@ -35,23 +35,39 @@ export const fetchPublicEventData = async (eventId) => {
       published: true,
       limit: 100,
     });
-    const stalls = (stallsResponse?.data || stallsResponse || []).map(
-      normalizeStall,
-    );
 
+    // ADD THESE:
+    console.log("Raw stalls from API:", stallsResponse?.data || stallsResponse);
+    console.log(
+      "Total stalls count:",
+      (stallsResponse?.data || stallsResponse)?.length,
+    );
+    const stalls = (stallsResponse?.data || stallsResponse || [])
+      .filter((s) => s.status === "approved" || s.isPublished === true)
+      .map(normalizeStall);
+
+    console.log(
+      "Normalized stalls:",
+      stalls.map((s) => ({
+        id: s.id,
+        name: s.name,
+        raw_isPublished: s.raw?.isPublished,
+        raw_isActive: s.raw?.isActive,
+      })),
+    );
     return {
-  id: event._id,
-  name: event.name,
-  description: event.description,
-  environmentType: event.environmentType || "indoor",
-  backgroundType: event.backgroundType || "default",        
-  customBackground: event.customBackground || null,          
-  stallCount: event.numberOfStalls || stalls.length || 0,
-  liveDate: event.liveDate,
-  status: event.status,
-  stalls,
-  rawEvent: event,
-};
+      id: event._id,
+      name: event.name,
+      description: event.description,
+      environmentType: event.environmentType || "indoor",
+      backgroundType: event.backgroundType || "default",
+      customBackground: event.customBackground || null,
+      stallCount: event.numberOfStalls || stalls.length || 0,
+      liveDate: event.liveDate,
+      status: event.status,
+      stalls,
+      rawEvent: event,
+    };
   } catch (error) {
     console.error("Error fetching public event data:", error);
     throw error;
@@ -67,21 +83,23 @@ export const fetchAuthenticatedEventData = async (eventId) => {
     ]);
 
     const event = eventResponse?.data || {};
-    const stalls = (stallsResponse?.data || []).map(normalizeStall);
+    const stalls = (stallsResponse?.data || stallsResponse || [])
+      .filter((s) => s.status === "approved" || s.isPublished === true)
+      .map(normalizeStall);
 
     return {
-  id: event._id,
-  name: event.name,
-  description: event.description,
-  environmentType: event.environmentType || "indoor",
-  backgroundType: event.backgroundType || "default",        // ADD THIS
-  customBackground: event.customBackground || null,          // ADD THIS
-  stallCount: event.numberOfStalls || stalls.length || 0,
-  liveDate: event.liveDate,
-  status: event.status,
-  stalls,
-  rawEvent: event,
-};
+      id: event._id,
+      name: event.name,
+      description: event.description,
+      environmentType: event.environmentType || "indoor",
+      backgroundType: event.backgroundType || "default", // ADD THIS
+      customBackground: event.customBackground || null, // ADD THIS
+      stallCount: event.numberOfStalls || stalls.length || 0,
+      liveDate: event.liveDate,
+      status: event.status,
+      stalls,
+      rawEvent: event,
+    };
   } catch (error) {
     console.error("Error fetching authenticated event data:", error);
     throw error;

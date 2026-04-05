@@ -1,7 +1,7 @@
 // src/components/3DViewer/SceneManager.js
 
 import * as THREE from "three";
-import { SCENE_CONFIG, HALL_DIMENSIONS } from "./utils/constants";
+import { SCENE_CONFIG } from "./utils/constants";
 
 export class SceneManager {
   constructor() {
@@ -11,7 +11,6 @@ export class SceneManager {
       SCENE_CONFIG.FOG_DENSITY,
     );
     this.setupLighting();
-    this.setupSkybox();
   }
 
   setupLighting() {
@@ -24,33 +23,6 @@ export class SceneManager {
     dirLight.position.set(10, 20, 10);
     dirLight.castShadow = true;
     this.scene.add(dirLight);
-  }
-
-  setupSkybox() {
-    const loader = new THREE.CubeTextureLoader();
-    this.scene.background = loader.load([
-      "/textures/skybox/px.jpg",
-      "/textures/skybox/nx.jpg",
-      "/textures/skybox/py.jpg",
-      "/textures/skybox/ny.jpg",
-      "/textures/skybox/pz.jpg",
-      "/textures/skybox/nz.jpg",
-    ]);
-  }
-
-  createFloor() {
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(HALL_DIMENSIONS.WIDTH, HALL_DIMENSIONS.DEPTH),
-      new THREE.MeshStandardMaterial({
-        color: 0x777777,
-        roughness: 1,
-        metalness: 0.1,
-      }),
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
   }
 
   getScene() {
