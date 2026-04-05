@@ -2,6 +2,7 @@ import "./App.css";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { Toaster } from "react-hot-toast";
 
 import Login from "./pages/auth/Login";
 import Landing from "./pages/landing/Landing";
@@ -30,10 +31,37 @@ import Notifications from "./pages/notifications/Notifications";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import EventRequests from "./pages/event/EventRequests";
 import AllEvents from "./pages/event/AllEvents";
+import AllUsers from "./pages/users/AllUsers";
+import UserDetails from "./pages/users/UserDetails";
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+            borderRadius: "12px",
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: "#10b981",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          },
+        }}
+      />
       <AuthProvider>
         <Routes>
           {/* Public */}
@@ -210,6 +238,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <AllEvents />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="admin/users"
+            element={
+              <ProtectedRoute>
+                <AllUsers />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="admin/users/:userId"
+            element={
+              <ProtectedRoute>
+                <UserDetails />
               </ProtectedRoute>
             }
           />

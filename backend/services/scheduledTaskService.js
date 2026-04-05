@@ -24,9 +24,13 @@ export const sendEventReminders = async () => {
   try {
     const now = new Date();
     // 24 hours from now
-    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const twentyFourHoursFromNow = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000,
+    );
     // 23 hours from now (to avoid sending multiple reminders)
-    const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
+    const twentyThreeHoursFromNow = new Date(
+      now.getTime() + 23 * 60 * 60 * 1000,
+    );
 
     // Find events that go live in the next 24 hours (but not within the last 23 hours)
     // This prevents sending the same reminder twice
@@ -46,36 +50,42 @@ export const sendEventReminders = async () => {
     }
 
     // Send reminders for event creators
-    const reminderPromises = eventsToRemind.map(event =>
-      notifyEventReminder(event._id, event.name, event.createdBy)
-        .catch(err => {
+    const reminderPromises = eventsToRemind.map((event) =>
+      notifyEventReminder(event._id, event.name, event.createdBy).catch(
+        (err) => {
           console.error(`Failed to send reminder for event ${event._id}:`, err);
           return null;
-        })
+        },
+      ),
     );
 
     const results = await Promise.all(reminderPromises);
-    const successCount = results.filter(r => r !== null).length;
+    const successCount = results.filter((r) => r !== null).length;
 
     // Also send reminders to users who set reminders
     let userReminderCount = 0;
-    const userReminderPromises = eventsToRemind.map(event =>
+    const userReminderPromises = eventsToRemind.map((event) =>
       notifyUsersWhoSetReminders(event._id, event.name)
-        .then(result => {
+        .then((result) => {
           if (result.success) {
             userReminderCount += result.sent;
           }
           return result;
         })
-        .catch(err => {
-          console.error(`Failed to send user reminders for event ${event._id}:`, err);
+        .catch((err) => {
+          console.error(
+            `Failed to send user reminders for event ${event._id}:`,
+            err,
+          );
           return null;
-        })
+        }),
     );
 
     await Promise.all(userReminderPromises);
 
-    console.log(`Event reminders sent: ${successCount}/${eventsToRemind.length}`);
+    console.log(
+      `Event reminders sent: ${successCount}/${eventsToRemind.length}`,
+    );
     console.log(`User reminders sent: ${userReminderCount}`);
     return {
       success: true,
@@ -107,7 +117,7 @@ export const updateLiveEventStatuses = async () => {
       },
       {
         $set: { status: "live" },
-      }
+      },
     );
 
     if (updated.modifiedCount > 0) {
@@ -148,8 +158,8 @@ export const updateCompletedEventStatuses = async () => {
     // Check each event to see if endTime has passed
     for (const event of liveEvents) {
       // Parse endTime string ("HH:MM") and combine with liveDate
-      if (event.endTime && typeof event.endTime === 'string') {
-        const [hours, minutes] = event.endTime.split(':').map(Number);
+      if (event.endTime && typeof event.endTime === "string") {
+        const [hours, minutes] = event.endTime.split(":").map(Number);
         const eventEndDateTime = new Date(event.liveDate);
         eventEndDateTime.setHours(hours, minutes, 0, 0);
 
@@ -157,7 +167,7 @@ export const updateCompletedEventStatuses = async () => {
         if (now >= eventEndDateTime) {
           await Event.updateOne(
             { _id: event._id },
-            { $set: { status: "completed" } }
+            { $set: { status: "completed" } },
           );
           completedCount++;
         }
@@ -189,9 +199,13 @@ export const sendEventStartingSoonNotifications = async () => {
   try {
     const now = new Date();
     // 24 hours from now
-    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const twentyFourHoursFromNow = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000,
+    );
     // 23 hours from now (to avoid sending multiple reminders)
-    const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
+    const twentyThreeHoursFromNow = new Date(
+      now.getTime() + 23 * 60 * 60 * 1000,
+    );
 
     // Find events that start in the next 24 hours (but not within the last 23 hours)
     // Also check that notification hasn't been sent yet
@@ -217,13 +231,19 @@ export const sendEventStartingSoonNotifications = async () => {
     // Send notifications for each event
     for (const event of eventsStarting) {
       try {
-        const result = await notifyAllStallOwnersEventStarting(event._id, event.name);
+        const result = await notifyAllStallOwnersEventStarting(
+          event._id,
+          event.name,
+        );
         if (result.success) {
           totalSent += result.sent || 0;
           processedEvents.push(event._id);
         }
       } catch (err) {
-        console.error(`Failed to send event starting soon notifications for event ${event._id}:`, err);
+        console.error(
+          `Failed to send event starting soon notifications for event ${event._id}:`,
+          err,
+        );
       }
     }
 
@@ -231,11 +251,13 @@ export const sendEventStartingSoonNotifications = async () => {
     if (processedEvents.length > 0) {
       await Event.updateMany(
         { _id: { $in: processedEvents } },
-        { $set: { eventStartingSoonNotificationSent: true } }
+        { $set: { eventStartingSoonNotificationSent: true } },
       );
     }
 
-    console.log(`Event starting soon notifications sent: ${totalSent} total for ${processedEvents.length} events`);
+    console.log(
+      `Event starting soon notifications sent: ${totalSent} total for ${processedEvents.length} events`,
+    );
     return {
       success: true,
       events: processedEvents.length,
@@ -259,9 +281,13 @@ export const sendReminder24hBeforeStart = async () => {
   try {
     const now = new Date();
     // 24 hours from now
-    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const twentyFourHoursFromNow = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000,
+    );
     // 23 hours from now
-    const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
+    const twentyThreeHoursFromNow = new Date(
+      now.getTime() + 23 * 60 * 60 * 1000,
+    );
 
     // Find events starting in the next 24 hours (but not within the last 23 hours)
     // Also check that this notification hasn't been sent yet
@@ -291,14 +317,20 @@ export const sendReminder24hBeforeStart = async () => {
         totalSent++;
 
         // Notify all participants
-        const participantResult = await notifyAllParticipantsReminder24h(event._id, event.name);
+        const participantResult = await notifyAllParticipantsReminder24h(
+          event._id,
+          event.name,
+        );
         if (participantResult.success) {
           totalSent += participantResult.sent;
         }
 
         processedEvents.push(event._id);
       } catch (err) {
-        console.error(`Failed to send 24h reminders for event ${event._id}:`, err);
+        console.error(
+          `Failed to send 24h reminders for event ${event._id}:`,
+          err,
+        );
       }
     }
 
@@ -306,11 +338,13 @@ export const sendReminder24hBeforeStart = async () => {
     if (processedEvents.length > 0) {
       await Event.updateMany(
         { _id: { $in: processedEvents } },
-        { $set: { reminder24hNotificationSent: true } }
+        { $set: { reminder24hNotificationSent: true } },
       );
     }
 
-    console.log(`24-hour event reminders sent: ${totalSent} total for ${processedEvents.length} events`);
+    console.log(
+      `24-hour event reminders sent: ${totalSent} total for ${processedEvents.length} events`,
+    );
     return {
       success: true,
       events: processedEvents.length,
@@ -366,14 +400,20 @@ export const sendReminder1hBeforeStart = async () => {
         totalSent++;
 
         // Notify all participants
-        const participantResult = await notifyAllParticipantsReminder1h(event._id, event.name);
+        const participantResult = await notifyAllParticipantsReminder1h(
+          event._id,
+          event.name,
+        );
         if (participantResult.success) {
           totalSent += participantResult.sent;
         }
 
         processedEvents.push(event._id);
       } catch (err) {
-        console.error(`Failed to send 1h reminders for event ${event._id}:`, err);
+        console.error(
+          `Failed to send 1h reminders for event ${event._id}:`,
+          err,
+        );
       }
     }
 
@@ -381,11 +421,13 @@ export const sendReminder1hBeforeStart = async () => {
     if (processedEvents.length > 0) {
       await Event.updateMany(
         { _id: { $in: processedEvents } },
-        { $set: { reminder1hNotificationSent: true } }
+        { $set: { reminder1hNotificationSent: true } },
       );
     }
 
-    console.log(`1-hour event reminders sent: ${totalSent} total for ${processedEvents.length} events`);
+    console.log(
+      `1-hour event reminders sent: ${totalSent} total for ${processedEvents.length} events`,
+    );
     return {
       success: true,
       events: processedEvents.length,
@@ -437,21 +479,56 @@ export const sendEventEndedNotifications = async () => {
 
         // Only send notification if event has actually ended
         if (now >= eventEndDateTime) {
-          // Notify event admin
-          await notifyEventEnded(event._id, event.name, event.createdBy);
-          totalSent++;
+          // ✅ FIX: Check if event admin already has notification
+          const existingAdminNotification = await Notification.findOne({
+            user: event.createdBy,
+            referenceId: event._id,
+            type: "event_ended",
+          });
 
-          // Notify all participants
-          const participantResult = await notifyAllParticipantsEventEnded(event._id, event.name);
-          if (participantResult.success) {
-            totalSent += participantResult.sent;
+          if (!existingAdminNotification) {
+            // Notify event admin
+            await notifyEventEnded(event._id, event.name, event.createdBy);
+            totalSent++;
+          } else {
+            console.log(
+              `Admin notification already exists for event ${event._id}`,
+            );
           }
 
-          // Mark notification as sent to prevent future duplicates
+          // ✅ FIX: Notify all participants with duplicate check
+          const Stall = mongoose.model("Stall");
+          const stalls = await Stall.find({ event: event._id })
+            .select("owner")
+            .lean();
+
+          if (stalls.length > 0) {
+            const ownerIds = stalls.map((stall) => stall.owner);
+
+            for (const ownerId of ownerIds) {
+              // Check if this participant already has a notification
+              const existingParticipantNotification =
+                await Notification.findOne({
+                  user: ownerId,
+                  referenceId: event._id,
+                  type: "event_ended",
+                });
+
+              if (!existingParticipantNotification) {
+                await notifyEventEnded(event._id, event.name, ownerId);
+                totalSent++;
+              }
+            }
+          }
+
+          // Mark notification as sent to prevent future processing
           processedEvents.push(event._id);
         }
       } catch (err) {
-        console.error(`Failed to send event ended notifications for event ${event._id}:`, err);
+        console.error(
+          `Failed to send event ended notifications for event ${event._id}:`,
+          err,
+        );
       }
     }
 
@@ -459,11 +536,13 @@ export const sendEventEndedNotifications = async () => {
     if (processedEvents.length > 0) {
       await Event.updateMany(
         { _id: { $in: processedEvents } },
-        { $set: { eventEndedNotificationSent: true } }
+        { $set: { eventEndedNotificationSent: true } },
       );
     }
 
-    console.log(`Event ended notifications sent: ${totalSent} total for ${processedEvents.length} events`);
+    console.log(
+      `Event ended notifications sent: ${totalSent} total for ${processedEvents.length} events`,
+    );
     return {
       success: true,
       events: processedEvents.length,

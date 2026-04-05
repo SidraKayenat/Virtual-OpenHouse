@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { eventAPI, stallAPI } from "@/lib/api";
 import {
   Search,
@@ -527,18 +528,12 @@ export default function EventDetails() {
 
   const checkReminderStatus = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:8747/api/events/${eventId}/reminder/status`,
-        {
-          credentials: "include",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setHasReminder(data.data?.hasReminder || false);
-      }
+      const response = await eventAPI.checkReminderStatus(eventId);
+      setHasReminder(response.data?.hasReminder || false);
     } catch (err) {
       console.error("Failed to check reminder status:", err);
+      // Don't show error to user, just default to false
+      setHasReminder(false);
     }
   };
 
@@ -547,30 +542,18 @@ export default function EventDetails() {
       setReminderLoading(true);
       setReminderError(null);
 
-      const response = await fetch(
-        `http://localhost:8747/api/events/${eventId}/reminder`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to set reminder. Please try again."
-        );
-      }
+      const response = await eventAPI.setReminder(eventId);
 
       setHasReminder(true);
-      console.log("✓ Reminder set successfully");
+      toast.success(
+        response.message ||
+          "Reminder set successfully! You'll be notified 24 hours before the event.",
+      );
     } catch (err) {
-      setReminderError(err.message || "Failed to set reminder");
-      console.error("Set reminder error:", err);
+      const errorMessage =
+        err.message || "Failed to set reminder. Please try again.";
+      setReminderError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setReminderLoading(false);
     }
@@ -581,36 +564,29 @@ export default function EventDetails() {
       setReminderLoading(true);
       setReminderError(null);
 
-      const response = await fetch(
-        `http://localhost:8747/api/events/${eventId}/reminder`,
-        {
-          method: "DELETE",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to remove reminder. Please try again."
-        );
-      }
+      await eventAPI.removeReminder(eventId);
 
       setHasReminder(false);
-      console.log("✓ Reminder removed");
+      toast.success("Reminder removed successfully");
     } catch (err) {
-      setReminderError(err.message || "Failed to remove reminder");
-      console.error("Remove reminder error:", err);
+      const errorMessage =
+        err.message || "Failed to remove reminder. Please try again.";
+      setReminderError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setReminderLoading(false);
     }
   };
 
   const handleReminderClick = () => {
+    // Check if user is logged in (adjust based on your auth system)
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Redirect to login or show login modal
+      navigate("/login", { state: { from: `/events/${eventId}` } });
+      return;
+    }
+
     if (hasReminder) {
       handleRemoveReminder();
     } else {
@@ -1168,7 +1144,9 @@ export default function EventDetails() {
 
             <button
               className={`reminder-btn ${
-                hasReminder ? "text-violet-300 border-violet-500/40" : "text-slate-300"
+                hasReminder
+                  ? "text-violet-300 border-violet-500/40"
+                  : "text-slate-300"
               } transition-all duration-250 disabled:opacity-50 disabled:cursor-not-allowed`}
               onClick={handleReminderClick}
               disabled={reminderLoading}
@@ -1186,7 +1164,9 @@ export default function EventDetails() {
               )}
             </button>
             {reminderError && (
-              <p className="text-xs text-red-400 text-center">{reminderError}</p>
+              <p className="text-xs text-red-400 text-center">
+                {reminderError}
+              </p>
             )}
 
             <hr className="divider" />

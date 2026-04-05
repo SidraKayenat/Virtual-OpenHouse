@@ -80,10 +80,16 @@ const notificationSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index for fast unread count
-notificationSchema.index({ user: 1, isRead: 1 });
+notificationSchema.index(
+  { user: 1, referenceId: 1, type: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { type: "event_ended" },
+  },
+);
 
 export default mongoose.model("Notification", notificationSchema);
