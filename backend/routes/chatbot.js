@@ -1,6 +1,7 @@
 // backend/routes/chatbot.js
 import express from "express";
 import Stall from "../models/Stall.js";
+import Event from "../models/Event.js";
 import { ingestStallChatbot, queryStallChatbot } from "../utils/chatbotService.js";
 
 const router = express.Router();
@@ -26,6 +27,27 @@ const normalizeAxiosDetails = (details) => {
   return details;
 };
 
+const resolveEventName = async (stall, eventId) => {
+  const eventRef = stall?.event?._id || stall?.event || eventId;
+  if (!eventRef) return "this event";
+
+  const event = await Event.findById(eventRef).select("name").lean();
+  return event?.name || "this event";
+};
+
+const toPublicChatPayload = (responseData) => {
+  const response = responseData?.response || "I couldn't find enough information in this stall's documents.";
+  const sources = Array.isArray(responseData?.sources)
+    ? responseData.sources.map((source) => ({
+        source_file: source?.source_file || null,
+        page: source?.page ?? null,
+        is_title_page: Boolean(source?.is_title_page),
+      }))
+    : [];
+
+  return { response, sources };
+};
+
 
 router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
   const { query } = req.body;
@@ -40,16 +62,17 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
     if (!stall) {
       return res.status(404).json({ error: "Stall not found in this event" });
     }
+    const eventName = await resolveEventName(stall, eventId);
 
         try {
       const response = await queryStallChatbot({
         eventId,
         stallId,
         query,
-       context: { stallName: stall.projectTitle, eventName: String(stall.event || eventId) },
+        context: { stallName: stall.projectTitle, eventName },
 
       });
-      return res.json(response);
+      return res.json(toPublicChatPayload(response));
     } catch (err) {
       const status = err.response?.status;
       if (status !== 404) {
@@ -68,10 +91,10 @@ router.post("/events/:eventId/stalls/:stallId", async (req, res) => {
         eventId,
         stallId,
         query,
-        context: { stallName: stall.projectTitle, eventName: String(stall.event || eventId) },
+        context: { stallName: stall.projectTitle, eventName },
       });
 
-      return res.json({ ...response, ingestionTriggered: true });
+      return res.json({ ...toPublicChatPayload(response), ingestionTriggered: true });
     }
   } catch (err) {
     return res.status(500).json({

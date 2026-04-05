@@ -37,14 +37,41 @@ DEFAULT_FETCH_K = 50
 
 
 
-def build_qa_prompt(scope_instruction: str):
+DETAILED_TOP_K = 20
+DETAILED_FETCH_K = 80
+DETAIL_REQUEST_PATTERN = re.compile(
+    r"\b(detailed|in\s*detail|in-depth|thorough|elaborate|comprehensive|step[- ]by[- ]step|deep dive)\b",
+    re.IGNORECASE,
+)
+
+
+
+def detect_response_style(query: str, requested_style: str | None):
+    if requested_style in {"brief", "normal", "detailed"}:
+        return requested_style
+    if query and DETAIL_REQUEST_PATTERN.search(query):
+        return "detailed"
+    return "normal"
+
+
+def build_qa_prompt(scope_instruction: str, response_style: str):
+    style_instruction = (
+        "Default to concise answers (4-8 sentences) unless the user explicitly asks for detail."
+        if response_style != "detailed"
+        else (
+            "The user asked for detail. Provide a structured answer with: "
+            "(1) Short summary, (2) Detailed explanation, and (3) Practical takeaways."
+        )
+    )
     return PromptTemplate(
         input_variables=["context", "question"],
         template=(
             "You are a helpful assistant answering questions about a stall project.\n"
             f"Scope rules: {scope_instruction}\n"
+            f"Response style: {style_instruction}\n"
             "Use only the provided context to answer.\n"
             "Do not reference section numbers, chapter numbers, or tell users to look up specific sections in documents.\n"
+            "Do not mention internal IDs, project IDs, event IDs, file paths, or database identifiers in your response.\n"
             "If the answer is uncertain or the context is insufficient, say so explicitly.\n\n"
             "Context:\n{context}\n\n"
             "Question: {question}\n"
@@ -95,6 +122,7 @@ def chat():
         query = data.get("query")
         project_id = data.get("project_id")
         context = data.get("context") or {}
+        requested_style = data.get("response_style")
 
         if not query or not project_id:
             return (
@@ -117,13 +145,17 @@ def chat():
         search_type = data.get("search_type", DEFAULT_SEARCH_TYPE)
         score_threshold = data.get("score_threshold", DEFAULT_SCORE_THRESHOLD)
         fetch_k = data.get("fetch_k", DEFAULT_FETCH_K)
+        response_style = detect_response_style(query, requested_style)
+        if response_style == "detailed":
+            top_k = max(top_k, DETAILED_TOP_K)
+            fetch_k = max(fetch_k, DETAILED_FETCH_K)
         stall_name = context.get("stallName") or "Unknown Stall"  #keep the stall_name 
         event_name = context.get("eventName") or "Unknown Event"
         scope_instruction = (
             f"Answer only for stall '{stall_name}' in event '{event_name}'. "
             "If asked about other stalls or events, explain your scope is limited."
         )
-        qa_prompt = build_qa_prompt(scope_instruction)
+        qa_prompt = build_qa_prompt(scope_instruction, response_style)
 
         db = Chroma(
             persist_directory=f"./db/{project_id}",
