@@ -512,33 +512,18 @@ export default function UserDetails() {
   // ── Load stats from existing APIs ─────────────────────────────────────
   // We use eventAPI.getAll with createdBy filter, and count registrations/stalls
   // These APIs are what your backend already has — we just count results.
+  // ── Load stats from the new endpoint ──
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // Fetch all events, filter by this user on client side
-      // (your eventAPI.getAll() is admin-only and returns all events)
-      const [eventsRes, stallsRes] = await Promise.allSettled([
-        eventAPI.getAll({ limit: 999 }),
-        stallAPI.getMyStalls?.() ?? Promise.reject("no endpoint"),
-      ]);
-
-      // Count events created by this user
-      let eventCount = 0;
-      if (eventsRes.status === "fulfilled") {
-        const allEvents = eventsRes.value?.data || [];
-        eventCount = allEvents.filter(
-          (e) => e.createdBy?._id === userId || e.createdBy === userId,
-        ).length;
-      }
-
-      // Stalls: we can only get global count if the admin endpoint returns all stalls,
-      // otherwise we show N/A until your friend adds the endpoint
+      const res = await userAPI.getUserPersonalStats(userId);
       setStats({
-        events: eventCount,
-        registrations: null, // no admin "all registrations" endpoint yet
-        stalls: null, // no admin "stalls by user" endpoint yet
+        events: res.data.events,
+        registrations: res.data.registrations,
+        stalls: res.data.stalls,
       });
-    } catch {
+    } catch (err) {
+      console.error("Failed to load user stats:", err);
       setStats({ events: null, registrations: null, stalls: null });
     } finally {
       setStatsLoading(false);

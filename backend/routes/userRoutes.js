@@ -7,6 +7,12 @@ const router = express.Router();
 
 // Public routes
 router.get("/stats", userController.getUserStatistics);
+// NEW: Get user personal stats (events, registrations, stalls)
+router.get(
+  "/:userId/personal-stats",
+  verifyToken,
+  userController.getUserPersonalStats,
+);
 router.get("/recent", userController.getRecentUsers);
 
 // Protected routes (require authentication)

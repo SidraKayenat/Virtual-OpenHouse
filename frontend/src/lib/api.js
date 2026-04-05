@@ -413,6 +413,9 @@ export const stallAPI = {
 export const userAPI = {
   getStats: () => api("/users/stats", { method: "GET" }),
 
+  getUserPersonalStats: (userId) =>
+    api(`/users/${userId}/personal-stats`, { method: "GET" }),
+
   getRecentUsers: (limit = 3) =>
     api(`/users/recent?limit=${limit}`, { method: "GET" }),
 

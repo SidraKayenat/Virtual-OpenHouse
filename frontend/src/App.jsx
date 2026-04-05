@@ -33,6 +33,8 @@ import EventRequests from "./pages/event/EventRequests";
 import AllEvents from "./pages/event/AllEvents";
 import AllUsers from "./pages/users/AllUsers";
 import UserDetails from "./pages/users/UserDetails";
+import AdminEventView from "./pages/event/AdminEventView";
+import TeamsAndManagement from "./pages/TeamsAndManagement";
 
 function App() {
   return (
@@ -243,6 +245,15 @@ function App() {
           />
 
           <Route
+            path="/admin/events/:eventId"
+            element={
+              <ProtectedRoute>
+                <AdminEventView />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="admin/users"
             element={
               <ProtectedRoute>
@@ -256,6 +267,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* // Teams  */}
+          <Route
+            path="/admin/teams"
+            element={
+              <ProtectedRoute>
+                <TeamsAndManagement />
               </ProtectedRoute>
             }
           />
