@@ -1,5 +1,6 @@
 import Stall from "../models/Stall.js";
 import { deleteFromCloudinary } from "../config/cloudinary.js";
+import { v2 as cloudinary } from "cloudinary";
 
 // ===== UPLOAD IMAGES TO STALL =====
 export const uploadStallImages = async (req, res) => {
@@ -159,14 +160,16 @@ export const uploadStallDocuments = async (req, res) => {
 
     // Process uploaded documents
     const uploadedDocs = req.files.map((file) => {
-      const ext = file.originalname.split(".").pop();
+      const ext = file.originalname.split(".").pop().toLowerCase();
+      const isPDF = ext === "pdf";
 
       return {
-        url: `file.path`, // ✅ append extension manually
+        url: file.path,
         publicId: file.filename,
         filename: file.originalname,
         fileType: ext,
         fileSize: file.size,
+        resourceType: isPDF ? "image" : "raw", // ✅ Store this for deletion later
       };
     });
 
@@ -378,7 +381,7 @@ export const deleteStallVideo = async (req, res) => {
 export const deleteStallDocument = async (req, res) => {
   try {
     const stallId = req.params.stallId;
-    const publicId = decodeURIComponent(req.params.publicId); // ✅ FIX HERE
+    const publicId = decodeURIComponent(req.params.publicId);
 
     // Find stall
     const stall = await Stall.findById(stallId);
@@ -408,9 +411,12 @@ export const deleteStallDocument = async (req, res) => {
       });
     }
 
+    // Get resourceType from document (PDFs use "image", others use "raw")
+    const resourceType = stall.documents[docIndex].resourceType || "raw";
+
     // Delete from Cloudinary
     try {
-      await deleteFromCloudinary(publicId, "raw");
+      await deleteFromCloudinary(publicId, resourceType);
     } catch (error) {
       console.error("Cloudinary deletion error:", error);
     }

@@ -161,6 +161,11 @@ const stallSchema = new Schema(
       fileSize: {
         type: Number, // in bytes
       },
+      resourceType: {
+        type: String, // "image" for PDFs, "raw" for other documents
+        enum: ["image", "raw"],
+        default: "raw",
+      },
     }],
 
     // Banner/Thumbnail image (main display image)

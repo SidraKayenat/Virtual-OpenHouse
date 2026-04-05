@@ -45,15 +45,18 @@ const videoStorage = new CloudinaryStorage({
 const documentStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-    const originalName = file.originalname.split(".")[0];
+    const isPDF = file.mimetype === "application/pdf";
+    const filename = file.originalname.split(".")[0]; // Original filename without extension
 
     return {
       folder: "virtual-openhouse/stalls/documents",
-      resource_type: "raw",
-      public_id: originalName, // ✅ use original name
+      // ✅ Use "image" for PDFs (Cloudinary supports it and delivers publicly)
+      // Use "raw" for DOCX, PPTX, TXT
+      resource_type: isPDF ? "image" : "raw",
+      public_id: filename, // ✅ Preserve original filename
       use_filename: true,
-      unique_filename: false, // ❗ VERY IMPORTANT
-      format: file.originalname.split(".").pop(), // ✅ keep extension
+      unique_filename: false, // ✅ Don't add random suffix
+      format: isPDF ? "pdf" : file.originalname.split(".").pop(),
     };
   },
 });
