@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom"; // Added useLocation
 import {
   Eye,
   EyeOff,
@@ -223,6 +223,12 @@ function StepDots({ current, total }) {
 export default function Signup() {
   const { setUser, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Added for redirect
+
+  // Get redirect path from location state, or default to dashboard
+  const from = location.state?.from?.pathname || location.state?.from || "/";
+
+  console.log("Signup redirect path:", from); // Debug log
 
   // 2-step: step 0 = account info, step 1 = profile info
   const [step, setStep] = useState(0);
@@ -241,11 +247,11 @@ export default function Signup() {
   const [apiError, setApiError] = useState("");
 
   useEffect(() => {
-    if (user)
-      navigate(user.role === "admin" ? "/admin/dashboard" : "/user/dashboard", {
-        replace: true,
-      });
-  }, [user]);
+    if (user) {
+      // Redirect to the page they were trying to access, or dashboard
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
 
   const setField = (k, v) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -298,13 +304,17 @@ export default function Signup() {
         method: "POST",
         body: JSON.stringify(payload),
       });
+
+      // ✅ STORE THE TOKEN IF RETURNED
+      if (res.token) {
+        localStorage.setItem("token", res.token);
+        console.log("Token stored in localStorage from signup");
+      }
+
       setUser(res.user || res);
-      navigate(
-        res.user?.role === "admin" || res.role === "admin"
-          ? "/admin/dashboard"
-          : "/user/dashboard",
-        { replace: true },
-      );
+
+      // Redirect to the page they were trying to access, or dashboard
+      navigate(from, { replace: true });
     } catch (err) {
       setApiError(err.message || "Failed to create account. Try again.");
       if (err.message.includes("exists")) {
@@ -664,6 +674,7 @@ export default function Signup() {
                 Have an account?{" "}
                 <Link
                   to="/login"
+                  state={{ from }} // Pass the redirect location to login
                   className="font-semibold transition-colors"
                   style={{ color: "#a78bfa" }}
                   onMouseEnter={(e) =>

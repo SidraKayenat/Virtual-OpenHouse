@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { eventAPI } from "@/lib/api";
@@ -9,9 +9,9 @@ import { motion } from "framer-motion";
 import {
   Calendar,
   Clock,
-  MapPin,
-  Tag,
+  Palette,
   Image,
+  Send,
   Box,
   ChevronRight,
   AlertCircle,
@@ -22,15 +22,66 @@ import {
   X,
   Hash,
   Users,
-  Palette,
   Info,
-  Globe,
   Building,
-  TreePine,
-  Layers,
   Lock,
   ShieldAlert,
 } from "lucide-react";
+
+function ChoiceCard({
+  selected,
+  label,
+  desc,
+  icon,
+  color = "#a78bfa",
+  onClick,
+  locked,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={!locked ? onClick : undefined}
+      className="flex flex-col gap-2 p-4 rounded-xl text-left transition-all duration-150"
+      style={{
+        background: selected ? `${color}12` : "rgba(255,255,255,0.03)",
+        border: selected
+          ? `1px solid ${color}45`
+          : "1px solid rgba(255,255,255,0.08)",
+        boxShadow: selected ? `0 0 18px ${color}12` : "none",
+        cursor: locked ? "not-allowed" : "pointer",
+        opacity: locked ? 0.5 : 1,
+      }}
+    >
+      <div
+        className="w-8 h-8 rounded-lg flex items-center justify-center"
+        style={{
+          background: selected ? `${color}20` : "rgba(255,255,255,0.06)",
+        }}
+      >
+        <icon
+          size={15}
+          style={{ color: selected ? color : "rgba(255,255,255,0.35)" }}
+        />
+      </div>
+      <div>
+        <p
+          className="text-[13px] font-semibold"
+          style={{ color: selected ? "white" : "rgba(255,255,255,0.55)" }}
+        >
+          {label}
+        </p>
+        {desc && (
+          <p
+            className="text-[11px] mt-0.5"
+            style={{ color: "rgba(255,255,255,0.28)" }}
+          >
+            {desc}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────
 const EVENT_TYPES = [
@@ -41,18 +92,22 @@ const EVENT_TYPES = [
   "seminar",
   "other",
 ];
-const ENV_TYPES = [
-  { value: "indoor", label: "Indoor", icon: Building, desc: "Enclosed venue" },
-  {
-    value: "outdoor",
-    label: "Outdoor",
-    icon: TreePine,
-    desc: "Open-air space",
-  },
-  { value: "hybrid", label: "Hybrid", icon: Layers, desc: "Mixed environment" },
+
+const SKYBOX_PRESETS = [
+  { value: "/Environments/AlgerLakessunset.webp", label: "Alger Lakes" },
+  { value: "/Environments/Mountainmeadow.webp", label: "Mountain Meadow" },
+  { value: "/Environments/RetroSpaceSkybox.webp", label: "Retro Space" },
+  { value: "/Environments/RoyalPalaceasi.webp", label: "Royal Palace" },
+  { value: "/Environments/WaimeaCanyon.webp", label: "Waimea Canyon" },
 ];
 
-// ─── Styled primitives (same system as CreateEvent) ───────────────────────
+const ENV_TYPES = [
+  { value: "indoor", label: "Indoor", icon: Building, desc: "Inside venue" },
+  { value: "outdoor", label: "Outdoor", icon: Building, desc: "Open air" },
+  { value: "hybrid", label: "Hybrid", icon: Building, desc: "Mixed setup" },
+];
+
+// ─── Styled primitives ────────────────────────────────────────────────────
 const inputBase = {
   background: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.1)",
@@ -184,98 +239,169 @@ function StyledTextarea({ ...props }) {
   );
 }
 
-function StyledSelect({ icon: Icon, children, ...props }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="relative">
-      {Icon && (
-        <Icon
-          size={14}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{
-            color: focused ? "#a78bfa" : "rgba(255,255,255,0.25)",
-            transition: "color 0.18s",
-          }}
-        />
-      )}
-      <select
-        {...props}
-        style={{
-          ...inputBase,
-          paddingLeft: Icon ? 38 : 14,
-          paddingRight: 36,
-          appearance: "none",
-          cursor: "pointer",
-          borderColor: focused
-            ? "rgba(167,139,250,0.5)"
-            : "rgba(255,255,255,0.1)",
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      >
-        {children}
-      </select>
-      <ChevronRight
-        size={13}
-        className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
-        style={{ color: "rgba(255,255,255,0.25)" }}
-      />
-    </div>
-  );
-}
-
-function ChoiceCard({
-  selected,
-  label,
-  desc,
-  icon,
-  color = "#a78bfa",
-  onClick,
-  locked,
+// ─── Skybox Picker ────────────────────────────────────────────────────────
+function SkyboxPicker({
+  value,
+  backgroundType,
+  onChange,
+  onUpload,
+  uploading,
 }) {
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) onUpload(file);
+  };
+
   return (
-    <button
-      type="button"
-      onClick={!locked ? onClick : undefined}
-      className="flex flex-col gap-2 p-4 rounded-xl text-left transition-all duration-150"
-      style={{
-        background: selected ? `${color}12` : "rgba(255,255,255,0.03)",
-        border: selected
-          ? `1px solid ${color}45`
-          : "1px solid rgba(255,255,255,0.08)",
-        boxShadow: selected ? `0 0 18px ${color}12` : "none",
-        cursor: locked ? "not-allowed" : "pointer",
-        opacity: locked ? 0.5 : 1,
-      }}
-    >
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center"
-        style={{
-          background: selected ? `${color}20` : "rgba(255,255,255,0.06)",
-        }}
-      >
-        <icon
-          size={15}
-          style={{ color: selected ? color : "rgba(255,255,255,0.35)" }}
-        />
-      </div>
-      <div>
-        <p
-          className="text-[13px] font-semibold"
-          style={{ color: selected ? "white" : "rgba(255,255,255,0.55)" }}
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-3 gap-3">
+        {SKYBOX_PRESETS.map(({ value: presetValue, label }) => {
+          const isSelected =
+            value === presetValue && backgroundType !== "upload";
+          return (
+            <button
+              key={presetValue}
+              type="button"
+              onClick={() =>
+                onChange({
+                  backgroundType: "custom",
+                  customBackground: presetValue,
+                  customBackgroundPublicId: "",
+                })
+              }
+              className="flex flex-col rounded-xl overflow-hidden text-left transition-all"
+              style={{
+                border: isSelected
+                  ? "2px solid rgba(52,211,153,0.7)"
+                  : "2px solid rgba(255,255,255,0.07)",
+                boxShadow: isSelected
+                  ? "0 0 16px rgba(52,211,153,0.15)"
+                  : "none",
+              }}
+            >
+              <div className="relative w-full" style={{ height: 72 }}>
+                <img
+                  src={presetValue}
+                  alt={label}
+                  className="w-full h-full object-cover"
+                />
+                {isSelected && (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center"
+                    style={{ background: "rgba(52,211,153,0.18)" }}
+                  >
+                    <CheckCircle size={20} style={{ color: "#34d399" }} />
+                  </div>
+                )}
+              </div>
+              <div
+                className="px-2 py-1.5"
+                style={{ background: "rgba(255,255,255,0.04)" }}
+              >
+                <p
+                  className="text-[11px] font-medium truncate"
+                  style={{
+                    color: isSelected ? "#6ee7b7" : "rgba(255,255,255,0.45)",
+                  }}
+                >
+                  {label}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+
+        {/* Custom upload tile */}
+        <button
+          type="button"
+          onClick={() => {
+            onChange({
+              backgroundType: "upload",
+              customBackground: value?.startsWith("http") ? value : "",
+              customBackgroundPublicId: "",
+            });
+            setTimeout(() => fileInputRef.current?.click(), 50);
+          }}
+          className="flex flex-col items-center justify-center gap-2 rounded-xl transition-all"
+          style={{
+            height: 105,
+            border:
+              backgroundType === "upload"
+                ? "2px solid rgba(96,165,250,0.7)"
+                : "2px dashed rgba(255,255,255,0.12)",
+            background:
+              backgroundType === "upload"
+                ? "rgba(96,165,250,0.08)"
+                : "rgba(255,255,255,0.02)",
+          }}
         >
-          {label}
-        </p>
-        {desc && (
-          <p
-            className="text-[11px] mt-0.5"
-            style={{ color: "rgba(255,255,255,0.28)" }}
+          {uploading ? (
+            <div className="w-6 h-6 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+          ) : (
+            <Upload
+              size={18}
+              style={{
+                color:
+                  backgroundType === "upload"
+                    ? "#60a5fa"
+                    : "rgba(255,255,255,0.3)",
+              }}
+            />
+          )}
+          <span
+            className="text-[11px] font-medium"
+            style={{
+              color:
+                backgroundType === "upload"
+                  ? "#93c5fd"
+                  : "rgba(255,255,255,0.3)",
+            }}
           >
-            {desc}
-          </p>
-        )}
+            {uploading ? "Uploading…" : "Custom Upload"}
+          </span>
+        </button>
       </div>
-    </button>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
+      {/* Show uploaded preview */}
+      {backgroundType === "upload" && value?.startsWith("http") && (
+        <div
+          className="relative rounded-xl overflow-hidden"
+          style={{ height: 100 }}
+        >
+          <img
+            src={value}
+            alt="Custom skybox"
+            className="w-full h-full object-cover"
+          />
+          <div
+            className="absolute inset-0 flex items-end p-2"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
+            }}
+          >
+            <span className="text-[11px] text-white font-medium">
+              Custom background uploaded ✓
+            </span>
+          </div>
+        </div>
+      )}
+
+      <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.22)" }}>
+        Select a preset skybox or upload your own equirectangular (360°) image ·
+        Max 20MB
+      </p>
+    </div>
   );
 }
 
@@ -288,6 +414,7 @@ function TagInput({ value, onChange }) {
         .map((t) => t.trim())
         .filter(Boolean)
     : [];
+
   const addTag = (raw) => {
     const tag = raw.trim().toLowerCase().replace(/\s+/g, "-");
     if (!tag || tags.includes(tag)) {
@@ -298,6 +425,7 @@ function TagInput({ value, onChange }) {
     setInput("");
   };
   const removeTag = (t) => onChange(tags.filter((x) => x !== t).join(", "));
+
   return (
     <div className="flex flex-col gap-2">
       {tags.length > 0 && (
@@ -358,7 +486,7 @@ function TagInput({ value, onChange }) {
   );
 }
 
-// ─── Image Uploader Component (for file upload) ─────────────────────────────
+// ─── Image Uploader ───────────────────────────────────────────────────────
 function ImageUploader({ value, onUpload, uploading, onClear, label }) {
   const [preview, setPreview] = useState(value || "");
   const fileInputRef = useRef(null);
@@ -371,17 +499,10 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
+      reader.onloadend = () => setPreview(reader.result);
       reader.readAsDataURL(file);
       onUpload(file);
     }
-  };
-
-  const clearImage = () => {
-    setPreview("");
-    onClear();
   };
 
   return (
@@ -404,7 +525,7 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
           disabled={uploading}
         />
         {uploading ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
             <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
             <p
               className="text-[11px]"
@@ -427,7 +548,8 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  clearImage();
+                  setPreview("");
+                  onClear();
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white"
                 style={{
@@ -440,7 +562,7 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center justify-center gap-2 text-center h-full">
             <Upload size={24} style={{ color: "rgba(255,255,255,0.4)" }} />
             <p
               className="text-[12px]"
@@ -517,7 +639,6 @@ function ConfirmModal({ changes, onConfirm, onCancel, loading }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Icon */}
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -544,7 +665,6 @@ function ConfirmModal({ changes, onConfirm, onCancel, loading }) {
           </div>
         </div>
 
-        {/* Changed fields list */}
         {changes.length > 0 && (
           <div
             className="rounded-xl p-4 flex flex-col gap-2.5"
@@ -600,11 +720,9 @@ function ConfirmModal({ changes, onConfirm, onCancel, loading }) {
           className="text-[12.5px]"
           style={{ color: "rgba(255,255,255,0.38)" }}
         >
-          These changes will be applied to your event immediately. The event may
-          require re-review depending on your current status.
+          These changes will be applied to your event immediately.
         </p>
 
-        {/* Actions */}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
@@ -648,19 +766,18 @@ function ConfirmModal({ changes, onConfirm, onCancel, loading }) {
 
 // ─── Diff calculator ──────────────────────────────────────────────────────
 function getDiff(original, current) {
-  const LOCKED = ["name", "liveDate"];
+  // const LOCKED = ["name", "liveDate", "numberOfStalls", "backgroundType"];
+  const LOCKED = ["name", "liveDate", "numberOfStalls", "backgroundType"];
   const LABELS = {
     description: "Description",
     numberOfStalls: "Number of Stalls",
     startTime: "Start Time",
     endTime: "End Time",
     backgroundType: "Background Type",
-    customBackground: "Custom Background",
-    environmentType: "Environment Type",
+    customBackground: "Skybox",
     eventType: "Event Type",
     tags: "Tags",
     thumbnailUrl: "Thumbnail",
-    // Remove venue and modelUrl
   };
   return Object.keys(current)
     .filter(
@@ -682,6 +799,10 @@ function LivePreview({ form }) {
         .map((t) => t.trim())
         .filter(Boolean)
     : [];
+  const skyboxLabel =
+    SKYBOX_PRESETS.find((p) => p.value === form.customBackground)?.label ||
+    "Custom";
+
   return (
     <div
       className="rounded-2xl overflow-hidden sticky top-6"
@@ -694,9 +815,9 @@ function LivePreview({ form }) {
         className="relative h-36 overflow-hidden"
         style={{ background: "linear-gradient(135deg,#1e1b30,#2d1f5e)" }}
       >
-        {form.thumbnailUrl && (
+        {form.customBackground && (
           <img
-            src={form.thumbnailUrl}
+            src={form.customBackground}
             alt=""
             className="w-full h-full object-cover"
             onError={() => {}}
@@ -761,12 +882,12 @@ function LivePreview({ form }) {
               {form.startTime && ` · ${form.startTime}`}
             </span>
           )}
-
           {form.numberOfStalls && (
             <span className="flex items-center gap-1.5">
               <Users size={10} /> {form.numberOfStalls} stalls
             </span>
           )}
+          {form.customBackground && <span>🌐 {skyboxLabel}</span>}
         </div>
       </div>
     </div>
@@ -785,21 +906,74 @@ export default function EditEvent() {
   const [error, setError] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
 
-  // Load event
+  const [publishing, setPublishing] = useState(false);
+  const [event, setEvent] = useState(null);
+
+  const loadData = useCallback(async (id) => {
+    try {
+      setLoading(true);
+      const res = await eventAPI.getById(id);
+      setEvent(res.data || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // useEffect(() => {
+  //   if (eventId) loadData(eventId);
+  // }, [eventId, loadData]);
+
+  const handlePublish = async () => {
+    try {
+      setPublishing(true);
+
+      // Optional: save changes first if dirty
+      if (isDirty) {
+        // Instead of calling handleSaveClick directly (which shows a modal),
+        // you might want to auto-save or show a message
+        const shouldSave = window.confirm(
+          "You have unsaved changes. Save before publishing?",
+        );
+        if (shouldSave) {
+          await handleConfirm(); // Call this directly to save without modal
+        }
+      }
+
+      // Use eventId from params, not event._id
+      await eventAPI.publish(eventId);
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+
+      // Optionally refresh the event data to get updated status
+      const refreshedEvent = await eventAPI.getById(eventId);
+      setEvent(refreshedEvent.data);
+    } catch (err) {
+      alert(err.message || "Failed to publish");
+    } finally {
+      setPublishing(false);
+    }
+  };
   useEffect(() => {
-    (async () => {
+    const fetchEvent = async () => {
       try {
         setLoading(true);
         const res = await eventAPI.getById(eventId);
         const e = res.data;
+
         if (!e) {
           setError("Event not found");
+          setForm(null);
           return;
         }
+
+        // 👇 THIS IS THE CRITICAL FIX - set the event state
+        setEvent(e); // Add this line
 
         const mapped = {
           name: e.name || "",
@@ -810,23 +984,26 @@ export default function EditEvent() {
           endTime: e.endTime || "",
           backgroundType: e.backgroundType || "default",
           customBackground: e.customBackground || "",
-          customBackgroundPublicId: e.customBackgroundPublicId || "", // Add this
+          customBackgroundPublicId: e.customBackgroundPublicId || "",
           environmentType: e.environmentType || "indoor",
           eventType: e.eventType || "exhibition",
           tags: e.tags ? e.tags.join(", ") : "",
           thumbnailUrl: e.thumbnailUrl || "",
-          thumbnailPublicId: e.thumbnailPublicId || "", // Add this
-          // Remove venue field entirely
-          // Remove modelUrl field entirely
+          thumbnailPublicId: e.thumbnailPublicId || "",
         };
+
         setForm(mapped);
         setOriginal(mapped);
+        setError(null);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Failed to fetch event");
+        setForm(null);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    if (eventId) fetchEvent();
   }, [eventId]);
 
   const set = (field, val) => setForm((f) => ({ ...f, [field]: val }));
@@ -835,35 +1012,41 @@ export default function EditEvent() {
     set(name, value);
   };
 
+  const handleSkyboxChange = ({
+    backgroundType,
+    customBackground,
+    customBackgroundPublicId,
+  }) => {
+    setForm((f) => ({
+      ...f,
+      backgroundType,
+      customBackground,
+      customBackgroundPublicId,
+    }));
+  };
+
   const diff = original && form ? getDiff(original, form) : [];
   const isDirty = diff.length > 0;
 
   const handleSaveClick = () => {
-    // Validate required fields
     if (!form.thumbnailUrl) {
       setError("Thumbnail is required");
       return;
     }
-    if (form.backgroundType === "custom" && !form.customBackground) {
-      setError(
-        "Custom background image is required when Custom background type is selected",
-      );
+    if (form.backgroundType === "upload" && !form.customBackground) {
+      setError("Please upload a custom background or select a preset");
       return;
     }
     if (!isDirty) return;
     setShowConfirm(true);
   };
 
-  // Thumbnail upload handler
   const handleThumbnailUpload = async (file) => {
     if (!file) return;
-
     const formData = new FormData();
     formData.append("thumbnail", file);
-
     try {
       setUploadingThumbnail(true);
-      // Fix: Pass eventId as first argument
       const response = await eventAPI.uploadThumbnail(eventId, formData);
       if (response.success) {
         set("thumbnailUrl", response.data.url);
@@ -876,20 +1059,20 @@ export default function EditEvent() {
     }
   };
 
-  // Custom background upload handler
   const handleBackgroundUpload = async (file) => {
     if (!file) return;
-
     const formData = new FormData();
     formData.append("background", file);
-
     try {
       setUploadingBackground(true);
-      // Fix: Pass eventId as first argument
       const response = await eventAPI.uploadBackground(eventId, formData);
       if (response.success) {
-        set("customBackground", response.data.url);
-        set("customBackgroundPublicId", response.data.publicId);
+        setForm((f) => ({
+          ...f,
+          backgroundType: "upload",
+          customBackground: response.data.customBackground,
+          customBackgroundPublicId: response.data.publicId || "",
+        }));
       }
     } catch (err) {
       setError("Failed to upload background");
@@ -906,10 +1089,10 @@ export default function EditEvent() {
         numberOfStalls: parseInt(form.numberOfStalls),
         startTime: form.startTime,
         endTime: form.endTime,
-        backgroundType: form.backgroundType,
+        backgroundType:
+          form.backgroundType === "upload" ? "custom" : form.backgroundType,
         customBackground: form.customBackground,
-        customBackgroundPublicId: form.customBackgroundPublicId, // Add this
-        environmentType: form.environmentType,
+        customBackgroundPublicId: form.customBackgroundPublicId,
         eventType: form.eventType,
         tags: form.tags
           ? form.tags
@@ -918,8 +1101,7 @@ export default function EditEvent() {
               .filter(Boolean)
           : [],
         thumbnailUrl: form.thumbnailUrl,
-        thumbnailPublicId: form.thumbnailPublicId, // Add this
-        // Remove venue and modelUrl
+        thumbnailPublicId: form.thumbnailPublicId,
       };
       await eventAPI.update(eventId, payload);
       setOriginal({ ...form });
@@ -934,7 +1116,7 @@ export default function EditEvent() {
     }
   };
 
-  // ── Loading state ──────────────────────────────────────────────────
+  // ── Loading / error states ─────────────────────────────────────────
   if (loading) {
     return (
       <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
@@ -1009,7 +1191,7 @@ export default function EditEvent() {
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
-          {/* ── Header ── */}
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1048,7 +1230,6 @@ export default function EditEvent() {
               </div>
             </div>
 
-            {/* Save button + dirty indicator */}
             <div className="flex items-center gap-3">
               {isDirty && (
                 <motion.span
@@ -1100,10 +1281,32 @@ export default function EditEvent() {
               >
                 <Save size={14} /> Save Changes
               </button>
+              <button
+                onClick={handlePublish}
+                disabled={publishing || event?.status !== "approved"}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
+                style={
+                  event?.status === "approved"
+                    ? {
+                        background: "linear-gradient(135deg,#60a5fa,#3b82f6)",
+                        border: "1px solid rgba(96,165,250,0.25)",
+                        boxShadow: "0 4px 16px rgba(59,130,246,0.3)",
+                        cursor: "pointer",
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.3)",
+                        cursor: "not-allowed",
+                      }
+                }
+              >
+                <Send size={14} />
+                {publishing ? "Publishing..." : "Publish"}
+              </button>
             </div>
           </motion.div>
 
-          {/* Error */}
           {error && (
             <div
               className="mb-5 p-3 rounded-xl text-[12.5px]"
@@ -1117,8 +1320,7 @@ export default function EditEvent() {
             </div>
           )}
 
-          {/* ── Locked fields notice ── */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06, duration: 0.3 }}
@@ -1132,13 +1334,12 @@ export default function EditEvent() {
             <Lock size={13} style={{ color: "#fbbf24", flexShrink: 0 }} />
             <span>
               <strong>Event Name</strong> and <strong>Live Date</strong> cannot
-              be changed after creation. All other fields are editable.
+              be changed after creation.
             </span>
-          </motion.div>
+          </motion.div> */}
 
-          {/* ── 2-column layout ── */}
+          {/* 2-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6">
-            {/* ── Left: all editable sections ── */}
             <div className="flex flex-col gap-5">
               {/* Basic Info */}
               <motion.div
@@ -1147,11 +1348,9 @@ export default function EditEvent() {
                 transition={{ delay: 0.08, duration: 0.3 }}
               >
                 <Section title="Basic Information" icon={Info} accent="#a78bfa">
-                  {/* Locked: name */}
                   <Field label="Event Name" locked>
                     <StyledInput locked value={form.name} readOnly />
                   </Field>
-                  {/* Editable: description */}
                   <Field
                     label="Description"
                     required
@@ -1165,7 +1364,6 @@ export default function EditEvent() {
                       maxLength={1000}
                     />
                   </Field>
-                  {/* Editable: event type */}
                   <Field label="Event Type">
                     <div className="grid grid-cols-3 gap-2">
                       {EVENT_TYPES.map((t) => (
@@ -1203,7 +1401,6 @@ export default function EditEvent() {
                 transition={{ delay: 0.12, duration: 0.3 }}
               >
                 <Section title="Schedule" icon={Calendar} accent="#60a5fa">
-                  {/* Locked: live date */}
                   <Field label="Live Date & Time" locked>
                     <StyledInput
                       icon={Calendar}
@@ -1246,21 +1443,18 @@ export default function EditEvent() {
                   icon={Building}
                   accent="#34d399"
                 >
-                  <Field label="Number of Stalls" hint="1 – 500">
+                  <Field label="Number of Stalls" hint="1 – 500" locked>
                     <div className="flex items-center gap-3">
                       <button
+                        disabled
                         type="button"
-                        onClick={() =>
-                          set(
-                            "numberOfStalls",
-                            Math.max(1, form.numberOfStalls - 1),
-                          )
-                        }
-                        className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-lg transition-colors"
+                        className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-lg"
                         style={{
                           background: "rgba(255,255,255,0.06)",
                           border: "1px solid rgba(255,255,255,0.1)",
                           color: "rgba(255,255,255,0.6)",
+                          cursor: "not-allowed",
+                          opacity: 0.5,
                         }}
                       >
                         −
@@ -1268,108 +1462,36 @@ export default function EditEvent() {
                       <StyledInput
                         icon={Users}
                         type="number"
-                        name="numberOfStalls"
                         value={form.numberOfStalls}
-                        onChange={handle}
-                        min={1}
-                        max={500}
+                        disabled
+                        style={lockedBase}
                       />
                       <button
+                        disabled
                         type="button"
-                        onClick={() =>
-                          set(
-                            "numberOfStalls",
-                            Math.min(
-                              500,
-                              parseInt(form.numberOfStalls || 0) + 1,
-                            ),
-                          )
-                        }
-                        className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-lg transition-colors"
+                        className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-lg"
                         style={{
                           background: "rgba(255,255,255,0.06)",
                           border: "1px solid rgba(255,255,255,0.1)",
                           color: "rgba(255,255,255,0.6)",
+                          cursor: "not-allowed",
+                          opacity: 0.5,
                         }}
                       >
                         +
                       </button>
                     </div>
                   </Field>
-                  <Field label="Environment Type">
-                    <div className="grid grid-cols-3 gap-3">
-                      {ENV_TYPES.map(({ value, label, icon, desc }) => (
-                        <ChoiceCard
-                          key={value}
-                          selected={form.environmentType === value}
-                          label={label}
-                          desc={desc}
-                          icon={icon}
-                          color="#34d399"
-                          onClick={() => set("environmentType", value)}
-                        />
-                      ))}
-                    </div>
-                  </Field>
-                  <Field label="Background">
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        {
-                          value: "default",
-                          label: "Default",
-                          desc: "Platform background",
-                          icon: Palette,
-                        },
-                        {
-                          value: "custom",
-                          label: "Custom",
-                          desc: "Upload your own",
-                          icon: Upload,
-                        },
-                      ].map(({ value, label, desc, icon }) => (
-                        <ChoiceCard
-                          key={value}
-                          selected={form.backgroundType === value}
-                          label={label}
-                          desc={desc}
-                          icon={icon}
-                          color="#60a5fa"
-                          onClick={() => set("backgroundType", value)}
-                        />
-                      ))}
-                    </div>
-                  </Field>
 
-                  {form.backgroundType === "custom" && (
-                    <Field
-                      label="Custom Background Image"
-                      required
-                      error={
-                        !form.customBackground &&
-                        "Custom background is required"
-                      }
-                    >
-                      <ImageUploader
-                        value={form.customBackground}
-                        onUpload={handleBackgroundUpload}
-                        onClear={() => {
-                          set("customBackground", "");
-                          set("customBackgroundPublicId", "");
-                        }}
-                        uploading={uploadingBackground}
-                        label="background"
-                      />
-                      {!form.customBackground && (
-                        <p
-                          className="text-[11px] mt-1"
-                          style={{ color: "#f87171" }}
-                        >
-                          Custom background is required when selecting Custom
-                          background type
-                        </p>
-                      )}
-                    </Field>
-                  )}
+                  <Field label="Skybox / Environment">
+                    <SkyboxPicker
+                      value={form.customBackground}
+                      backgroundType={form.backgroundType}
+                      onChange={handleSkyboxChange}
+                      onUpload={handleBackgroundUpload}
+                      uploading={uploadingBackground}
+                    />
+                  </Field>
                 </Section>
               </motion.div>
 
@@ -1379,7 +1501,7 @@ export default function EditEvent() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
-                <Section title="Media & 3D" icon={Image} accent="#fb923c">
+                <Section title="Media" icon={Image} accent="#fb923c">
                   <Field label="Event Thumbnail" hint="Upload an image">
                     <ImageUploader
                       value={form.thumbnailUrl}
@@ -1426,7 +1548,6 @@ export default function EditEvent() {
                   {isDirty ? (
                     <p className="text-[12.5px]" style={{ color: "#fbbf24" }}>
                       {diff.length} field{diff.length !== 1 ? "s" : ""} modified
-                      — review before saving
                     </p>
                   ) : (
                     <p
@@ -1478,7 +1599,7 @@ export default function EditEvent() {
               </motion.div>
             </div>
 
-            {/* ── Right: live preview ── */}
+            {/* Right: live preview */}
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1502,7 +1623,6 @@ export default function EditEvent() {
         </main>
       </div>
 
-      {/* ── Confirm modal ── */}
       <AnimatePresence>
         {showConfirm && (
           <ConfirmModal
