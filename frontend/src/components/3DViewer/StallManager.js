@@ -217,6 +217,16 @@ export class StallManager {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+
+          // Change floor color — adjust the name to match what console shows
+          if (
+            child.name.toLowerCase().includes("floor") ||
+            child.name.toLowerCase().includes("ground") ||
+            child.name.toLowerCase().includes("plane")
+          ) {
+            child.material = child.material.clone();
+            child.material.color.set(0xffffff); // your color here
+          }
         }
       });
 
