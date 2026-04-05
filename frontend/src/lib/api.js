@@ -145,6 +145,9 @@ export const eventAPI = {
       body: formData,
     }).then((res) => res.json());
   },
+
+  getTopEvents: (limit = 5) =>
+    api(`/events/top-events?limit=${limit}`, { method: "GET" }),
 };
 
 export const notificationAPI = {
@@ -383,6 +386,9 @@ export const stallAPI = {
       credentials: "include",
     }).then((res) => res.json());
   },
+
+  // Get stall statistics for dashboard
+  getStats: () => api("/stalls/stats/dashboard", { method: "GET" }),
 };
 
 // ===== USER API CALLS =====
@@ -391,8 +397,8 @@ export const userAPI = {
   getStats: () => api("/users/stats", { method: "GET" }),
 
   // Get recent users (latest 3 users with role "user") - Public
-  getRecentUsers: (limit = 3) =>
-    api(`/users/recent?limit=${limit}`, { method: "GET" }),
+  getRecent: (limit = 5) =>
+    api(`/users/recent?limit=${limit}`, { method: "GET" }), // Changed from getRecentUsers
 
   // Get all users - Admin only
   getAllUsers: (params = {}) => {

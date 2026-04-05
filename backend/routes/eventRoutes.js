@@ -38,7 +38,7 @@ router.post(
   "/:eventId/upload-thumbnail",
   verifyToken,
   uploadEventThumbnail.single("thumbnail"),
-  eventController.uploadEventThumbnail
+  eventController.uploadEventThumbnail,
 );
 
 // Upload custom background
@@ -46,7 +46,7 @@ router.post(
   "/:eventId/upload-background",
   verifyToken,
   uploadEventBackground.single("background"),
-  eventController.uploadEventBackground
+  eventController.uploadEventBackground,
 );
 
 // Set default background (admin only)
@@ -54,28 +54,28 @@ router.post(
   "/admin/set-default-background",
   verifyToken,
   uploadEventDefaultBackground.single("defaultBackground"),
-  eventController.setDefaultBackground
+  eventController.setDefaultBackground,
 );
 
 // Update background type (switch between default and custom)
 router.patch(
   "/:eventId/background-type",
   verifyToken,
-  eventController.updateBackgroundType
+  eventController.updateBackgroundType,
 );
 
 // Delete thumbnail
 router.delete(
   "/:eventId/thumbnail",
   verifyToken,
-  eventController.deleteEventThumbnail
+  eventController.deleteEventThumbnail,
 );
 
 // Delete custom background
 router.delete(
   "/:eventId/background",
   verifyToken,
-  eventController.deleteCustomBackground
+  eventController.deleteCustomBackground,
 );
 
 // ===== EVENT REMINDER ROUTES =====
@@ -120,5 +120,11 @@ router.get("/public/archived", eventController.getPublicArchivedEvents);
 
 // Admin route - get all events
 router.get("/", verifyToken, eventController.getAllEvents);
+
+router.get(
+  "/top-events",
+  verifyToken,
+  eventController.getTopEventsByRegistrations,
+);
 
 export default router;

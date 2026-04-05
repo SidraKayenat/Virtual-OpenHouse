@@ -170,7 +170,7 @@ export const createEvent = async (req, res) => {
     try {
       // Notify event creator that event was submitted
       await notifyEventSubmitted(event._id, event.name, req.user._id);
-      
+
       // Notify all system admins of pending approval
       const creatorName = req.user.name || "Event Creator";
       await notifyAdminPendingApproval(event._id, event.name, creatorName);
@@ -386,7 +386,12 @@ export const rejectEvent = async (req, res) => {
 
     // Send notification to event creator
     try {
-      await notifyEventRejected(event._id, event.name, event.createdBy._id, rejectionReason);
+      await notifyEventRejected(
+        event._id,
+        event.name,
+        event.createdBy._id,
+        rejectionReason,
+      );
     } catch (notifError) {
       console.error("Error sending rejection notification:", notifError);
       // Don't fail the request if notification fails
@@ -1543,5 +1548,41 @@ export const getDefaultBackground = async (req, res) => {
       success: false,
       message: error.message || "Failed to fetch default background",
     });
+  }
+};
+
+// In eventController.js
+export const getTopEventsByRegistrations = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+
+    const topEvents = await Registration.aggregate([
+      { $match: { status: "approved" } },
+      { $group: { _id: "$event", registrations: { $sum: 1 } } },
+      { $sort: { registrations: -1 } },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "events",
+          localField: "_id",
+          foreignField: "_id",
+          as: "eventDetails",
+        },
+      },
+      { $unwind: "$eventDetails" },
+      {
+        $project: {
+          name: "$eventDetails.name",
+          registrations: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: topEvents,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

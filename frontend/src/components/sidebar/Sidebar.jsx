@@ -81,21 +81,21 @@ const adminGroups = [
       // { name: "All Stalls", path: "/admin/stalls", icon: ClipboardList },
     ],
   },
-  {
-    label: "Moderation",
-    links: [
-      // {
-      //   name: "Pending Events",
-      //   path: "/admin/events/requests",
-      //   icon: CheckSquare,
-      // },
-      {
-        name: "Reported Content",
-        path: "/admin/reports", // future
-        icon: Bell,
-      },
-    ],
-  },
+  // {
+  //   label: "Moderation",
+  //   links: [
+  //     // {
+  //     //   name: "Pending Events",
+  //     //   path: "/admin/events/requests",
+  //     //   icon: CheckSquare,
+  //     // },
+  //     {
+  //       name: "Reported Content",
+  //       path: "/admin/reports", // future
+  //       icon: Bell,
+  //     },
+  //   ],
+  // },
   {
     label: "System",
     links: [
