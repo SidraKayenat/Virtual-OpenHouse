@@ -194,12 +194,14 @@ export const sendEventStartingSoonNotifications = async () => {
     const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
 
     // Find events that start in the next 24 hours (but not within the last 23 hours)
+    // Also check that notification hasn't been sent yet
     const eventsStarting = await Event.find({
       status: { $in: ["published", "live"] },
-      startTime: {
+      liveDate: {
         $gte: twentyThreeHoursFromNow,
         $lte: twentyFourHoursFromNow,
       },
+      eventStartingSoonNotificationSent: false,
     })
       .select("_id name")
       .lean();
@@ -209,22 +211,34 @@ export const sendEventStartingSoonNotifications = async () => {
       return { success: true, sent: 0 };
     }
 
+    let totalSent = 0;
+    let processedEvents = [];
+
     // Send notifications for each event
-    const notificationPromises = eventsStarting.map(event =>
-      notifyAllStallOwnersEventStarting(event._id, event.name)
-        .catch(err => {
-          console.error(`Failed to send event starting soon notifications for event ${event._id}:`, err);
-          return { success: false };
-        })
-    );
+    for (const event of eventsStarting) {
+      try {
+        const result = await notifyAllStallOwnersEventStarting(event._id, event.name);
+        if (result.success) {
+          totalSent += result.sent || 0;
+          processedEvents.push(event._id);
+        }
+      } catch (err) {
+        console.error(`Failed to send event starting soon notifications for event ${event._id}:`, err);
+      }
+    }
 
-    const results = await Promise.all(notificationPromises);
-    const totalSent = results.reduce((sum, r) => sum + (r.sent || 0), 0);
+    // Mark events as processed to prevent duplicate notifications
+    if (processedEvents.length > 0) {
+      await Event.updateMany(
+        { _id: { $in: processedEvents } },
+        { $set: { eventStartingSoonNotificationSent: true } }
+      );
+    }
 
-    console.log(`Event starting soon notifications sent: ${totalSent} total`);
+    console.log(`Event starting soon notifications sent: ${totalSent} total for ${processedEvents.length} events`);
     return {
       success: true,
-      events: eventsStarting.length,
+      events: processedEvents.length,
       totalNotificationsSent: totalSent,
     };
   } catch (error) {
@@ -250,12 +264,14 @@ export const sendReminder24hBeforeStart = async () => {
     const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
 
     // Find events starting in the next 24 hours (but not within the last 23 hours)
+    // Also check that this notification hasn't been sent yet
     const eventsStarting = await Event.find({
       status: { $in: ["published", "live"] },
-      startTime: {
+      liveDate: {
         $gte: twentyThreeHoursFromNow,
         $lte: twentyFourHoursFromNow,
       },
+      reminder24hNotificationSent: false,
     })
       .select("_id name createdBy")
       .lean();
@@ -265,6 +281,7 @@ export const sendReminder24hBeforeStart = async () => {
     }
 
     let totalSent = 0;
+    let processedEvents = [];
 
     // Send reminders for each event
     for (const event of eventsStarting) {
@@ -278,15 +295,25 @@ export const sendReminder24hBeforeStart = async () => {
         if (participantResult.success) {
           totalSent += participantResult.sent;
         }
+
+        processedEvents.push(event._id);
       } catch (err) {
         console.error(`Failed to send 24h reminders for event ${event._id}:`, err);
       }
     }
 
-    console.log(`24-hour event reminders sent: ${totalSent} total`);
+    // Mark events as processed to prevent duplicate notifications
+    if (processedEvents.length > 0) {
+      await Event.updateMany(
+        { _id: { $in: processedEvents } },
+        { $set: { reminder24hNotificationSent: true } }
+      );
+    }
+
+    console.log(`24-hour event reminders sent: ${totalSent} total for ${processedEvents.length} events`);
     return {
       success: true,
-      events: eventsStarting.length,
+      events: processedEvents.length,
       totalNotificationsSent: totalSent,
     };
   } catch (error) {
@@ -312,12 +339,14 @@ export const sendReminder1hBeforeStart = async () => {
     const fiftyNineMinutesFromNow = new Date(now.getTime() + 59 * 60 * 1000);
 
     // Find events starting in the next hour (but not within the last 59 minutes)
+    // Also check that this notification hasn't been sent yet
     const eventsStarting = await Event.find({
       status: { $in: ["published", "live"] },
-      startTime: {
+      liveDate: {
         $gte: fiftyNineMinutesFromNow,
         $lte: oneHourFromNow,
       },
+      reminder1hNotificationSent: false,
     })
       .select("_id name createdBy")
       .lean();
@@ -327,6 +356,7 @@ export const sendReminder1hBeforeStart = async () => {
     }
 
     let totalSent = 0;
+    let processedEvents = [];
 
     // Send reminders for each event
     for (const event of eventsStarting) {
@@ -340,15 +370,25 @@ export const sendReminder1hBeforeStart = async () => {
         if (participantResult.success) {
           totalSent += participantResult.sent;
         }
+
+        processedEvents.push(event._id);
       } catch (err) {
         console.error(`Failed to send 1h reminders for event ${event._id}:`, err);
       }
     }
 
-    console.log(`1-hour event reminders sent: ${totalSent} total`);
+    // Mark events as processed to prevent duplicate notifications
+    if (processedEvents.length > 0) {
+      await Event.updateMany(
+        { _id: { $in: processedEvents } },
+        { $set: { reminder1hNotificationSent: true } }
+      );
+    }
+
+    console.log(`1-hour event reminders sent: ${totalSent} total for ${processedEvents.length} events`);
     return {
       success: true,
-      events: eventsStarting.length,
+      events: processedEvents.length,
       totalNotificationsSent: totalSent,
     };
   } catch (error) {
@@ -369,12 +409,15 @@ export const sendEventEndedNotifications = async () => {
   try {
     const now = new Date();
 
-    // Find events that have ended (endTime has passed but not "completed" yet)
+    // Find events that have ended and notification not sent yet
+    // Status: live or completed, but eventEndedNotificationSent: false
     const eventsEnded = await Event.find({
-      status: { $in: ["published", "live"] },
-      endTime: { $lte: now },
+      status: { $in: ["live", "completed"] },
+      eventEndedNotificationSent: false,
+      liveDate: { $lte: now },
+      endTime: { $exists: true },
     })
-      .select("_id name createdBy")
+      .select("_id name createdBy liveDate endTime")
       .lean();
 
     if (eventsEnded.length === 0) {
@@ -382,28 +425,48 @@ export const sendEventEndedNotifications = async () => {
     }
 
     let totalSent = 0;
+    let processedEvents = [];
 
     // Send end notifications for each event
     for (const event of eventsEnded) {
       try {
-        // Notify event admin
-        await notifyEventEnded(event._id, event.name, event.createdBy);
-        totalSent++;
+        // Parse endTime (format: "HH:MM") and combine with liveDate to get actual end datetime
+        const eventEndDateTime = new Date(event.liveDate);
+        const [hours, minutes] = event.endTime.split(":").map(Number);
+        eventEndDateTime.setHours(hours, minutes, 0, 0);
 
-        // Notify all participants
-        const participantResult = await notifyAllParticipantsEventEnded(event._id, event.name);
-        if (participantResult.success) {
-          totalSent += participantResult.sent;
+        // Only send notification if event has actually ended
+        if (now >= eventEndDateTime) {
+          // Notify event admin
+          await notifyEventEnded(event._id, event.name, event.createdBy);
+          totalSent++;
+
+          // Notify all participants
+          const participantResult = await notifyAllParticipantsEventEnded(event._id, event.name);
+          if (participantResult.success) {
+            totalSent += participantResult.sent;
+          }
+
+          // Mark notification as sent to prevent future duplicates
+          processedEvents.push(event._id);
         }
       } catch (err) {
         console.error(`Failed to send event ended notifications for event ${event._id}:`, err);
       }
     }
 
-    console.log(`Event ended notifications sent: ${totalSent} total`);
+    // Update all processed events to mark notification as sent
+    if (processedEvents.length > 0) {
+      await Event.updateMany(
+        { _id: { $in: processedEvents } },
+        { $set: { eventEndedNotificationSent: true } }
+      );
+    }
+
+    console.log(`Event ended notifications sent: ${totalSent} total for ${processedEvents.length} events`);
     return {
       success: true,
-      events: eventsEnded.length,
+      events: processedEvents.length,
       totalNotificationsSent: totalSent,
     };
   } catch (error) {

@@ -255,11 +255,11 @@ const eventSchema = new Schema(
       default: null,
     },
     
-    environmentType: {
-      type: String,
-      enum: ["indoor", "outdoor", "hybrid"],
-      default: "indoor",
-    },
+    // environmentType: {
+    //   type: String,
+    //   enum: ["indoor", "outdoor", "hybrid"],
+    //   default: "indoor",
+    // },
     
     modelUrl: {
       type: String,
@@ -361,6 +361,13 @@ const eventSchema = new Schema(
       default: false,
     },
 
+    // ===== ARCHIVE STATUS =====
+    archive: {
+      type: Boolean,
+      default: false,
+  //    description: "Whether to archive this event after completion"
+    },
+
     // ===== REMINDERS =====
     reminders: [{
       user: {
@@ -377,6 +384,26 @@ const eventSchema = new Schema(
       },
     }],
 
+    // ===== NOTIFICATION TRACKING (Prevent duplicates) =====
+    eventEndedNotificationSent: {
+      type: Boolean,
+      default: false,
+    },
+    
+    eventStartingSoonNotificationSent: {
+      type: Boolean,
+      default: false,
+    },
+
+    reminder24hNotificationSent: {
+      type: Boolean,
+      default: false,
+    },
+
+    reminder1hNotificationSent: {
+      type: Boolean,
+      default: false,
+    },
     
     // ===== STATISTICS (Computed fields - don't store directly) =====
     // These will be calculated via virtuals or aggregations

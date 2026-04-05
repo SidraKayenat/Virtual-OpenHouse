@@ -100,6 +100,24 @@ router.get(
   eventController.hasUserSetReminder
 );
 
+// ===== EVENT ARCHIVE ROUTES =====
+// Toggle archive status for an event (creator only)
+router.patch(
+  "/:eventId/archive",
+  verifyToken,
+  eventController.toggleArchiveEvent
+);
+
+// Get user's archived (past) events
+router.get(
+  "/archived/my-past-events",
+  verifyToken,
+  eventController.getArchivedEvents
+);
+
+// Get public archived events (past events)
+router.get("/public/archived", eventController.getPublicArchivedEvents);
+
 // Admin route - get all events
 router.get("/", verifyToken, eventController.getAllEvents);
 
