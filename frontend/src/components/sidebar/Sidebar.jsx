@@ -247,13 +247,14 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await logout?.();
-      navigate("/login");
-    } catch {
-      navigate("/login");
+      await logout();
+      // Force a hard navigation to clear all state
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.href = "/";
     }
   };
-
   return (
     <motion.aside
       variants={sidebarVariants}
