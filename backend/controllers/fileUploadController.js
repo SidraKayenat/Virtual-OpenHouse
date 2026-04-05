@@ -5,7 +5,6 @@ import { ingestStallChatbot } from "../utils/chatbotService.js";
 const resolveCloudinaryUrl = (file) =>
   file?.secure_url || file?.path || file?.url || null;
 
-
 // ===== UPLOAD IMAGES TO STALL =====
 export const uploadStallImages = async (req, res) => {
   try {
@@ -186,14 +185,13 @@ export const uploadStallDocuments = async (req, res) => {
     stall.documents.push(...uploadedDocs);
     await stall.save();
 
-     setImmediate(async () => {
+    setImmediate(async () => {
       try {
         await ingestStallChatbot(stall.event, stall._id);
       } catch (ingestError) {
         console.error("Chatbot auto-ingest failed:", ingestError.message);
       }
     });
-
 
     res.status(200).json({
       success: true,

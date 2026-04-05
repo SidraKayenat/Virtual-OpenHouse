@@ -83,7 +83,11 @@ export const createRegistration = async (req, res) => {
     // Send notifications
     try {
       // Notify participant that registration was submitted
-      await notifyRegistrationSubmitted(registration._id, event.name, req.user._id);
+      await notifyRegistrationSubmitted(
+        registration._id,
+        event.name,
+        req.user._id,
+      );
 
       // Notify event admin about new registration
       const userName = req.user.name || "A user";
@@ -92,7 +96,7 @@ export const createRegistration = async (req, res) => {
         event.name,
         event.createdBy,
         userName,
-        registration._id
+        registration._id,
       );
     } catch (notifError) {
       console.error("Error sending registration notifications:", notifError);
@@ -316,7 +320,12 @@ export const approveRegistration = async (req, res) => {
 
     // Send notification to participant about approval
     try {
-      await notifyRegistrationApproved(registration._id, registration.event.name, registration.user._id, stallNumber);
+      await notifyRegistrationApproved(
+        registration._id,
+        registration.event.name,
+        registration.user._id,
+        stallNumber,
+      );
     } catch (notifError) {
       console.error("Error sending approval notification:", notifError);
       // Don't fail the request if notification fails
@@ -351,8 +360,9 @@ export const rejectRegistration = async (req, res) => {
       });
     }
 
-    const registration =
-      await Registration.findById(registrationId).populate("event").populate("user");
+    const registration = await Registration.findById(registrationId)
+      .populate("event")
+      .populate("user");
 
     if (!registration) {
       return res.status(404).json({
@@ -392,7 +402,12 @@ export const rejectRegistration = async (req, res) => {
 
     // Send notification to participant about rejection
     try {
-      await notifyRegistrationRejected(registration._id, registration.event.name, registration.user._id, rejectionReason);
+      await notifyRegistrationRejected(
+        registration._id,
+        registration.event.name,
+        registration.user._id,
+        rejectionReason,
+      );
     } catch (notifError) {
       console.error("Error sending rejection notification:", notifError);
       // Don't fail the request if notification fails
@@ -489,8 +504,9 @@ export const cancelRegistration = async (req, res) => {
     const { registrationId } = req.params;
     const { cancellationReason } = req.body || {};
 
-    const registration =
-      await Registration.findById(registrationId).populate("event").populate("user");
+    const registration = await Registration.findById(registrationId)
+      .populate("event")
+      .populate("user");
 
     if (!registration) {
       return res.status(404).json({
@@ -529,7 +545,7 @@ export const cancelRegistration = async (req, res) => {
         registration._id,
         registration.event.name,
         registration.event.createdBy,
-        userName
+        userName,
       );
     } catch (notifError) {
       console.error("Error sending cancellation notification:", notifError);

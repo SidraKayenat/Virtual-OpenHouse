@@ -4,8 +4,10 @@ import { downloadEventFiles, getEventIngestFolder } from "./chatbotIngest.js";
 
 export default async function trainChatbot(eventId) {
   const ingestFolder = getEventIngestFolder(eventId);
-  const { projectCount, downloadedCount } =
-    await downloadEventFiles(eventId, ingestFolder);
+  const { projectCount, downloadedCount } = await downloadEventFiles(
+    eventId,
+    ingestFolder,
+  );
 
   if (!projectCount || !downloadedCount) {
     throw new Error("Nothing to ingest");
@@ -15,13 +17,16 @@ export default async function trainChatbot(eventId) {
     process.cwd(),
     "..",
     "ai-chatbot",
-    "generate_embeddings.py"
+    "generate_embeddings.py",
   );
 
   return new Promise((resolve, reject) => {
-    exec(`python "${scriptPath}" "${ingestFolder}" "${eventId}"`, (err, out) => {
-      if (err) reject(err);
-      else resolve(out);
-    });
+    exec(
+      `python "${scriptPath}" "${ingestFolder}" "${eventId}"`,
+      (err, out) => {
+        if (err) reject(err);
+        else resolve(out);
+      },
+    );
   });
 }

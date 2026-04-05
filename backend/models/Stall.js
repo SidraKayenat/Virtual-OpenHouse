@@ -53,115 +53,122 @@ const stallSchema = new Schema(
       default: "other",
     },
 
-    tags: [{
-      type: String,
-      trim: true,
-      maxlength: [50, "Tag cannot exceed 50 characters"],
-    }],
+    tags: [
+      {
+        type: String,
+        trim: true,
+        maxlength: [50, "Tag cannot exceed 50 characters"],
+      },
+    ],
 
     // Team information
- teamMembers: [
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    role: {
-      type: String,
-      trim: true,
-    },
-    image: {
-      type: String, // Cloudinary URL
-      default: null,
-    },
+    teamMembers: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        role: {
+          type: String,
+          trim: true,
+        },
+        image: {
+          type: String, // Cloudinary URL
+          default: null,
+        },
 
-    // ===== CONTACT INFO PER MEMBER =====
-    contactInfo: {
-      email: {
-        type: String,
-        trim: true,
-        lowercase: true,
+        // ===== CONTACT INFO PER MEMBER =====
+        contactInfo: {
+          email: {
+            type: String,
+            trim: true,
+            lowercase: true,
+          },
+          phone: {
+            type: String,
+            trim: true,
+          },
+          website: {
+            type: String,
+            trim: true,
+          },
+          socialLinks: {
+            linkedin: { type: String, default: null },
+            twitter: { type: String, default: null },
+            facebook: { type: String, default: null },
+            instagram: { type: String, default: null },
+            github: { type: String, default: null },
+          },
+        },
       },
-      phone: {
-        type: String,
-        trim: true,
-      },
-      website: {
-        type: String,
-        trim: true,
-      },
-      socialLinks: {
-        linkedin: { type: String, default: null },
-        twitter: { type: String, default: null },
-        facebook: { type: String, default: null },
-        instagram: { type: String, default: null },
-        github: { type: String, default: null },
-      },
-    },
-  },
-],
-
+    ],
 
     // ===== MEDIA FILES (Cloudinary URLs) =====
-    images: [{
-      url: {
-        type: String,
-        required: true,
+    images: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String, // Cloudinary public_id for deletion
+          required: true,
+        },
+        caption: {
+          type: String,
+          maxlength: [200, "Caption cannot exceed 200 characters"],
+        },
+        order: {
+          type: Number,
+          default: 0,
+        },
       },
-      publicId: {
-        type: String, // Cloudinary public_id for deletion
-        required: true,
-      },
-      caption: {
-        type: String,
-        maxlength: [200, "Caption cannot exceed 200 characters"],
-      },
-      order: {
-        type: Number,
-        default: 0,
-      },
-    }],
+    ],
 
-    videos: [{
-      url: {
-        type: String,
-        required: true,
+    videos: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String,
+          required: true,
+        },
+        title: {
+          type: String,
+          maxlength: [200, "Title cannot exceed 200 characters"],
+        },
+        duration: {
+          type: Number, // in seconds
+        },
       },
-      publicId: {
-        type: String,
-        required: true,
-      },
-      title: {
-        type: String,
-        maxlength: [200, "Title cannot exceed 200 characters"],
-      },
-      duration: {
-        type: Number, // in seconds
-      },
-    }],
+    ],
 
-    documents: [{
-      url: {
-        type: String,
-        required: true,
+    documents: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String,
+          required: true,
+        },
+        filename: {
+          type: String,
+          required: true,
+        },
+        fileType: {
+          type: String, // pdf, docx, pptx, etc.
+          required: true,
+        },
+        fileSize: {
+          type: Number, // in bytes
+        },
       },
-      publicId: {
-        type: String,
-        required: true,
-      },
-      filename: {
-        type: String,
-        required: true,
-      },
-      fileType: {
-        type: String, // pdf, docx, pptx, etc.
-        required: true,
-      },
-      fileSize: {
-        type: Number, // in bytes
-      },
-    }],
+    ],
 
     // Banner/Thumbnail image (main display image)
     bannerImage: {
@@ -228,7 +235,6 @@ const stallSchema = new Schema(
     //   },
     // },
 
-
     // ===== CONTACT & SOCIAL LINKS =====
     // contactInfo: {
     //   email: {
@@ -286,11 +292,13 @@ const stallSchema = new Schema(
       maxlength: [500, "Featured content cannot exceed 500 characters"],
     },
 
-    achievements: [{
-      title: String,
-      description: String,
-      date: Date,
-    }],
+    achievements: [
+      {
+        title: String,
+        description: String,
+        date: Date,
+      },
+    ],
 
     // Admin notes (only visible to event admin)
     adminNotes: {
@@ -302,7 +310,7 @@ const stallSchema = new Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // ===== INDEXES FOR PERFORMANCE =====
@@ -356,7 +364,9 @@ stallSchema.methods.isOwnedBy = function (userId) {
 // Publish stall
 stallSchema.methods.publish = async function () {
   if (!this.isReadyToPublish) {
-    throw new Error("Stall is not ready to publish. Add title, description, images, and banner.");
+    throw new Error(
+      "Stall is not ready to publish. Add title, description, images, and banner.",
+    );
   }
   this.isPublished = true;
   this.publishedAt = new Date();
@@ -382,19 +392,22 @@ stallSchema.methods.addImage = function (url, publicId, caption = null) {
 
 // Remove image
 stallSchema.methods.removeImage = function (publicId) {
-  this.images = this.images.filter(img => img.publicId !== publicId);
+  this.images = this.images.filter((img) => img.publicId !== publicId);
   return this.save();
 };
 
 // ===== STATIC METHODS =====
 
 // Get all stalls for an event
-stallSchema.statics.getByEvent = function (eventId, includeUnpublished = false) {
+stallSchema.statics.getByEvent = function (
+  eventId,
+  includeUnpublished = false,
+) {
   const query = { event: eventId };
   if (!includeUnpublished) {
     query.isPublished = true;
   }
-  
+
   return this.find(query)
     .populate("owner", "name email organization")
     .populate("event", "name liveDate")
@@ -454,9 +467,13 @@ stallSchema.pre("save", function (next) {
 
 // ===== PRE-DELETE HOOKS =====
 // Clean up Cloudinary files when stall is deleted
-stallSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
-  // Note: Actual Cloudinary deletion will be done in controller
-  next();
-});
+stallSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    // Note: Actual Cloudinary deletion will be done in controller
+    next();
+  },
+);
 
 export default mongoose.model("Stall", stallSchema);

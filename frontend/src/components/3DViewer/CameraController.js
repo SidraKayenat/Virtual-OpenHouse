@@ -6,13 +6,13 @@ export class CameraController {
     this.camera = camera;
     this.controls = controls;
     this.interacting = false;
-    this.returning = false; 
+    this.returning = false;
     this.focusTarget = new THREE.Vector3();
     this.lastTarget = new THREE.Vector3();
 
     // Saved state for smooth return
-    this.savedCameraPosition = new THREE.Vector3(); 
-    this.savedTarget = new THREE.Vector3(); 
+    this.savedCameraPosition = new THREE.Vector3();
+    this.savedTarget = new THREE.Vector3();
 
     this.controls.maxPolarAngle = CAMERA_CONFIG.MAX_POLAR_ANGLE;
     this.controls.minPolarAngle = CAMERA_CONFIG.MIN_POLAR_ANGLE;

@@ -11,7 +11,8 @@ export const ingestStallChatbot = async (eventId, stallId) => {
   const botId = getStallBotId(eventId, stallId);
   const folderPath = getIngestFolderForBot(botId);
 
-  const { stall, downloadedCount, skippedCount, failedCount, failures } = await downloadStallFiles(stallId, folderPath);
+  const { stall, downloadedCount, skippedCount, failedCount, failures } =
+    await downloadStallFiles(stallId, folderPath);
   if (!downloadedCount) {
     return {
       botId,
@@ -44,10 +45,13 @@ export const ingestStallChatbot = async (eventId, stallId) => {
   };
 };
 
-export const queryStallChatbot = async ({ eventId, stallId, query, context = {} }) => {
+export const queryStallChatbot = async ({
+  eventId,
+  stallId,
+  query,
+  context = {},
+}) => {
   const botId = getStallBotId(eventId, stallId);
-;
-
   const { data } = await axios.post(`${FLASK_BASE_URL}/chat`, {
     query,
     project_id: botId,
