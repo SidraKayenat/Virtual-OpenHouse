@@ -503,8 +503,11 @@ export default function EventDetails() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [reminderSet, setReminderSet] = useState(false);
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderError, setReminderError] = useState(null);
 
+  // Fetch event data
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
@@ -515,6 +518,105 @@ export default function EventDetails() {
       .catch((err) => setError(err.message || "Failed to load event"))
       .finally(() => setLoading(false));
   }, [eventId]);
+
+  // Check if user has reminder set for this event
+  useEffect(() => {
+    if (!eventId) return;
+    checkReminderStatus();
+  }, [eventId]);
+
+  const checkReminderStatus = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8747/api/events/${eventId}/reminder/status`,
+        {
+          credentials: "include",
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setHasReminder(data.data?.hasReminder || false);
+      }
+    } catch (err) {
+      console.error("Failed to check reminder status:", err);
+    }
+  };
+
+  const handleSetReminder = async () => {
+    try {
+      setReminderLoading(true);
+      setReminderError(null);
+
+      const response = await fetch(
+        `http://localhost:8747/api/events/${eventId}/reminder`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to set reminder. Please try again."
+        );
+      }
+
+      setHasReminder(true);
+      console.log("✓ Reminder set successfully");
+    } catch (err) {
+      setReminderError(err.message || "Failed to set reminder");
+      console.error("Set reminder error:", err);
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
+  const handleRemoveReminder = async () => {
+    try {
+      setReminderLoading(true);
+      setReminderError(null);
+
+      const response = await fetch(
+        `http://localhost:8747/api/events/${eventId}/reminder`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to remove reminder. Please try again."
+        );
+      }
+
+      setHasReminder(false);
+      console.log("✓ Reminder removed");
+    } catch (err) {
+      setReminderError(err.message || "Failed to remove reminder");
+      console.error("Remove reminder error:", err);
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
+  const handleReminderClick = () => {
+    if (hasReminder) {
+      handleRemoveReminder();
+    } else {
+      handleSetReminder();
+    }
+  };
 
   const countdownTarget = useMemo(
     () => (event?.liveDate ? new Date(event.liveDate) : null),
@@ -1065,11 +1167,27 @@ export default function EventDetails() {
             </Link>
 
             <button
-              className={`reminder-btn ${reminderSet ? "text-violet-300 border-violet-500/40" : "text-slate-300"}`}
-              onClick={() => setReminderSet(!reminderSet)}
+              className={`reminder-btn ${
+                hasReminder ? "text-violet-300 border-violet-500/40" : "text-slate-300"
+              } transition-all duration-250 disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={handleReminderClick}
+              disabled={reminderLoading}
+              title={reminderError ? reminderError : ""}
             >
-              {reminderSet ? "✓ Reminder Set" : "🔔 Set a Reminder"}
+              {reminderLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+                  Processing...
+                </span>
+              ) : hasReminder ? (
+                "✓ Reminder Set"
+              ) : (
+                "🔔 Set a Reminder"
+              )}
             </button>
+            {reminderError && (
+              <p className="text-xs text-red-400 text-center">{reminderError}</p>
+            )}
 
             <hr className="divider" />
 

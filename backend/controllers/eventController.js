@@ -196,7 +196,7 @@ export const createEvent = async (req, res) => {
 // Role: System Admin views all events for approval
 export const getAllEvents = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 10 } = req.query;
+    const { status, search, page = 1, limit = 10, sortBy = "latest" } = req.query;
 
     let query = {};
 
@@ -213,12 +213,22 @@ export const getAllEvents = async (req, res) => {
       ];
     }
 
+    // Determine sort order
+    let sortObject = { createdAt: -1 }; // default
+    if (sortBy === "oldest") {
+      sortObject = { createdAt: 1 };
+    } else if (sortBy === "asc_alphabetically") {
+      sortObject = { name: 1 };
+    } else if (sortBy === "desc_alphabetically") {
+      sortObject = { name: -1 };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const events = await Event.find(query)
       .populate("createdBy", "name email organization")
       .populate("reviewedBy", "name email")
-      .sort({ createdAt: -1 })
+      .sort(sortObject)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -458,7 +468,7 @@ export const publishEvent = async (req, res) => {
 // ===== GET PUBLISHED EVENTS (Public) =====
 export const getPublishedEvents = async (req, res) => {
   try {
-    const { search, eventType, tags, page = 1, limit = 10 } = req.query;
+    const { search, eventType, tags, page = 1, limit = 10, sortBy = "latest" } = req.query;
 
     let query = {
       status: { $in: ["published", "live"] },
@@ -483,12 +493,22 @@ export const getPublishedEvents = async (req, res) => {
       query.tags = { $in: tagArray };
     }
 
+    // Determine sort order
+    let sortObject = { createdAt: -1 }; // default
+    if (sortBy === "oldest") {
+      sortObject = { createdAt: 1 };
+    } else if (sortBy === "asc_alphabetically") {
+      sortObject = { name: 1 };
+    } else if (sortBy === "desc_alphabetically") {
+      sortObject = { name: -1 };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const events = await Event.find(query)
       .populate("createdBy", "name organization")
       .select("-reviewedBy -rejectionReason")
-      .sort({ liveDate: 1 })
+      .sort(sortObject)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -1174,6 +1194,153 @@ export const deleteCustomBackground = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete background",
+    });
+  }
+};
+
+// ===== SET EVENT REMINDER (for users who want 24hr notification) =====
+export const setEventReminder = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Check if user already has a reminder set
+    const reminderExists = event.reminders.some(
+      (reminder) => reminder.user.toString() === userId.toString()
+    );
+
+    if (reminderExists) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already set a reminder for this event",
+      });
+    }
+
+    // Add reminder
+    event.reminders.push({
+      user: userId,
+      setAt: new Date(),
+      reminderSent: false,
+    });
+
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Reminder set successfully. You will receive a notification 24 hours before the event goes live.",
+      data: {
+        eventId: event._id,
+        eventName: event.name,
+        liveDate: event.liveDate,
+      },
+    });
+  } catch (error) {
+    console.error("Set Event Reminder Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to set reminder",
+    });
+  }
+};
+
+// ===== REMOVE EVENT REMINDER =====
+export const removeEventReminder = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    // Remove reminder
+    event.reminders = event.reminders.filter(
+      (reminder) => reminder.user.toString() !== userId.toString()
+    );
+
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Reminder removed successfully",
+      data: {
+        eventId: event._id,
+      },
+    });
+  } catch (error) {
+    console.error("Remove Event Reminder Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to remove reminder",
+    });
+  }
+};
+
+// ===== CHECK IF USER HAS REMINDER SET =====
+export const hasUserSetReminder = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user._id;
+
+    // Validate eventId format
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID format",
+      });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    const hasReminder = event.reminders.some(
+      (reminder) => reminder.user.toString() === userId.toString()
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        hasReminder,
+      },
+    });
+  } catch (error) {
+    console.error("Check Reminder Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to check reminder status",
     });
   }
 };

@@ -78,6 +78,28 @@ router.delete(
   eventController.deleteCustomBackground
 );
 
+// ===== EVENT REMINDER ROUTES =====
+// Set a reminder for the event (24 hours before going live)
+router.post(
+  "/:eventId/reminder",
+  verifyToken,
+  eventController.setEventReminder
+);
+
+// Remove a reminder for the event
+router.delete(
+  "/:eventId/reminder",
+  verifyToken,
+  eventController.removeEventReminder
+);
+
+// Check if user has set a reminder
+router.get(
+  "/:eventId/reminder/status",
+  verifyToken,
+  eventController.hasUserSetReminder
+);
+
 // Admin route - get all events
 router.get("/", verifyToken, eventController.getAllEvents);
 

@@ -360,6 +360,23 @@ const eventSchema = new Schema(
       type: Boolean,
       default: false,
     },
+
+    // ===== REMINDERS =====
+    reminders: [{
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+      setAt: {
+        type: Date,
+        default: Date.now,
+      },
+      reminderSent: {
+        type: Boolean,
+        default: false,
+      },
+    }],
+
     
     // ===== STATISTICS (Computed fields - don't store directly) =====
     // These will be calculated via virtuals or aggregations

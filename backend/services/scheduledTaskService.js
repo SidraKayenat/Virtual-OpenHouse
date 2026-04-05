@@ -6,6 +6,7 @@ import {
   notifyAllParticipantsReminder1h,
   notifyEventEnded,
   notifyAllParticipantsEventEnded,
+  notifyUsersWhoSetReminders,
 } from "./notificationService.js";
 
 /**
@@ -41,10 +42,10 @@ export const sendEventReminders = async () => {
 
     if (eventsToRemind.length === 0) {
       console.log("No events to remind");
-      return { success: true, sent: 0 };
+      return { success: true, sent: 0, userReminders: 0 };
     }
 
-    // Send reminders for each event
+    // Send reminders for event creators
     const reminderPromises = eventsToRemind.map(event =>
       notifyEventReminder(event._id, event.name, event.createdBy)
         .catch(err => {
@@ -56,11 +57,31 @@ export const sendEventReminders = async () => {
     const results = await Promise.all(reminderPromises);
     const successCount = results.filter(r => r !== null).length;
 
+    // Also send reminders to users who set reminders
+    let userReminderCount = 0;
+    const userReminderPromises = eventsToRemind.map(event =>
+      notifyUsersWhoSetReminders(event._id, event.name)
+        .then(result => {
+          if (result.success) {
+            userReminderCount += result.sent;
+          }
+          return result;
+        })
+        .catch(err => {
+          console.error(`Failed to send user reminders for event ${event._id}:`, err);
+          return null;
+        })
+    );
+
+    await Promise.all(userReminderPromises);
+
     console.log(`Event reminders sent: ${successCount}/${eventsToRemind.length}`);
+    console.log(`User reminders sent: ${userReminderCount}`);
     return {
       success: true,
       sent: successCount,
       total: eventsToRemind.length,
+      userReminders: userReminderCount,
     };
   } catch (error) {
     console.error("Error in sendEventReminders:", error);
