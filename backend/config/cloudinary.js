@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 
+
 dotenv.config();
 // ===== CLOUDINARY CONFIGURATION =====
 cloudinary.config({
@@ -44,20 +45,10 @@ const videoStorage = new CloudinaryStorage({
 // Document Storage (PDF, DOCX, PPTX)
 const documentStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: async (req, file) => {
-    const isPDF = file.mimetype === "application/pdf";
-    const filename = file.originalname.split(".")[0]; // Original filename without extension
-
-    return {
-      folder: "virtual-openhouse/stalls/documents",
-      // ✅ Use "image" for PDFs (Cloudinary supports it and delivers publicly)
-      // Use "raw" for DOCX, PPTX, TXT
-      resource_type: isPDF ? "image" : "raw",
-      public_id: filename, // ✅ Preserve original filename
-      use_filename: true,
-      unique_filename: false, // ✅ Don't add random suffix
-      format: isPDF ? "pdf" : file.originalname.split(".").pop(),
-    };
+  params: {
+    folder: "virtual-openhouse/stalls/documents",
+    resource_type: "raw", // For non-image/video files
+    allowed_formats: ["pdf", "doc", "docx", "ppt", "pptx", "txt"],
   },
 });
 
@@ -109,7 +100,7 @@ const eventBackgroundStorage = new CloudinaryStorage({
     folder: "virtual-openhouse/events/backgrounds",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
     transformation: [
-      { width: 2560, height: 1280, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
+      { width: 8704, height: 4352, crop: "limit" }, // 2:1 ultrawide, preserves aspect ratio
       { quality: "auto" },
       { fetch_format: "auto" },
     ],
@@ -254,7 +245,7 @@ export const uploadEventThumbnail = multer({
 export const uploadEventBackground = multer({
   storage: eventBackgroundStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 20 * 1024 * 1024, // 20MB
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
@@ -269,7 +260,7 @@ export const uploadEventBackground = multer({
 export const uploadEventDefaultBackground = multer({
   storage: eventDefaultBackgroundStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 20 * 1024 * 1024,  // 5MB limit
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {

@@ -73,7 +73,7 @@ const adminGroups = [
     links: [
       {
         name: "Event Requests",
-        path: "/admin/events/requests",
+        path: "/admin/eventsrequests",
         icon: CheckSquare,
       },
       { name: "All Events", path: "/admin/events", icon: Calendar },

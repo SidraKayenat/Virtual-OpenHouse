@@ -1290,7 +1290,7 @@ export default function CreateRegistration() {
                           />
                         </Field>
 
-                        <div
+                        {/* <div
                           className="p-4 rounded-xl"
                           style={{
                             background: "rgba(96,165,250,0.06)",
@@ -1323,7 +1323,7 @@ export default function CreateRegistration() {
                               </li>
                             ))}
                           </ul>
-                        </div>
+                        </div> */}
                       </>
                     )}
 

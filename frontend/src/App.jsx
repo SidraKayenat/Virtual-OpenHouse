@@ -29,7 +29,7 @@ import Notifications from "./pages/notifications/Notifications";
 
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import EventRequests from "./pages/event/EventRequests";
-import AllEvents from "./pages/event/browse/AdminBrowseEvents";
+import AllEvents from "./pages/event/AllEvents";
 
 function App() {
   return (
@@ -40,9 +40,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Signup />} />
-          <Route path="/events/:eventId" element={<EventDetails />} />
           <Route path="/publicbrowseevents" element={<PublicBrowseEvents />} />
-          <Route path="/event/view/:eventId" element={<EventViewerPage />} />
 
           {/* User */}
           <Route
@@ -50,6 +48,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/events/:eventId"
+            element={
+              <ProtectedRoute>
+                <EventDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/event/view/:eventId"
+            element={
+              <ProtectedRoute>
+                <EventViewerPage />
               </ProtectedRoute>
             }
           />
@@ -103,7 +119,7 @@ function App() {
           />
 
           <Route
-            path="/admin/events/requests"
+            path="/admin/eventsrequests"
             element={
               <ProtectedRoute>
                 <EventRequests />

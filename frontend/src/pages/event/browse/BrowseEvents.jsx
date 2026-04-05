@@ -276,15 +276,21 @@ export default function BrowseEvents() {
               </div>
             </div>
 
-            {/* ── ROW 2: Tabs left · filters right ── */}
-            <div className="flex items-center justify-between gap-4 px-4 py-2.5 flex-wrap gap-y-2">
-              {/* LEFT: Status tabs */}
-              <div className="flex items-center gap-1">
+            {/* ── ROW 2: Tabs + Filters (Stack on mobile) ── */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 py-2.5">
+              {/* LEFT: Status tabs - scrollable on mobile */}
+              <div
+                className="flex items-center gap-1 overflow-x-auto overflow-y-visible pb-1 min-w-0"
+                style={{
+                  scrollbarWidth: "thin",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
                 {TABS.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     onClick={() => setTab(id)}
-                    className="relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[12.5px] font-medium transition-all duration-150"
+                    className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] sm:text-[12.5px] font-medium transition-all duration-150 whitespace-nowrap flex-shrink-0"
                     style={
                       tab === id
                         ? {
@@ -300,8 +306,10 @@ export default function BrowseEvents() {
                     }
                   >
                     <Icon size={12} />
-                    {label}
-                    {/* Count pill */}
+                    <span className="hidden sm:inline">{label}</span>
+                    <span className="sm:hidden">
+                      {id === "all" ? "All" : id === "live" ? "Live" : "Up"}
+                    </span>
                     <span
                       className="text-[9.5px] font-bold px-1.5 py-px rounded-full min-w-[18px] text-center leading-none"
                       style={{
@@ -314,11 +322,10 @@ export default function BrowseEvents() {
                     >
                       {tabCount[id]}
                     </span>
-                    {/* Active underline */}
                     {tab === id && (
                       <motion.span
                         layoutId="tabUnderline"
-                        className="absolute bottom-0 left-3 right-3 h-px rounded-full"
+                        className="absolute bottom-0 left-2 right-2 h-px rounded-full"
                         style={{
                           background: "linear-gradient(90deg,#7c3aed,#a78bfa)",
                         }}
@@ -328,7 +335,7 @@ export default function BrowseEvents() {
                 ))}
               </div>
 
-              {/* RIGHT: Filters */}
+              {/* RIGHT: Filters - wrap on mobile */}
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Event Type dropdown */}
                 <div className="relative">
@@ -337,7 +344,7 @@ export default function BrowseEvents() {
                       setTypeOpen(!typeOpen);
                       setSortOpen(false);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-[12px] font-medium transition-all whitespace-nowrap"
                     style={{
                       background: eventType
                         ? "rgba(124,58,237,0.18)"
@@ -348,17 +355,21 @@ export default function BrowseEvents() {
                       color: eventType ? "#c4b5fd" : "rgba(255,255,255,0.5)",
                     }}
                   >
-                    <SlidersHorizontal size={12} />
-                    {eventType ? (
-                      <span className="capitalize">{eventType}</span>
-                    ) : (
-                      "Event Type"
-                    )}
+                    <SlidersHorizontal size={11} />
+                    <span className="hidden sm:inline">
+                      {eventType ? (
+                        <span className="capitalize">{eventType}</span>
+                      ) : (
+                        "Event Type"
+                      )}
+                    </span>
+                    <span className="sm:hidden">Type</span>
                     <ChevronDown
-                      size={11}
+                      size={10}
                       className={`transition-transform duration-200 ${typeOpen ? "rotate-180" : ""}`}
                     />
                   </button>
+                  {/* Dropdown content remains the same */}
                   <AnimatePresence>
                     {typeOpen && (
                       <>
@@ -449,7 +460,7 @@ export default function BrowseEvents() {
                   </AnimatePresence>
                 </div>
 
-                {/* Tags input */}
+                {/* Tags input - make smaller on mobile */}
                 <div className="relative">
                   <Tag
                     size={11}
@@ -458,10 +469,10 @@ export default function BrowseEvents() {
                   />
                   <input
                     type="text"
-                    placeholder="Tags…"
+                    placeholder="Tags"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
-                    className="pl-7 pr-2.5 py-1.5 rounded-xl text-[12px] outline-none w-28"
+                    className="pl-7 pr-2.5 py-1.5 rounded-xl text-[11px] sm:text-[12px] outline-none w-20 sm:w-28"
                     style={{
                       background: tags
                         ? "rgba(124,58,237,0.12)"
@@ -494,14 +505,14 @@ export default function BrowseEvents() {
                   )}
                 </div>
 
-                {/* Sort dropdown */}
+                {/* Sort dropdown - compact on mobile */}
                 <div className="relative">
                   <button
                     onClick={() => {
                       setSortOpen(!sortOpen);
                       setTypeOpen(false);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-[12px] font-medium transition-all whitespace-nowrap"
                     style={{
                       background:
                         sort !== "latest"
@@ -515,9 +526,17 @@ export default function BrowseEvents() {
                         sort !== "latest" ? "#c4b5fd" : "rgba(255,255,255,0.5)",
                     }}
                   >
-                    Sort: {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+                    <span className="hidden sm:inline">
+                      Sort: {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+                    </span>
+                    <span className="sm:hidden">
+                      {SORT_OPTIONS.find((o) => o.value === sort)?.label.slice(
+                        0,
+                        3,
+                      )}
+                    </span>
                     <ChevronDown
-                      size={11}
+                      size={10}
                       className={`transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`}
                     />
                   </button>
@@ -581,18 +600,19 @@ export default function BrowseEvents() {
                   </AnimatePresence>
                 </div>
 
-                {/* Clear all */}
+                {/* Reset button - icon only on mobile */}
                 {hasFilters && (
                   <button
                     onClick={clearAll}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[12px] font-medium transition-all"
+                    className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[11px] sm:text-[12px] font-medium transition-all"
                     style={{
                       color: "#f87171",
                       background: "rgba(239,68,68,0.08)",
                       border: "1px solid rgba(239,68,68,0.15)",
                     }}
                   >
-                    <RotateCcw size={11} /> Reset
+                    <RotateCcw size={11} />
+                    <span className="hidden sm:inline">Reset</span>
                   </button>
                 )}
               </div>
@@ -600,7 +620,7 @@ export default function BrowseEvents() {
           </div>
 
           {/* ── Active filter chips ── */}
-          <AnimatePresence>
+          {/* <AnimatePresence>
             {hasFilters && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -628,7 +648,7 @@ export default function BrowseEvents() {
                 )}
               </motion.div>
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
 
           {/* ── Error ── */}
           {error && (
