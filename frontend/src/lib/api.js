@@ -347,13 +347,13 @@ export const stallAPI = {
 
   // Delete image
   deleteImage: (stallId, publicId) =>
-    api(`/stalls/${stallId}/images/${publicId}`, {
+    api(`/stalls/${stallId}/images/${encodeURIComponent(publicId)}`, {
       method: "DELETE",
     }),
 
-  // Update image caption
+  //Uodate Image Caption
   updateImageCaption: (stallId, publicId, caption) =>
-    api(`/stalls/${stallId}/images/${publicId}/caption`, {
+    api(`/stalls/${stallId}/images/${encodeURIComponent(publicId)}/caption`, {
       method: "PATCH",
       body: JSON.stringify({ caption }),
     }),

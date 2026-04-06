@@ -69,6 +69,7 @@ stallRoutes.patch("/:stallId/publish", verifyToken, publishStall);
 stallRoutes.patch("/:stallId/unpublish", verifyToken, unpublishStall);
 stallRoutes.patch("/:stallId/toggle-active", verifyToken, toggleStallActive);
 stallRoutes.patch("/:stallId/position", verifyToken, updateStallPosition);
+
 stallRoutes.delete("/:stallId", verifyToken, deleteStall);
 
 // ===== FILE UPLOAD ROUTES =====
@@ -108,6 +109,12 @@ stallRoutes.post(
   uploadStallDocuments,
 );
 
+stallRoutes.patch(
+  "/:stallId/images/:publicId/caption",
+  verifyToken,
+  updateImageCaption,
+);
+
 stallRoutes.delete("/:stallId/images/:publicId", verifyToken, deleteStallImage);
 
 stallRoutes.delete("/:stallId/videos/:publicId", verifyToken, deleteStallVideo);
@@ -116,12 +123,6 @@ stallRoutes.delete(
   "/:stallId/documents/:publicId",
   verifyToken,
   deleteStallDocument,
-);
-
-stallRoutes.patch(
-  "/:stallId/images/:publicId/caption",
-  verifyToken,
-  updateImageCaption,
 );
 
 stallRoutes.patch("/:stallId/images/reorder", verifyToken, reorderImages);
