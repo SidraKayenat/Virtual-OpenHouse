@@ -488,21 +488,23 @@ function TagInput({ value, onChange }) {
 
 // ─── Image Uploader ───────────────────────────────────────────────────────
 function ImageUploader({ value, onUpload, uploading, onClear, label }) {
-  const [preview, setPreview] = useState(value || "");
+  // const [preview, setPreview] = useState(value || "");
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    setPreview(value || "");
-  }, [value]);
+  // Sync preview when the real URL arrives from the parent (after upload completes)
+  // useEffect(() => {
+  //   if (value) setPreview(value);
+  // }, [value]);
+
+  // Clear preview when parent clears the value
+  // useEffect(() => {
+  //   if (!value && !uploading) setPreview("");
+  // }, [value, uploading]);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
-      onUpload(file);
-    }
+    if (!file) return;
+    onUpload(file); // parent handles preview via setThumbnailPreview
   };
 
   return (
@@ -511,8 +513,8 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
         className="relative w-full rounded-2xl overflow-hidden cursor-pointer group"
         style={{
           height: 180,
-          background: preview ? "transparent" : "rgba(255,255,255,0.03)",
-          border: preview ? "none" : "2px dashed rgba(255,255,255,0.1)",
+          background: value ? "transparent" : "rgba(255,255,255,0.03)",
+          border: value ? "none" : "2px dashed rgba(255,255,255,0.1)",
         }}
         onClick={() => !uploading && fileInputRef.current?.click()}
       >
@@ -524,44 +526,60 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
           onChange={handleFileSelect}
           disabled={uploading}
         />
-        {uploading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+
+        {/* Always show image if we have a preview — even during upload */}
+        {value && (
+          <>
+            <img
+              src={value}
+              alt={label}
+              className="w-full h-full object-cover"
+            />
+            {/* Hover overlay to remove — only when not uploading */}
+            {!uploading && (
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                style={{ background: "rgba(0,0,0,0.55)" }}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClear();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white"
+                  style={{
+                    background: "rgba(239,68,68,0.4)",
+                    border: "1px solid rgba(239,68,68,0.5)",
+                  }}
+                >
+                  <X size={13} /> Remove
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Upload spinner overlay — shown ON TOP of image, not instead of it */}
+        {uploading && (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+            style={{
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(2px)",
+            }}
+          >
             <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
             <p
               className="text-[11px]"
-              style={{ color: "rgba(255,255,255,0.3)" }}
+              style={{ color: "rgba(255,255,255,0.7)" }}
             >
               Uploading...
             </p>
           </div>
-        ) : preview ? (
-          <>
-            <img
-              src={preview}
-              alt={label}
-              className="w-full h-full object-cover"
-            />
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-              style={{ background: "rgba(0,0,0,0.55)" }}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPreview("");
-                  onClear();
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white"
-                style={{
-                  background: "rgba(239,68,68,0.4)",
-                  border: "1px solid rgba(239,68,68,0.5)",
-                }}
-              >
-                <X size={13} /> Remove
-              </button>
-            </div>
-          </>
-        ) : (
+        )}
+
+        {/* Empty state — only when no preview and not uploading */}
+        {!value && !uploading && (
           <div className="flex flex-col items-center justify-center gap-2 text-center h-full">
             <Upload size={24} style={{ color: "rgba(255,255,255,0.4)" }} />
             <p
@@ -792,7 +810,7 @@ function getDiff(original, current) {
 }
 
 // ─── Live preview ─────────────────────────────────────────────────────────
-function LivePreview({ form }) {
+function LivePreview({ form, thumbnailPreview }) {
   const tags = form.tags
     ? form.tags
         .split(",")
@@ -815,9 +833,10 @@ function LivePreview({ form }) {
         className="relative h-36 overflow-hidden"
         style={{ background: "linear-gradient(135deg,#1e1b30,#2d1f5e)" }}
       >
-        {form.customBackground && (
+        {(thumbnailPreview || form.thumbnailUrl) && (
           <img
-            src={form.customBackground}
+            key={thumbnailPreview || form.thumbnailUrl}
+            src={thumbnailPreview || form.thumbnailUrl} // ← use preview first
             alt=""
             className="w-full h-full object-cover"
             onError={() => {}}
@@ -911,6 +930,7 @@ export default function EditEvent() {
 
   const [publishing, setPublishing] = useState(false);
   const [event, setEvent] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
 
   const loadData = useCallback(async (id) => {
     try {
@@ -949,6 +969,11 @@ export default function EditEvent() {
 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+
+      setEvent((prev) => ({
+        ...prev,
+        status: "published", // or whatever your backend returns
+      }));
 
       // Optionally refresh the event data to get updated status
       const refreshedEvent = await eventAPI.getById(eventId);
@@ -993,6 +1018,7 @@ export default function EditEvent() {
         };
 
         setForm(mapped);
+        setThumbnailPreview(mapped.thumbnailUrl || "");
         setOriginal(mapped);
         setError(null);
       } catch (err) {
@@ -1043,17 +1069,27 @@ export default function EditEvent() {
 
   const handleThumbnailUpload = async (file) => {
     if (!file) return;
+    // Set blob preview instantly — shared with LivePreview
+    const blobUrl = URL.createObjectURL(file);
+    setThumbnailPreview(blobUrl);
+
     const formData = new FormData();
     formData.append("thumbnail", file);
     try {
       setUploadingThumbnail(true);
       const response = await eventAPI.uploadThumbnail(eventId, formData);
       if (response.success) {
-        set("thumbnailUrl", response.data.url);
-        set("thumbnailPublicId", response.data.publicId);
+        setForm((prev) => ({
+          ...prev,
+          thumbnailUrl: response.data.url,
+          thumbnailPublicId: response.data.publicId,
+        }));
+        setThumbnailPreview(response.data.url); // swap blob → real URL
+        window.location.reload();
       }
     } catch (err) {
       setError("Failed to upload thumbnail");
+      setThumbnailPreview(form.thumbnailUrl || ""); // revert on error
     } finally {
       setUploadingThumbnail(false);
     }
@@ -1504,11 +1540,12 @@ export default function EditEvent() {
                 <Section title="Media" icon={Image} accent="#fb923c">
                   <Field label="Event Thumbnail" hint="Upload an image">
                     <ImageUploader
-                      value={form.thumbnailUrl}
+                      value={thumbnailPreview}
                       onUpload={handleThumbnailUpload}
                       onClear={() => {
                         set("thumbnailUrl", "");
                         set("thumbnailPublicId", "");
+                        setThumbnailPreview("");
                       }}
                       uploading={uploadingThumbnail}
                       label="thumbnail"
@@ -1611,7 +1648,7 @@ export default function EditEvent() {
               >
                 Live Preview
               </p>
-              <LivePreview form={form} />
+              <LivePreview form={form} thumbnailPreview={thumbnailPreview} />
               <p
                 className="text-[10.5px] text-center mt-3"
                 style={{ color: "rgba(255,255,255,0.18)" }}

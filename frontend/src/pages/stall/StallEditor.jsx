@@ -397,9 +397,6 @@ function CheckItem({ label, ok, hint }) {
 function LivePreview({ stall }) {
   const banner = stall?.bannerImage?.url;
   const images = stall?.images || [];
-  const videos = stall?.videos || []; // Get videos array from stall model
-  const firstVideo = videos.length > 0 ? videos[0] : null; // Get first video if exists
-
   return (
     <div
       className="rounded-2xl overflow-hidden sticky top-6"
@@ -502,42 +499,6 @@ function LivePreview({ stall }) {
               >
                 +{images.length - 4}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Video Preview - FIXED: Check videos array */}
-        {firstVideo?.url && (
-          <div className="flex flex-col gap-1.5">
-            <div
-              className="w-full rounded-lg overflow-hidden"
-              style={{ background: "rgba(255,255,255,0.06)" }}
-            >
-              <video
-                src={firstVideo.url}
-                controls
-                className="w-full max-h-32 rounded-lg"
-                style={{ maxHeight: "120px" }}
-                preload="metadata"
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
-            {firstVideo.title && (
-              <p
-                className="text-[10px] text-center truncate"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                {firstVideo.title}
-              </p>
-            )}
-            {!firstVideo.title && (
-              <p
-                className="text-[10px] text-center"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                Demo Video
-              </p>
             )}
           </div>
         )}
@@ -663,22 +624,15 @@ export default function StallEditor() {
   const handleVideo = async (files) => {
     try {
       setUploadingVideo(true);
-      const response = await stallAPI.uploadVideo(stallId, files[0]);
-      console.log("Video upload response:", response); // Check what's returned
-
-      // If the response contains the video data, you might need to set it
-      // Or just reload the stall to get the updated data
+      await stallAPI.uploadVideo(stallId, files[0]);
       await loadStall();
-
-      // After reload, log the stall video data
-      console.log("Stall after reload:", stall); // This will be stale, but check in next render
     } catch (e) {
-      console.error("Upload error:", e);
       setError(e.message);
     } finally {
       setUploadingVideo(false);
     }
   };
+
   const handleDocuments = async (files) => {
     try {
       setUploadingDocuments(true);
@@ -693,20 +647,10 @@ export default function StallEditor() {
 
   const handleDeleteImage = async (publicId) => {
     try {
-      await stallAPI.deleteImage(stallId, publicId);
+      // Cloudinary publicIds contain slashes (e.g. "stalls/abc123").
+      // Encoding them prevents Express from splitting on the slash.
+      await stallAPI.deleteImage(stallId, encodeURIComponent(publicId));
       await loadStall();
-    } catch (e) {
-      setError(e.message);
-    }
-  };
-
-  const handleDeleteDocument = async (publicId) => {
-    if (!window.confirm("Are you sure you want to delete this document?"))
-      return;
-
-    try {
-      await stallAPI.deleteDocument(stallId, publicId);
-      await loadStall(); // refresh UI
     } catch (e) {
       setError(e.message);
     }
@@ -714,7 +658,12 @@ export default function StallEditor() {
 
   const handleSaveCaption = async (publicId) => {
     try {
-      await stallAPI.updateImageCaption(stallId, publicId, captionValue);
+      // Same encoding fix for caption PATCH route.
+      await stallAPI.updateImageCaption(
+        stallId,
+        encodeURIComponent(publicId),
+        captionValue,
+      );
       setEditingCaption(null);
       await loadStall();
     } catch (e) {
@@ -722,7 +671,40 @@ export default function StallEditor() {
     }
   };
 
-  // ── Team ───────────────────────────────────────────────────────────────
+  const handleDeleteVideo = async (publicId) => {
+    try {
+      // stallAPI.deleteVideo may not exist yet — fall back to direct fetch.
+      // Add this to api.js: deleteVideo: (stallId, publicId) => api(`/stalls/${stallId}/videos/${publicId}`, { method: "DELETE" })
+      if (stallAPI.deleteVideo) {
+        await stallAPI.deleteVideo(stallId, encodeURIComponent(publicId));
+      } else {
+        const { API_BASE_URL } = await import("@/lib/api");
+        const token = localStorage.getItem("token");
+        await fetch(
+          `${API_BASE_URL}/stalls/${stallId}/videos/${encodeURIComponent(publicId)}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          },
+        );
+      }
+      await loadStall();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handleDeleteDocument = async (publicId) => {
+    try {
+      if (stallAPI.deleteDocument) {
+        await stallAPI.deleteDocument(stallId, encodeURIComponent(publicId));
+      }
+      await loadStall();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
   const addMember = async () => {
     if (!newMember.name.trim()) {
       setMemberErr("Enter a name");
@@ -828,7 +810,7 @@ export default function StallEditor() {
   // ── Loading ────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -850,7 +832,7 @@ export default function StallEditor() {
 
   if (!stall) {
     return (
-      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -881,7 +863,7 @@ export default function StallEditor() {
 
   return (
     <div
-      className="h-screen flex"
+      className="min-h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -898,7 +880,7 @@ export default function StallEditor() {
 
       <Sidebar />
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
@@ -1189,63 +1171,118 @@ export default function StallEditor() {
                     {step === 1 && (
                       <>
                         {/* Banner */}
-                        <div>
-                          <p
-                            className="text-[12px] font-bold uppercase tracking-widest mb-3"
-                            style={{ color: "rgba(255,255,255,0.35)" }}
-                          >
-                            Banner Image
-                          </p>
-                          {stall.bannerImage?.url ? (
-                            <div className="relative w-full h-40 rounded-2xl overflow-hidden group">
-                              <img
-                                src={stall.bannerImage.url}
-                                alt="Banner"
-                                className="w-full h-full object-cover"
-                              />
-                              <div
-                                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3"
-                                style={{ background: "rgba(0,0,0,0.55)" }}
-                              >
-                                <label
-                                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-semibold cursor-pointer text-white transition-all"
-                                  style={{
-                                    background: "rgba(124,58,237,0.35)",
-                                    border: "1px solid rgba(167,139,250,0.4)",
-                                  }}
+                        {(() => {
+                          // Detect if banner was auto-copied from gallery by the Stall pre-save hook.
+                          // The hook sets bannerImage = images[0] when no explicit banner exists.
+                          const bannerIsAutoFromGallery =
+                            !!stall.bannerImage?.url &&
+                            (stall.images || []).some(
+                              (img) =>
+                                img.publicId === stall.bannerImage?.publicId,
+                            );
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <p
+                                  className="text-[12px] font-bold uppercase tracking-widest"
+                                  style={{ color: "rgba(255,255,255,0.35)" }}
                                 >
-                                  <Upload size={13} /> Replace
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                      if (e.target.files[0])
-                                        handleBanner([e.target.files[0]]);
+                                  Banner Image
+                                </p>
+                                {bannerIsAutoFromGallery && (
+                                  <span
+                                    className="text-[10.5px] px-2.5 py-1 rounded-full"
+                                    style={{
+                                      background: "rgba(251,191,36,0.1)",
+                                      color: "#fbbf24",
+                                      border: "1px solid rgba(251,191,36,0.2)",
                                     }}
-                                  />
-                                </label>
+                                  >
+                                    ⚠ Auto-set from gallery
+                                  </span>
+                                )}
                               </div>
-                              {uploadingBanner && (
-                                <div
-                                  className="absolute inset-0 flex items-center justify-center"
-                                  style={{ background: "rgba(0,0,0,0.6)" }}
-                                >
-                                  <div className="w-6 h-6 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+
+                              {/* Show preview if a banner URL exists */}
+                              {stall.bannerImage?.url && (
+                                <div className="relative w-full h-40 rounded-2xl overflow-hidden group mb-3">
+                                  <img
+                                    src={stall.bannerImage.url}
+                                    alt="Banner"
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {/* Dim overlay hinting it's a placeholder */}
+                                  {bannerIsAutoFromGallery && (
+                                    <div
+                                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                                      style={{ background: "rgba(0,0,0,0.4)" }}
+                                    >
+                                      <p
+                                        className="text-[11px] font-medium text-white px-3 py-1.5 rounded-lg"
+                                        style={{
+                                          background: "rgba(251,191,36,0.22)",
+                                          border:
+                                            "1px solid rgba(251,191,36,0.35)",
+                                        }}
+                                      >
+                                        Gallery image used as placeholder —
+                                        upload a real banner below
+                                      </p>
+                                    </div>
+                                  )}
+                                  {/* Replace overlay (hover) for explicitly-uploaded banner */}
+                                  {!bannerIsAutoFromGallery && (
+                                    <div
+                                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                      style={{ background: "rgba(0,0,0,0.55)" }}
+                                    >
+                                      <label
+                                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-semibold cursor-pointer text-white"
+                                        style={{
+                                          background: "rgba(124,58,237,0.35)",
+                                          border:
+                                            "1px solid rgba(167,139,250,0.4)",
+                                        }}
+                                      >
+                                        <Upload size={13} /> Replace
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            if (e.target.files[0])
+                                              handleBanner([e.target.files[0]]);
+                                          }}
+                                        />
+                                      </label>
+                                    </div>
+                                  )}
+                                  {uploadingBanner && (
+                                    <div
+                                      className="absolute inset-0 flex items-center justify-center"
+                                      style={{ background: "rgba(0,0,0,0.6)" }}
+                                    >
+                                      <div className="w-6 h-6 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+                                    </div>
+                                  )}
                                 </div>
                               )}
+
+                              {/* Show drop zone: always when no banner, or when banner is auto-set */}
+                              {(!stall.bannerImage?.url ||
+                                bannerIsAutoFromGallery) && (
+                                <DropZone
+                                  accept="image/*"
+                                  onFiles={handleBanner}
+                                  uploading={uploadingBanner}
+                                  label="Upload banner image"
+                                  icon={Image}
+                                  hint="Recommended: 1200×400px · JPG, PNG, WebP"
+                                />
+                              )}
                             </div>
-                          ) : (
-                            <DropZone
-                              accept="image/*"
-                              onFiles={handleBanner}
-                              uploading={uploadingBanner}
-                              label="Upload banner image"
-                              icon={Image}
-                              hint="Recommended: 1200×400px · JPG, PNG, WebP"
-                            />
-                          )}
-                        </div>
+                          );
+                        })()}
 
                         {/* Gallery */}
                         <div>
@@ -1355,75 +1392,62 @@ export default function StallEditor() {
                         </div>
 
                         {/* Video */}
-                        <div>
-                          <p
-                            className="text-[12px] font-bold uppercase tracking-widest mb-3"
-                            style={{ color: "rgba(255,255,255,0.35)" }}
-                          >
-                            Demo Video{" "}
-                            <span
-                              className="normal-case font-normal text-[11px]"
-                              style={{ color: "rgba(255,255,255,0.25)" }}
-                            >
-                              Optional
-                            </span>
-                          </p>
-
-                          {/* Check if videos array exists and has at least one video */}
-                          {stall.videos &&
-                          stall.videos.length > 0 &&
-                          stall.videos[0]?.url ? (
-                            <div className="relative w-full rounded-2xl overflow-hidden group">
-                              <video
-                                src={stall.videos[0].url}
-                                controls
-                                className="w-full max-h-48 rounded-2xl"
-                              />
-                              {/* Delete video button */}
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    // You'll need to implement a deleteVideo API call
-                                    // For now, just show a confirmation
-                                    if (confirm("Delete this video?")) {
-                                      await stallAPI.deleteVideo?.(
-                                        stallId,
-                                        stall.videos[0].publicId,
-                                      );
-                                      await loadStall();
-                                    }
-                                  } catch (e) {
-                                    setError(e.message);
-                                  }
-                                }}
-                                className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                style={{
-                                  background: "rgba(239,68,68,0.85)",
-                                  color: "white",
-                                }}
+                        {(() => {
+                          const firstVideo = (stall.videos || [])[0];
+                          return (
+                            <div>
+                              <p
+                                className="text-[12px] font-bold uppercase tracking-widest mb-3"
+                                style={{ color: "rgba(255,255,255,0.35)" }}
                               >
-                                <X size={14} />
-                              </button>
-                              {stall.videos[0].title && (
-                                <p
-                                  className="text-[11px] mt-2 text-center"
-                                  style={{ color: "rgba(255,255,255,0.4)" }}
+                                Demo Video{" "}
+                                <span
+                                  className="normal-case font-normal text-[11px]"
+                                  style={{ color: "rgba(255,255,255,0.25)" }}
                                 >
-                                  {stall.videos[0].title}
-                                </p>
+                                  Optional
+                                </span>
+                              </p>
+                              {firstVideo?.url ? (
+                                <div
+                                  className="relative w-full rounded-2xl overflow-hidden group"
+                                  style={{
+                                    background: "rgba(255,255,255,0.03)",
+                                    border: "1px solid rgba(255,255,255,0.08)",
+                                  }}
+                                >
+                                  <video
+                                    src={firstVideo.url}
+                                    controls
+                                    className="w-full max-h-48 rounded-2xl"
+                                  />
+                                  {/* Delete video button */}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteVideo(firstVideo.publicId)
+                                    }
+                                    className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    style={{
+                                      background: "rgba(239,68,68,0.85)",
+                                      color: "white",
+                                    }}
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <DropZone
+                                  accept="video/*"
+                                  onFiles={handleVideo}
+                                  uploading={uploadingVideo}
+                                  label="Upload demo video"
+                                  icon={Film}
+                                  hint="MP4, MOV · Max 100MB"
+                                />
                               )}
                             </div>
-                          ) : (
-                            <DropZone
-                              accept="video/*"
-                              onFiles={handleVideo}
-                              uploading={uploadingVideo}
-                              label="Upload demo video"
-                              icon={Film}
-                              hint="MP4, MOV · Max 100MB"
-                            />
-                          )}
-                        </div>
+                          );
+                        })()}
                       </>
                     )}
 
@@ -1466,7 +1490,9 @@ export default function StallEditor() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-[13px] font-medium truncate">
-                                    {doc.filename || `Document ${i + 1}`}
+                                    {doc.originalName ||
+                                      doc.url?.split("/").pop() ||
+                                      `Document ${i + 1}`}
                                   </p>
                                   {doc.size && (
                                     <p
@@ -1477,45 +1503,25 @@ export default function StallEditor() {
                                     </p>
                                   )}
                                 </div>
-                                <div className="flex gap-2">
-                                  {/* Download */}
-                                  <a
-                                    href={`${doc.url}?fl_attachment=${doc.filename}`}
-                                    download={doc.filename}
-                                    className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                                    style={{
-                                      background: "rgba(167,139,250,0.1)",
-                                      color: "#c4b5fd",
-                                      border:
-                                        "1px solid rgba(167,139,250,0.18)",
-                                    }}
-                                  >
-                                    Download
-                                  </a>
-
-                                  {/* Delete */}
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteDocument(
-                                        encodeURIComponent(doc.publicId),
-                                      )
-                                    }
-                                    className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                                    style={{
-                                      background: "rgba(239,68,68,0.1)",
-                                      color: "#fca5a5",
-                                      border: "1px solid rgba(239,68,68,0.18)",
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
+                                <a
+                                  href={doc.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors"
+                                  style={{
+                                    background: "rgba(167,139,250,0.1)",
+                                    color: "#c4b5fd",
+                                    border: "1px solid rgba(167,139,250,0.18)",
+                                  }}
+                                >
+                                  View
+                                </a>
                               </div>
                             ))}
                           </div>
                         )}
                         <DropZone
-                          accept=".pdf,.doc,.docx,.ppt,.pptx"
+                          accept=".docx"
                           multiple
                           onFiles={handleDocuments}
                           uploading={uploadingDocuments}
@@ -1777,7 +1783,7 @@ export default function StallEditor() {
                           />
                           <CheckItem
                             label="Demo Video"
-                            ok={stall.videos && stall.videos.length > 0}
+                            ok={(stall.videos || []).length > 0}
                             hint="Optional — great for engagement"
                           />
                           <CheckItem

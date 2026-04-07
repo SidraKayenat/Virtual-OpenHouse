@@ -9,6 +9,9 @@ import {
   Briefcase,
   Users,
   Wrench,
+  Mail, // Add this
+  Phone, // Add this
+  Globe,
   Send,
   X,
   Plus,
@@ -520,8 +523,24 @@ export default function CreateRegistration() {
     requirements: "",
   });
 
-  const [memberInput, setMemberInput] = useState({ name: "", role: "other" });
+  const [memberInput, setMemberInput] = useState({
+    name: "",
+    role: "other",
+    contactInfo: {
+      email: "",
+      phone: "",
+      website: "",
+      socialLinks: {
+        linkedin: "",
+        twitter: "",
+        facebook: "",
+        instagram: "",
+        github: "",
+      },
+    },
+  });
   const [memberError, setMemberError] = useState("");
+  const [expandedMemberForm, setExpandedMemberForm] = useState(false);
 
   // Load event
   useEffect(() => {
@@ -551,15 +570,75 @@ export default function CreateRegistration() {
       setMemberError("Max 10 team members");
       return;
     }
+
+    // Clean up empty contact info fields (don't save empty strings)
+    const cleanedContactInfo = {
+      email: memberInput.contactInfo.email || null,
+      phone: memberInput.contactInfo.phone || null,
+      website: memberInput.contactInfo.website || null,
+      socialLinks: {
+        linkedin: memberInput.contactInfo.socialLinks.linkedin || null,
+        twitter: memberInput.contactInfo.socialLinks.twitter || null,
+        facebook: memberInput.contactInfo.socialLinks.facebook || null,
+        instagram: memberInput.contactInfo.socialLinks.instagram || null,
+        github: memberInput.contactInfo.socialLinks.github || null,
+      },
+    };
+
     setFormData((f) => ({
       ...f,
       teamMembers: [
         ...f.teamMembers,
-        { name: memberInput.name.trim(), role: memberInput.role },
+        {
+          name: memberInput.name.trim(),
+          role: memberInput.role,
+          contactInfo: cleanedContactInfo,
+        },
       ],
     }));
-    setMemberInput({ name: "", role: "other" });
+
+    setMemberInput({
+      name: "",
+      role: "other",
+      contactInfo: {
+        email: "",
+        phone: "",
+        website: "",
+        socialLinks: {
+          linkedin: "",
+          twitter: "",
+          facebook: "",
+          instagram: "",
+          github: "",
+        },
+      },
+    });
+    setExpandedMemberForm(false);
     setMemberError("");
+  };
+
+  // Helper to update nested contact info fields
+  const updateMemberContactInfo = (section, field, value) => {
+    if (section === "socialLinks") {
+      setMemberInput((m) => ({
+        ...m,
+        contactInfo: {
+          ...m.contactInfo,
+          socialLinks: {
+            ...m.contactInfo.socialLinks,
+            [field]: value,
+          },
+        },
+      }));
+    } else {
+      setMemberInput((m) => ({
+        ...m,
+        contactInfo: {
+          ...m.contactInfo,
+          [field]: value,
+        },
+      }));
+    }
   };
 
   const removeMember = (i) =>
@@ -1083,106 +1162,463 @@ export default function CreateRegistration() {
                     {/* STEP 1: Team Members */}
                     {step === 1 && (
                       <>
-                        {/* Add member row */}
+                        {/* Add member row - Basic Info */}
                         <Field
                           label="Add Team Member"
                           hint={`${formData.teamMembers.length}/10`}
                         >
-                          <div className="flex gap-2">
-                            <div className="relative flex-1">
-                              <UserPlus
-                                size={13}
-                                className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                                style={{ color: "rgba(255,255,255,0.25)" }}
-                              />
-                              <input
-                                type="text"
-                                placeholder="Member name"
-                                value={memberInput.name}
-                                onChange={(e) => {
-                                  setMemberInput((m) => ({
-                                    ...m,
-                                    name: e.target.value,
-                                  }));
-                                  setMemberError("");
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addMember();
+                          <div className="flex flex-col gap-3">
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <UserPlus
+                                  size={13}
+                                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                  style={{ color: "rgba(255,255,255,0.25)" }}
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Member name"
+                                  value={memberInput.name}
+                                  onChange={(e) => {
+                                    setMemberInput((m) => ({
+                                      ...m,
+                                      name: e.target.value,
+                                    }));
+                                    setMemberError("");
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      addMember();
+                                    }
+                                  }}
+                                  style={{ ...inputBase, paddingLeft: 38 }}
+                                  onFocus={(e) =>
+                                    (e.target.style.borderColor =
+                                      "rgba(167,139,250,0.5)")
                                   }
-                                }}
-                                style={{ ...inputBase, paddingLeft: 38 }}
-                                onFocus={(e) =>
-                                  (e.target.style.borderColor =
-                                    "rgba(167,139,250,0.5)")
-                                }
-                                onBlur={(e) =>
-                                  (e.target.style.borderColor =
-                                    "rgba(255,255,255,0.1)")
-                                }
-                              />
-                            </div>
-                            <div className="relative w-36 flex-shrink-0">
-                              <select
-                                value={memberInput.role}
-                                onChange={(e) =>
-                                  setMemberInput((m) => ({
-                                    ...m,
-                                    role: e.target.value,
-                                  }))
-                                }
+                                  onBlur={(e) =>
+                                    (e.target.style.borderColor =
+                                      "rgba(255,255,255,0.1)")
+                                  }
+                                />
+                              </div>
+                              <div className="relative w-36 flex-shrink-0">
+                                <select
+                                  value={memberInput.role}
+                                  onChange={(e) =>
+                                    setMemberInput((m) => ({
+                                      ...m,
+                                      role: e.target.value,
+                                    }))
+                                  }
+                                  style={{
+                                    ...inputBase,
+                                    paddingRight: 28,
+                                    appearance: "none",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {ROLES.map((r) => (
+                                    <option key={r} value={r}>
+                                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronRight
+                                  size={12}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
+                                  style={{ color: "rgba(255,255,255,0.25)" }}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={addMember}
+                                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-semibold transition-all"
                                 style={{
-                                  ...inputBase,
-                                  paddingRight: 28,
-                                  appearance: "none",
-                                  cursor: "pointer",
+                                  background: "rgba(124,58,237,0.2)",
+                                  color: "#c4b5fd",
+                                  border: "1px solid rgba(124,58,237,0.3)",
                                 }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background =
+                                    "rgba(124,58,237,0.32)")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background =
+                                    "rgba(124,58,237,0.2)")
+                                }
                               >
-                                {ROLES.map((r) => (
-                                  <option key={r} value={r}>
-                                    {r.charAt(0).toUpperCase() + r.slice(1)}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronRight
-                                size={12}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
-                                style={{ color: "rgba(255,255,255,0.25)" }}
-                              />
+                                <Plus size={13} /> Add
+                              </button>
                             </div>
+
+                            {/* Expandable Contact Info Form */}
                             <button
                               type="button"
-                              onClick={addMember}
-                              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-semibold transition-all"
-                              style={{
-                                background: "rgba(124,58,237,0.2)",
-                                color: "#c4b5fd",
-                                border: "1px solid rgba(124,58,237,0.3)",
-                              }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background =
-                                  "rgba(124,58,237,0.32)")
+                              onClick={() =>
+                                setExpandedMemberForm(!expandedMemberForm)
                               }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background =
-                                  "rgba(124,58,237,0.2)")
-                              }
+                              className="flex items-center gap-1.5 text-[11.5px] self-start transition-colors"
+                              style={{ color: "rgba(167,139,250,0.7)" }}
                             >
-                              <Plus size={13} /> Add
+                              <ChevronRight
+                                size={11}
+                                style={{
+                                  transform: expandedMemberForm
+                                    ? "rotate(90deg)"
+                                    : "rotate(0deg)",
+                                  transition: "transform 0.2s",
+                                }}
+                              />
+                              {expandedMemberForm ? "Hide" : "Add"} contact info
+                              (optional)
                             </button>
+
+                            {/* Contact Info Fields (Expandable) */}
+                            {expandedMemberForm && (
+                              <div
+                                className="p-4 rounded-xl flex flex-col gap-3"
+                                style={{
+                                  background: "rgba(255,255,255,0.02)",
+                                  border: "1px solid rgba(255,255,255,0.06)",
+                                }}
+                              >
+                                <p
+                                  className="text-[10px] font-bold uppercase tracking-widest"
+                                  style={{ color: "rgba(255,255,255,0.25)" }}
+                                >
+                                  Contact Information
+                                </p>
+
+                                {/* Email */}
+                                <div className="relative">
+                                  <Mail
+                                    size={13}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ color: "rgba(255,255,255,0.25)" }}
+                                  />
+                                  <input
+                                    type="email"
+                                    placeholder="Email (optional)"
+                                    value={memberInput.contactInfo.email}
+                                    onChange={(e) =>
+                                      updateMemberContactInfo(
+                                        "basic",
+                                        "email",
+                                        e.target.value,
+                                      )
+                                    }
+                                    style={{ ...inputBase, paddingLeft: 38 }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                </div>
+
+                                {/* Phone */}
+                                <div className="relative">
+                                  <Phone
+                                    size={13}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ color: "rgba(255,255,255,0.25)" }}
+                                  />
+                                  <input
+                                    type="tel"
+                                    placeholder="Phone (optional)"
+                                    value={memberInput.contactInfo.phone}
+                                    onChange={(e) =>
+                                      updateMemberContactInfo(
+                                        "basic",
+                                        "phone",
+                                        e.target.value,
+                                      )
+                                    }
+                                    style={{ ...inputBase, paddingLeft: 38 }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                </div>
+
+                                {/* Website */}
+                                <div className="relative">
+                                  <Globe
+                                    size={13}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ color: "rgba(255,255,255,0.25)" }}
+                                  />
+                                  <input
+                                    type="url"
+                                    placeholder="Website (optional)"
+                                    value={memberInput.contactInfo.website}
+                                    onChange={(e) =>
+                                      updateMemberContactInfo(
+                                        "basic",
+                                        "website",
+                                        e.target.value,
+                                      )
+                                    }
+                                    style={{ ...inputBase, paddingLeft: 38 }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                </div>
+
+                                {/* Social Links Section */}
+                                <div
+                                  className="pt-2 mt-1"
+                                  style={{
+                                    borderTop:
+                                      "1px solid rgba(255,255,255,0.05)",
+                                  }}
+                                >
+                                  <p
+                                    className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                                    style={{ color: "rgba(255,255,255,0.22)" }}
+                                  >
+                                    Social Links
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {/* LinkedIn */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        in
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="LinkedIn username"
+                                        value={
+                                          memberInput.contactInfo.socialLinks
+                                            .linkedin
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "linkedin",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Twitter/X */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        𝕏
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Twitter handle"
+                                        value={
+                                          memberInput.contactInfo.socialLinks
+                                            .twitter
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "twitter",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* GitHub */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        GH
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="GitHub username"
+                                        value={
+                                          memberInput.contactInfo.socialLinks
+                                            .github
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "github",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Facebook */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        fb
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Facebook username"
+                                        value={
+                                          memberInput.contactInfo.socialLinks
+                                            .facebook
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "facebook",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Instagram */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        IG
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Instagram username"
+                                        value={
+                                          memberInput.contactInfo.socialLinks
+                                            .instagram
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "instagram",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                  <p
+                                    className="text-[10px] mt-2"
+                                    style={{ color: "rgba(255,255,255,0.18)" }}
+                                  >
+                                    Enter just the username (e.g., "john doe"
+                                    not the full URL)
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {memberError && (
+                              <p
+                                className="text-[11.5px] flex items-center gap-1"
+                                style={{ color: "#f87171" }}
+                              >
+                                <AlertCircle size={11} /> {memberError}
+                              </p>
+                            )}
                           </div>
-                          {memberError && (
-                            <p
-                              className="text-[11.5px] flex items-center gap-1 mt-1"
-                              style={{ color: "#f87171" }}
-                            >
-                              <AlertCircle size={11} /> {memberError}
-                            </p>
-                          )}
                         </Field>
 
-                        {/* Member list */}
+                        {/* Member list with contact info display */}
                         {formData.teamMembers.length === 0 ? (
                           <div
                             className="flex flex-col items-center justify-center py-10 gap-2 rounded-xl"
@@ -1219,51 +1655,113 @@ export default function CreateRegistration() {
                             {formData.teamMembers.map((m, i) => (
                               <div
                                 key={i}
-                                className="flex items-center gap-3 p-3 rounded-xl"
+                                className="flex flex-col gap-2 p-3 rounded-xl"
                                 style={{
                                   background: "rgba(124,58,237,0.08)",
                                   border: "1px solid rgba(124,58,237,0.18)",
                                 }}
                               >
-                                <div
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
-                                  style={{
-                                    background:
-                                      "linear-gradient(135deg,#7c3aed,#2563eb)",
-                                  }}
-                                >
-                                  {m.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white text-[13px] font-semibold truncate">
-                                    {m.name}
-                                  </p>
-                                  <p
-                                    className="text-[10.5px] capitalize"
-                                    style={{ color: "rgba(255,255,255,0.38)" }}
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
+                                    style={{
+                                      background:
+                                        "linear-gradient(135deg,#7c3aed,#2563eb)",
+                                    }}
                                   >
-                                    {m.role}
-                                  </p>
+                                    {m.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white text-[13px] font-semibold truncate">
+                                      {m.name}
+                                    </p>
+                                    <p
+                                      className="text-[10.5px] capitalize"
+                                      style={{
+                                        color: "rgba(255,255,255,0.38)",
+                                      }}
+                                    >
+                                      {m.role}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeMember(i)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
+                                    style={{ color: "rgba(248,113,113,0.5)" }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background =
+                                        "rgba(248,113,113,0.12)";
+                                      e.currentTarget.style.color = "#f87171";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background =
+                                        "transparent";
+                                      e.currentTarget.style.color =
+                                        "rgba(248,113,113,0.5)";
+                                    }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removeMember(i)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
-                                  style={{ color: "rgba(248,113,113,0.5)" }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background =
-                                      "rgba(248,113,113,0.12)";
-                                    e.currentTarget.style.color = "#f87171";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background =
-                                      "transparent";
-                                    e.currentTarget.style.color =
-                                      "rgba(248,113,113,0.5)";
-                                  }}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+
+                                {/* Display contact info if present */}
+                                {(m.contactInfo?.email ||
+                                  m.contactInfo?.phone ||
+                                  m.contactInfo?.website ||
+                                  m.contactInfo?.socialLinks?.linkedin ||
+                                  m.contactInfo?.socialLinks?.github ||
+                                  m.contactInfo?.socialLinks?.twitter) && (
+                                  <div
+                                    className="mt-1 pt-2 px-1 flex flex-wrap gap-2"
+                                    style={{
+                                      borderTop:
+                                        "1px solid rgba(255,255,255,0.06)",
+                                    }}
+                                  >
+                                    {m.contactInfo?.email && (
+                                      <span
+                                        className="text-[10px] flex items-center gap-1"
+                                        style={{
+                                          color: "rgba(255,255,255,0.35)",
+                                        }}
+                                      >
+                                        <Mail size={9} /> {m.contactInfo.email}
+                                      </span>
+                                    )}
+                                    {m.contactInfo?.phone && (
+                                      <span
+                                        className="text-[10px] flex items-center gap-1"
+                                        style={{
+                                          color: "rgba(255,255,255,0.35)",
+                                        }}
+                                      >
+                                        <Phone size={9} /> {m.contactInfo.phone}
+                                      </span>
+                                    )}
+                                    {m.contactInfo?.socialLinks?.linkedin && (
+                                      <span
+                                        className="text-[10px]"
+                                        style={{
+                                          color: "rgba(96,165,250,0.5)",
+                                        }}
+                                      >
+                                        🔗 in/
+                                        {m.contactInfo.socialLinks.linkedin}
+                                      </span>
+                                    )}
+                                    {m.contactInfo?.socialLinks?.github && (
+                                      <span
+                                        className="text-[10px]"
+                                        style={{
+                                          color: "rgba(96,165,250,0.5)",
+                                        }}
+                                      >
+                                        📦 {m.contactInfo.socialLinks.github}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1407,6 +1905,7 @@ export default function CreateRegistration() {
                         )}
 
                         {/* Team preview */}
+                        {/* Team preview with contact info */}
                         {formData.teamMembers.length > 0 && (
                           <div
                             className="rounded-xl p-4"
@@ -1421,27 +1920,59 @@ export default function CreateRegistration() {
                             >
                               Team
                             </p>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-3">
                               {formData.teamMembers.map((m, i) => (
-                                <span
+                                <div
                                   key={i}
-                                  className="flex items-center gap-1.5 text-[11.5px] px-2.5 py-1 rounded-full"
+                                  className="flex flex-col gap-1 p-2 rounded-xl"
                                   style={{
-                                    background: "rgba(124,58,237,0.12)",
-                                    color: "#c4b5fd",
-                                    border: "1px solid rgba(124,58,237,0.2)",
+                                    background: "rgba(124,58,237,0.08)",
+                                    border: "1px solid rgba(124,58,237,0.15)",
                                   }}
                                 >
-                                  {m.name} ·{" "}
-                                  <span className="capitalize opacity-60">
-                                    {m.role}
-                                  </span>
-                                </span>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                      style={{
+                                        background:
+                                          "linear-gradient(135deg,#7c3aed,#2563eb)",
+                                      }}
+                                    >
+                                      {m.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <p className="text-white text-[12px] font-semibold">
+                                        {m.name}
+                                      </p>
+                                      <p
+                                        className="text-[9px] capitalize"
+                                        style={{
+                                          color: "rgba(255,255,255,0.38)",
+                                        }}
+                                      >
+                                        {m.role}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {(m.contactInfo?.email ||
+                                    m.contactInfo?.phone) && (
+                                    <div
+                                      className="text-[9px]"
+                                      style={{ color: "rgba(255,255,255,0.3)" }}
+                                    >
+                                      {m.contactInfo?.email && (
+                                        <div>📧 {m.contactInfo.email}</div>
+                                      )}
+                                      {m.contactInfo?.phone && (
+                                        <div>📞 {m.contactInfo.phone}</div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           </div>
                         )}
-
                         {/* Warning */}
                         <div
                           className="p-3.5 rounded-xl"

@@ -789,7 +789,7 @@ export default function UserDashboard() {
           </div>
 
           {/* ══ 6. Upcoming Events ══════════════════════════════════════ */}
-          <motion.div {...fadeUp(0.28)}>
+          {/* <motion.div {...fadeUp(0.28)}>
             <Card>
               <SectionHeader
                 title="Upcoming Events"
@@ -892,7 +892,7 @@ export default function UserDashboard() {
                 </div>
               )}
             </Card>
-          </motion.div>
+          </motion.div> */}
         </main>
       </div>
     </div>
