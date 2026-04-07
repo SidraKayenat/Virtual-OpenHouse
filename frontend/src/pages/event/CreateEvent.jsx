@@ -505,14 +505,14 @@ function LivePreview({ form }) {
         className="relative h-36 overflow-hidden"
         style={{ background: "linear-gradient(135deg,#1e1b30,#2d1f5e)" }}
       >
-        {form.customBackground && (
+        {/* {form.customBackground && (
           <img
             src={form.customBackground}
             alt=""
             className="w-full h-full object-cover"
             onError={() => {}}
           />
-        )}
+        )} */}
         <div
           className="absolute inset-0"
           style={{

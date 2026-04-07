@@ -1,7 +1,6 @@
-// src/components/Chatbot/chatbotService.js
+// frontend/src/components/Chatbot/chatbotService.js
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+import { API_BASE_URL } from "@/lib/api";
 
 const getEndpoint = (stallData) => {
   const eventId =
@@ -26,7 +25,10 @@ export const sendMessageToBot = async (message, stallData) => {
     body: JSON.stringify({ query: message }),
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : { error: await response.text() };
 
   if (!response.ok) {
     throw new Error(data?.error || data?.message || "Chatbot request failed");

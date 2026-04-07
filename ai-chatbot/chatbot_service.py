@@ -1,12 +1,18 @@
 # ai-chatbot/chatbot_service.py
-from dotenv import load_dotenv
-load_dotenv()
 
 import logging
 import os
 import re
 import sys
 import chromadb
+from dotenv import load_dotenv
+
+# Load env files from common locations so local runs (repo root vs ai-chatbot folder)
+# behave consistently.
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(CURRENT_DIR, ".env"))
+load_dotenv(os.path.join(CURRENT_DIR, "..", ".env"))
+load_dotenv()
 
 print("MODEL:", os.getenv("GROQ_CHAT_MODEL"))
 print("KEY SET:", bool(os.getenv("GROQ_API_KEY")))
@@ -35,6 +41,7 @@ DEFAULT_SEARCH_TYPE = "mmr"
 # Only used when search_type == "similarity_score_threshold"
 DEFAULT_SCORE_THRESHOLD = 0.0
 DEFAULT_FETCH_K = 50
+DEFAULT_EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-mpnet-base-v2")
 
 
 
