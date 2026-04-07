@@ -7,6 +7,10 @@ import {
   CheckCircle,
   AlertCircle,
   Image,
+  Mail,
+  Phone,
+  Globe,
+  UserPlus,
   Users,
   Send,
   Eye,
@@ -17,7 +21,6 @@ import {
   Upload,
   FileText,
   Info,
-  Globe,
   Radio,
   RefreshCw,
   Film,
@@ -547,8 +550,24 @@ export default function StallEditor() {
     projectDescription: "",
   });
   const [teamMembers, setTeamMembers] = useState([]);
-  const [newMember, setNewMember] = useState({ name: "", role: "other" });
+  const [newMember, setNewMember] = useState({
+    name: "",
+    role: "other",
+    contactInfo: {
+      email: "",
+      phone: "",
+      website: "",
+      socialLinks: {
+        linkedin: "",
+        twitter: "",
+        facebook: "",
+        instagram: "",
+        github: "",
+      },
+    },
+  });
   const [memberErr, setMemberErr] = useState("");
+  const [expandedMemberForm, setExpandedMemberForm] = useState(false);
 
   const loadStall = useCallback(async () => {
     try {
@@ -571,6 +590,30 @@ export default function StallEditor() {
   useEffect(() => {
     loadStall();
   }, []);
+
+  // Helper to update nested contact info fields
+  const updateMemberContactInfo = (section, field, value) => {
+    if (section === "socialLinks") {
+      setNewMember((m) => ({
+        ...m,
+        contactInfo: {
+          ...m.contactInfo,
+          socialLinks: {
+            ...m.contactInfo.socialLinks,
+            [field]: value,
+          },
+        },
+      }));
+    } else {
+      setNewMember((m) => ({
+        ...m,
+        contactInfo: {
+          ...m.contactInfo,
+          [field]: value,
+        },
+      }));
+    }
+  };
 
   // ── Auto-save overview on blur (debounced) ─────────────────────────────
   const saveTimer = useRef(null);
@@ -710,15 +753,51 @@ export default function StallEditor() {
       setMemberErr("Enter a name");
       return;
     }
+
+    // Clean up empty contact info fields
+    const cleanedContactInfo = {
+      email: newMember.contactInfo.email || null,
+      phone: newMember.contactInfo.phone || null,
+      website: newMember.contactInfo.website || null,
+      socialLinks: {
+        linkedin: newMember.contactInfo.socialLinks.linkedin || null,
+        twitter: newMember.contactInfo.socialLinks.twitter || null,
+        facebook: newMember.contactInfo.socialLinks.facebook || null,
+        instagram: newMember.contactInfo.socialLinks.instagram || null,
+        github: newMember.contactInfo.socialLinks.github || null,
+      },
+    };
+
     const updated = [
       ...teamMembers,
-      { name: newMember.name.trim(), role: newMember.role },
+      {
+        name: newMember.name.trim(),
+        role: newMember.role,
+        contactInfo: cleanedContactInfo, // ✅ ADD THIS
+      },
     ];
+
     try {
       const res = await stallAPI.update(stallId, { teamMembers: updated });
       setStall(res.data);
       setTeamMembers(updated);
-      setNewMember({ name: "", role: "other" });
+      setNewMember({
+        name: "",
+        role: "other",
+        contactInfo: {
+          email: "",
+          phone: "",
+          website: "",
+          socialLinks: {
+            linkedin: "",
+            twitter: "",
+            facebook: "",
+            instagram: "",
+            github: "",
+          },
+        },
+      });
+      setExpandedMemberForm(false);
       setMemberErr("");
     } catch (e) {
       setError(e.message);
@@ -750,6 +829,43 @@ export default function StallEditor() {
     }, 700);
   };
 
+  // Add this new function to update contact info for a team member
+  const updateMemberContactInfoField = async (i, section, field, value) => {
+    const updated = teamMembers.map((m, idx) => {
+      if (idx === i) {
+        if (section === "socialLinks") {
+          return {
+            ...m,
+            contactInfo: {
+              ...m.contactInfo,
+              socialLinks: {
+                ...m.contactInfo?.socialLinks,
+                [field]: value || null,
+              },
+            },
+          };
+        } else {
+          return {
+            ...m,
+            contactInfo: {
+              ...m.contactInfo,
+              [field]: value || null,
+            },
+          };
+        }
+      }
+      return m;
+    });
+
+    setTeamMembers(updated);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const res = await stallAPI.update(stallId, { teamMembers: updated });
+        setStall(res.data);
+      } catch {}
+    }, 700);
+  };
   // ── Publish ────────────────────────────────────────────────────────────
   const handlePublish = async () => {
     try {
@@ -1535,95 +1651,452 @@ export default function StallEditor() {
                     {/* ── STEP 3: Team ── */}
                     {step === 3 && (
                       <>
-                        {/* Add member */}
+                        {/* Add member row - Basic Info */}
                         <Field
                           label="Add Team Member"
                           hint={`${teamMembers.length} members`}
                         >
-                          <div className="flex gap-2">
-                            <div className="flex-1 relative">
-                              <Users
-                                size={13}
-                                className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                                style={{ color: "rgba(255,255,255,0.25)" }}
-                              />
-                              <input
-                                type="text"
-                                placeholder="Member name"
-                                value={newMember.name}
-                                onChange={(e) => {
-                                  setNewMember((m) => ({
-                                    ...m,
-                                    name: e.target.value,
-                                  }));
-                                  setMemberErr("");
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addMember();
+                          <div className="flex flex-col gap-3">
+                            <div className="flex gap-2">
+                              <div className="flex-1 relative">
+                                <UserPlus
+                                  size={13}
+                                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                  style={{ color: "rgba(255,255,255,0.25)" }}
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Member name"
+                                  value={newMember.name}
+                                  onChange={(e) => {
+                                    setNewMember((m) => ({
+                                      ...m,
+                                      name: e.target.value,
+                                    }));
+                                    setMemberErr("");
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      addMember();
+                                    }
+                                  }}
+                                  style={{ ...inputBase, paddingLeft: 38 }}
+                                  onFocus={(e) =>
+                                    (e.target.style.borderColor =
+                                      "rgba(167,139,250,0.5)")
                                   }
+                                  onBlur={(e) =>
+                                    (e.target.style.borderColor =
+                                      "rgba(255,255,255,0.1)")
+                                  }
+                                />
+                              </div>
+                              <div className="w-32 flex-shrink-0">
+                                <StyledSelect
+                                  value={newMember.role}
+                                  onChange={(e) =>
+                                    setNewMember((m) => ({
+                                      ...m,
+                                      role: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  {ROLES.map((r) => (
+                                    <option key={r} value={r}>
+                                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                                    </option>
+                                  ))}
+                                </StyledSelect>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={addMember}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-semibold flex-shrink-0 transition-all"
+                                style={{
+                                  background: "rgba(124,58,237,0.2)",
+                                  color: "#c4b5fd",
+                                  border: "1px solid rgba(124,58,237,0.3)",
                                 }}
-                                style={{ ...inputBase, paddingLeft: 38 }}
-                                onFocus={(e) =>
-                                  (e.target.style.borderColor =
-                                    "rgba(167,139,250,0.5)")
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background =
+                                    "rgba(124,58,237,0.32)")
                                 }
-                                onBlur={(e) =>
-                                  (e.target.style.borderColor =
-                                    "rgba(255,255,255,0.1)")
-                                }
-                              />
-                            </div>
-                            <div className="w-32 flex-shrink-0">
-                              <StyledSelect
-                                value={newMember.role}
-                                onChange={(e) =>
-                                  setNewMember((m) => ({
-                                    ...m,
-                                    role: e.target.value,
-                                  }))
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background =
+                                    "rgba(124,58,237,0.2)")
                                 }
                               >
-                                {ROLES.map((r) => (
-                                  <option key={r} value={r}>
-                                    {r.charAt(0).toUpperCase() + r.slice(1)}
-                                  </option>
-                                ))}
-                              </StyledSelect>
+                                <Plus size={13} /> Add
+                              </button>
                             </div>
+
+                            {/* Expandable Contact Info Form */}
                             <button
                               type="button"
-                              onClick={addMember}
-                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-semibold flex-shrink-0 transition-all"
-                              style={{
-                                background: "rgba(124,58,237,0.2)",
-                                color: "#c4b5fd",
-                                border: "1px solid rgba(124,58,237,0.3)",
-                              }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background =
-                                  "rgba(124,58,237,0.32)")
+                              onClick={() =>
+                                setExpandedMemberForm(!expandedMemberForm)
                               }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background =
-                                  "rgba(124,58,237,0.2)")
-                              }
+                              className="flex items-center gap-1.5 text-[11.5px] self-start transition-colors"
+                              style={{ color: "rgba(167,139,250,0.7)" }}
                             >
-                              <Plus size={13} /> Add
+                              <ChevronRight
+                                size={11}
+                                style={{
+                                  transform: expandedMemberForm
+                                    ? "rotate(90deg)"
+                                    : "rotate(0deg)",
+                                  transition: "transform 0.2s",
+                                }}
+                              />
+                              {expandedMemberForm ? "Hide" : "Add"} contact info
+                              (optional)
                             </button>
+
+                            {/* Contact Info Fields (Expandable) */}
+                            {expandedMemberForm && (
+                              <div
+                                className="p-4 rounded-xl flex flex-col gap-3"
+                                style={{
+                                  background: "rgba(255,255,255,0.02)",
+                                  border: "1px solid rgba(255,255,255,0.06)",
+                                }}
+                              >
+                                <p
+                                  className="text-[10px] font-bold uppercase tracking-widest"
+                                  style={{ color: "rgba(255,255,255,0.25)" }}
+                                >
+                                  Contact Information
+                                </p>
+
+                                {/* Email */}
+                                <div className="relative">
+                                  <Mail
+                                    size={13}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ color: "rgba(255,255,255,0.25)" }}
+                                  />
+                                  <input
+                                    type="email"
+                                    placeholder="Email (optional)"
+                                    value={newMember.contactInfo.email}
+                                    onChange={(e) =>
+                                      updateMemberContactInfo(
+                                        "basic",
+                                        "email",
+                                        e.target.value,
+                                      )
+                                    }
+                                    style={{ ...inputBase, paddingLeft: 38 }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                </div>
+
+                                {/* Phone */}
+                                <div className="relative">
+                                  <Phone
+                                    size={13}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ color: "rgba(255,255,255,0.25)" }}
+                                  />
+                                  <input
+                                    type="tel"
+                                    placeholder="Phone (optional)"
+                                    value={newMember.contactInfo.phone}
+                                    onChange={(e) =>
+                                      updateMemberContactInfo(
+                                        "basic",
+                                        "phone",
+                                        e.target.value,
+                                      )
+                                    }
+                                    style={{ ...inputBase, paddingLeft: 38 }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                </div>
+
+                                {/* Website */}
+                                <div className="relative">
+                                  <Globe
+                                    size={13}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ color: "rgba(255,255,255,0.25)" }}
+                                  />
+                                  <input
+                                    type="url"
+                                    placeholder="Website (optional)"
+                                    value={newMember.contactInfo.website}
+                                    onChange={(e) =>
+                                      updateMemberContactInfo(
+                                        "basic",
+                                        "website",
+                                        e.target.value,
+                                      )
+                                    }
+                                    style={{ ...inputBase, paddingLeft: 38 }}
+                                    onFocus={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(167,139,250,0.5)")
+                                    }
+                                    onBlur={(e) =>
+                                      (e.target.style.borderColor =
+                                        "rgba(255,255,255,0.1)")
+                                    }
+                                  />
+                                </div>
+
+                                {/* Social Links Section */}
+                                <div
+                                  className="pt-2 mt-1"
+                                  style={{
+                                    borderTop:
+                                      "1px solid rgba(255,255,255,0.05)",
+                                  }}
+                                >
+                                  <p
+                                    className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                                    style={{ color: "rgba(255,255,255,0.22)" }}
+                                  >
+                                    Social Links
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {/* LinkedIn */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        in
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="LinkedIn username"
+                                        value={
+                                          newMember.contactInfo.socialLinks
+                                            .linkedin
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "linkedin",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Twitter/X */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        𝕏
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Twitter handle"
+                                        value={
+                                          newMember.contactInfo.socialLinks
+                                            .twitter
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "twitter",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* GitHub */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        GH
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="GitHub username"
+                                        value={
+                                          newMember.contactInfo.socialLinks
+                                            .github
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "github",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Facebook */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        fb
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Facebook username"
+                                        value={
+                                          newMember.contactInfo.socialLinks
+                                            .facebook
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "facebook",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Instagram */}
+                                    <div className="relative">
+                                      <span
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                                        style={{
+                                          color: "rgba(255,255,255,0.3)",
+                                        }}
+                                      >
+                                        IG
+                                      </span>
+                                      <input
+                                        type="text"
+                                        placeholder="Instagram username"
+                                        value={
+                                          newMember.contactInfo.socialLinks
+                                            .instagram
+                                        }
+                                        onChange={(e) =>
+                                          updateMemberContactInfo(
+                                            "socialLinks",
+                                            "instagram",
+                                            e.target.value,
+                                          )
+                                        }
+                                        style={{
+                                          ...inputBase,
+                                          paddingLeft: 38,
+                                          fontSize: 12,
+                                        }}
+                                        onFocus={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(167,139,250,0.5)")
+                                        }
+                                        onBlur={(e) =>
+                                          (e.target.style.borderColor =
+                                            "rgba(255,255,255,0.1)")
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                  <p
+                                    className="text-[10px] mt-2"
+                                    style={{ color: "rgba(255,255,255,0.18)" }}
+                                  >
+                                    Enter just the username (e.g., "john doe"
+                                    not the full URL)
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {memberErr && (
+                              <p
+                                className="text-[11.5px] flex items-center gap-1"
+                                style={{ color: "#f87171" }}
+                              >
+                                <AlertCircle size={11} /> {memberErr}
+                              </p>
+                            )}
                           </div>
-                          {memberErr && (
-                            <p
-                              className="text-[11.5px] mt-1"
-                              style={{ color: "#f87171" }}
-                            >
-                              {memberErr}
-                            </p>
-                          )}
                         </Field>
 
-                        {/* Member list */}
+                        {/* Member list with contact info display */}
                         {teamMembers.length === 0 ? (
                           <div
                             className="flex flex-col items-center justify-center py-10 gap-2 rounded-xl"
@@ -1645,100 +2118,121 @@ export default function StallEditor() {
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
+                            <p
+                              className="text-[10.5px] font-bold uppercase tracking-widest"
+                              style={{ color: "rgba(255,255,255,0.25)" }}
+                            >
+                              Team ({teamMembers.length})
+                            </p>
                             {teamMembers.map((m, i) => (
                               <div
                                 key={i}
-                                className="flex items-center gap-3 p-3 rounded-xl"
+                                className="flex flex-col gap-2 p-3 rounded-xl"
                                 style={{
-                                  background: "rgba(124,58,237,0.07)",
-                                  border: "1px solid rgba(124,58,237,0.15)",
+                                  background: "rgba(124,58,237,0.08)",
+                                  border: "1px solid rgba(124,58,237,0.18)",
                                 }}
                               >
-                                <div
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
-                                  style={{
-                                    background:
-                                      "linear-gradient(135deg,#7c3aed,#2563eb)",
-                                  }}
-                                >
-                                  {m.name?.charAt(0)?.toUpperCase() || "?"}
-                                </div>
-                                <div className="flex-1 min-w-0 grid grid-cols-2 gap-2">
-                                  <input
-                                    value={m.name}
-                                    onChange={(e) =>
-                                      updateMemberField(
-                                        i,
-                                        "name",
-                                        e.target.value,
-                                      )
-                                    }
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
                                     style={{
-                                      ...inputBase,
-                                      padding: "7px 12px",
-                                      fontSize: 13,
+                                      background:
+                                        "linear-gradient(135deg,#7c3aed,#2563eb)",
                                     }}
-                                    onFocus={(e) =>
-                                      (e.target.style.borderColor =
-                                        "rgba(167,139,250,0.5)")
-                                    }
-                                    onBlur={(e) =>
-                                      (e.target.style.borderColor =
-                                        "rgba(255,255,255,0.1)")
-                                    }
-                                  />
-                                  <div className="relative">
-                                    <select
-                                      value={m.role}
-                                      onChange={(e) =>
-                                        updateMemberField(
-                                          i,
-                                          "role",
-                                          e.target.value,
-                                        )
-                                      }
+                                  >
+                                    {m.name?.charAt(0)?.toUpperCase() || "?"}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white text-[13px] font-semibold truncate">
+                                      {m.name}
+                                    </p>
+                                    <p
+                                      className="text-[10.5px] capitalize"
                                       style={{
-                                        ...inputBase,
-                                        padding: "7px 28px 7px 12px",
-                                        fontSize: 13,
-                                        appearance: "none",
-                                        cursor: "pointer",
+                                        color: "rgba(255,255,255,0.38)",
                                       }}
                                     >
-                                      {ROLES.map((r) => (
-                                        <option key={r} value={r}>
-                                          {r.charAt(0).toUpperCase() +
-                                            r.slice(1)}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <ChevronRight
-                                      size={12}
-                                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none rotate-90"
-                                      style={{
-                                        color: "rgba(255,255,255,0.25)",
-                                      }}
-                                    />
+                                      {m.role}
+                                    </p>
                                   </div>
+                                  <button
+                                    onClick={() => removeMember(i)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
+                                    style={{ color: "rgba(248,113,113,0.5)" }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background =
+                                        "rgba(248,113,113,0.12)";
+                                      e.currentTarget.style.color = "#f87171";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background =
+                                        "transparent";
+                                      e.currentTarget.style.color =
+                                        "rgba(248,113,113,0.5)";
+                                    }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
                                 </div>
-                                <button
-                                  onClick={() => removeMember(i)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                                  style={{ color: "rgba(248,113,113,0.5)" }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background =
-                                      "rgba(248,113,113,0.12)";
-                                    e.currentTarget.style.color = "#f87171";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background =
-                                      "transparent";
-                                    e.currentTarget.style.color =
-                                      "rgba(248,113,113,0.5)";
-                                  }}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+
+                                {/* Display contact info if present */}
+                                {(m.contactInfo?.email ||
+                                  m.contactInfo?.phone ||
+                                  m.contactInfo?.website ||
+                                  m.contactInfo?.socialLinks?.linkedin ||
+                                  m.contactInfo?.socialLinks?.github ||
+                                  m.contactInfo?.socialLinks?.twitter) && (
+                                  <div
+                                    className="mt-1 pt-2 px-1 flex flex-wrap gap-2"
+                                    style={{
+                                      borderTop:
+                                        "1px solid rgba(255,255,255,0.06)",
+                                    }}
+                                  >
+                                    {m.contactInfo?.email && (
+                                      <span
+                                        className="text-[10px] flex items-center gap-1"
+                                        style={{
+                                          color: "rgba(255,255,255,0.35)",
+                                        }}
+                                      >
+                                        <Mail size={9} /> {m.contactInfo.email}
+                                      </span>
+                                    )}
+                                    {m.contactInfo?.phone && (
+                                      <span
+                                        className="text-[10px] flex items-center gap-1"
+                                        style={{
+                                          color: "rgba(255,255,255,0.35)",
+                                        }}
+                                      >
+                                        <Phone size={9} /> {m.contactInfo.phone}
+                                      </span>
+                                    )}
+                                    {m.contactInfo?.socialLinks?.linkedin && (
+                                      <span
+                                        className="text-[10px]"
+                                        style={{
+                                          color: "rgba(96,165,250,0.5)",
+                                        }}
+                                      >
+                                        🔗 in/
+                                        {m.contactInfo.socialLinks.linkedin}
+                                      </span>
+                                    )}
+                                    {m.contactInfo?.socialLinks?.github && (
+                                      <span
+                                        className="text-[10px]"
+                                        style={{
+                                          color: "rgba(96,165,250,0.5)",
+                                        }}
+                                      >
+                                        📦 {m.contactInfo.socialLinks.github}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
