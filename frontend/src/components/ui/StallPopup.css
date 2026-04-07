@@ -213,32 +213,37 @@
 }
 
 /* ── Team ── */
-.popup-team-row {
+/* ── Team List (one member per row) ── */
+.popup-team-list {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.popup-member-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
 }
 
-.popup-member-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-width: 80px;
-}
-
 .popup-member-avatar {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  object-fit: cover;
   background: rgba(120, 85, 255, 0.2);
+  border: 2px solid rgba(120, 85, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  font-weight: 700;
+  color: #c0a8ff;
   flex-shrink: 0;
-  border: 2px solid rgba(120, 85, 255, 0.3);
   overflow: hidden;
 }
 
@@ -248,11 +253,16 @@
   object-fit: cover;
 }
 
+.popup-member-identity {
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
 .popup-member-name {
   font-size: 14px;
   font-weight: 600;
-  color: #ddd;
-  margin: 6px 0 0;
+  color: #e0e0f0;
+  margin: 0;
 }
 
 .popup-member-role {
@@ -261,11 +271,46 @@
   margin: 2px 0 0;
 }
 
-/* ── Contact ── */
-.popup-contact-text {
-  font-size: 14px;
-  color: #a0a0c0;
-  margin: 0;
+/* Contact chips row */
+.popup-member-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.popup-contact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(120, 85, 255, 0.08);
+  border: 1px solid rgba(120, 85, 255, 0.2);
+  color: #b0a0e0;
+  font-size: 12px;
+  text-decoration: none;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  white-space: nowrap;
+}
+
+.popup-contact-chip:hover {
+  background: rgba(120, 85, 255, 0.18);
+  border-color: rgba(120, 85, 255, 0.4);
+  color: #d0c0ff;
+}
+
+.popup-contact-icon {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.popup-contact-label {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Loading ── */
