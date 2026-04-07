@@ -703,7 +703,7 @@ export default function CreateRegistration() {
   if (submitted) {
     return (
       <div
-        className="min-h-screen flex"
+        className="h-screen flex"
         style={{
           background: "#0c0c0f",
           fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -819,7 +819,7 @@ export default function CreateRegistration() {
   // ── Loading ───────────────────────────────────────────────────────
   if (eventLoading) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -841,7 +841,7 @@ export default function CreateRegistration() {
 
   if (!event) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -865,7 +865,7 @@ export default function CreateRegistration() {
   if (event.availableStalls === 0) {
     return (
       <div
-        className="min-h-screen flex"
+        className="h-screen flex"
         style={{
           background: "#0c0c0f",
           fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -926,7 +926,7 @@ export default function CreateRegistration() {
   // ── Main form ─────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen flex"
+      className="h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
