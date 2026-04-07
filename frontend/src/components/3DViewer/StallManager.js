@@ -33,9 +33,9 @@ export class StallManager {
   calculateStallPositions(count) {
     const positions = [];
 
-    const PADDING = 70;
+    const PADDING = 50;
     const maxX = HALL_DIMENSIONS.WIDTH - PADDING;
-    const maxZ = HALL_DIMENSIONS.DEPTH - 2 * PADDING;
+    const maxZ = HALL_DIMENSIONS.DEPTH - PADDING;
 
     const walls = [
       {
@@ -225,7 +225,6 @@ export class StallManager {
               child.receiveShadow = true;
 
               if (child.name === "Plane001") {
-
                 child.material = new THREE.MeshStandardMaterial({
                   color: new THREE.Color(0xd6cfc4),
                   roughness: 0.005, // very low = mirror-like
