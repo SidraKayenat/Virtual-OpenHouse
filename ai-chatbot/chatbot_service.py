@@ -4,12 +4,14 @@ import logging
 import os
 import re
 import sys
+from functools import lru_cache
 import chromadb
 from dotenv import load_dotenv
 
 # Load env files from common locations so local runs (repo root vs ai-chatbot folder)
 # behave consistently.
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_ROOT = os.path.join(CURRENT_DIR, "db")
 load_dotenv(os.path.join(CURRENT_DIR, ".env"))
 load_dotenv(os.path.join(CURRENT_DIR, "..", ".env"))
 load_dotenv()
@@ -35,18 +37,18 @@ REQUIRED_ENV_VARS = [
     "GROQ_CHAT_MODEL",
 ]
 
-DEFAULT_TOP_K = 12
+DEFAULT_TOP_K = int(os.getenv("CHATBOT_TOP_K", "8"))
 # Use MMR by default to diversify retrieved chunks across uploaded files.
 DEFAULT_SEARCH_TYPE = "mmr"
 # Only used when search_type == "similarity_score_threshold"
 DEFAULT_SCORE_THRESHOLD = 0.0
-DEFAULT_FETCH_K = 50
+DEFAULT_FETCH_K = int(os.getenv("CHATBOT_FETCH_K", "24"))
 DEFAULT_EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-mpnet-base-v2")
 
 
 
-DETAILED_TOP_K = 20
-DETAILED_FETCH_K = 80
+DETAILED_TOP_K = int(os.getenv("CHATBOT_DETAILED_TOP_K", "12"))
+DETAILED_FETCH_K = int(os.getenv("CHATBOT_DETAILED_FETCH_K", "40"))
 DETAIL_REQUEST_PATTERN = re.compile(
     r"\b(detailed|in\s*detail|in-depth|thorough|elaborate|comprehensive|step[- ]by[- ]step|deep dive)\b",
     re.IGNORECASE,
@@ -115,7 +117,7 @@ def sanitize_error_message(message: str) -> str:
 def use_cloud_chroma():
     return os.getenv("CHROMA_USE_CLOUD", "false").lower() in {"1", "true", "yes"}
 
-
+@lru_cache(maxsize=1)
 def get_cloud_client():
     return chromadb.CloudClient(
         api_key=os.getenv("CHROMA_API_KEY"),
@@ -123,9 +125,12 @@ def get_cloud_client():
         database=os.getenv("CHROMA_DATABASE"),
     )
 
+@lru_cache(maxsize=1)
+def get_embeddings_model():
+    return HuggingFaceEmbeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
 def get_vector_store(project_id: str):
-    embeddings = HuggingFaceEmbeddings()
+    embeddings = get_embeddings_model()
     if use_cloud_chroma():
         return Chroma(
             client=get_cloud_client(),
@@ -133,7 +138,7 @@ def get_vector_store(project_id: str):
             embedding_function=embeddings,
         )
     return Chroma(
-        persist_directory=f"./db/{project_id}",
+        persist_directory=os.path.join(DB_ROOT, project_id),
         embedding_function=embeddings,
     )
 
@@ -152,7 +157,7 @@ if use_cloud_chroma():
         os.getenv("CHROMA_DATABASE"),
     )
 else:
-    logging.info("Chroma local target: ./db/<project_id>")
+    logging.info("Chroma local target: %s/<project_id>", DB_ROOT)
 
 def validate_project_db(project_id: str):
     if use_cloud_chroma():
@@ -163,7 +168,7 @@ def validate_project_db(project_id: str):
             return True, None
         except Exception:
             return False, f"Vector database collection not found for project '{project_id}'."
-    persist_directory = f"./db/{project_id}"
+    persist_directory = os.path.join(DB_ROOT, project_id)
     sqlite_path = os.path.join(persist_directory, "chroma.sqlite3")
 
     if not os.path.isdir(persist_directory):

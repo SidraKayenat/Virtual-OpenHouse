@@ -2,9 +2,12 @@
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import Stall from "../models/Stall.js";
 
-const INGEST_ROOT = path.join(process.cwd(), "chatbot_ingest");
+const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const BACKEND_ROOT = path.resolve(CURRENT_DIR, "..");
+const INGEST_ROOT = path.join(BACKEND_ROOT, "chatbot_ingest");
 
 const SUPPORTED_EXTENSIONS = new Set([".pdf", ".docx", ".ppt", ".pptx"]);
 

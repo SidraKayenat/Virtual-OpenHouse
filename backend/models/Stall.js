@@ -170,6 +170,16 @@ const stallSchema = new Schema(
       },
     ],
 
+     // ===== CHATBOT INGEST STATE =====
+    chatbotDocFingerprint: {
+      type: String,
+      default: null,
+    },
+    chatbotLastIngestedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Banner/Thumbnail image (main display image)
     bannerImage: {
       url: {

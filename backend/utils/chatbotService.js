@@ -1,13 +1,10 @@
 //backend/utils/chatbotService.js
 import axios from "axios";
 import crypto from "crypto";
-import fs from "fs";
-import path from "path";
 import Stall from "../models/Stall.js";
 import * as chatbotIngest from "./chatbotIngest.js";
 
 const FLASK_BASE_URL = process.env.FLASK_URL || "http://localhost:5000";
-const INGEST_STATE_FILENAME = ".ingest-state.json";
 const FALLBACK_SUPPORTED_EXTENSIONS = new Set([".pdf", ".docx", ".ppt", ".pptx"]);
 
 const isSupportedDocFile = (file) => {
@@ -40,35 +37,6 @@ const getSupportedDocFingerprint = (stall) => {
 const getIngestStatePath = (botId) =>
   path.join(chatbotIngest.getIngestFolderForBot(botId), INGEST_STATE_FILENAME);
 
-const readIngestState = (botId) => {
-  const statePath = getIngestStatePath(botId);
-  if (!fs.existsSync(statePath)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(statePath, "utf8"));
-  } catch {
-    return null;
-  }
-};
-
-const writeIngestState = ({ botId, eventId, stallId, docFingerprint }) => {
-  const statePath = getIngestStatePath(botId);
-  fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  fs.writeFileSync(
-    statePath,
-    JSON.stringify(
-      {
-        botId,
-        eventId,
-        stallId,
-        docFingerprint,
-        ingestedAt: new Date().toISOString(),
-      },
-      null,
-      2,
-    ),
-  );
-};
-
 export const ingestStallChatbot = async (eventId, stallId) => {
   const botId = chatbotIngest.getStallBotId(eventId, stallId);
   const folderPath = chatbotIngest.getIngestFolderForBot(botId);
@@ -99,7 +67,15 @@ export const ingestStallChatbot = async (eventId, stallId) => {
     project_id: botId,
     folder_path: folderPath,
   });
-  writeIngestState({ botId, eventId, stallId, docFingerprint });
+    await Stall.updateOne(
+    { _id: stallId },
+    {
+      $set: {
+        chatbotDocFingerprint: docFingerprint,
+        chatbotLastIngestedAt: new Date(),
+      },
+    },
+  );
 
   return {
     botId,
@@ -115,16 +91,16 @@ export const ingestStallChatbot = async (eventId, stallId) => {
 };
 
 const ensureFreshStallIngestion = async (eventId, stallId) => {
-  const botId = chatbotIngest.getStallBotId(eventId, stallId);
-  const stall = await Stall.findById(stallId).select("documents").lean();
+  const stall = await Stall.findById(stallId)
+    .select("documents chatbotDocFingerprint")
+    .lean();
   if (!stall) {
     throw new Error("Stall not found");
   }
 
   const currentFingerprint = getSupportedDocFingerprint(stall);
-  const savedState = readIngestState(botId);
 
-  if (!savedState || savedState.docFingerprint !== currentFingerprint) {
+  if (!stall.chatbotDocFingerprint || stall.chatbotDocFingerprint !== currentFingerprint) {
     await ingestStallChatbot(eventId, stallId);
   }
 };
