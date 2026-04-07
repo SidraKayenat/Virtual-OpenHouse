@@ -274,29 +274,105 @@ const StallPopup = ({ stallData, onClose }) => {
             {teamMembers.length > 0 && (
               <div className="popup-section">
                 <p className="popup-section-title">Team</p>
-                <div className="popup-team-row">
-                  {teamMembers.map((m, i) => (
-                    <div key={`${m.name}-${i}`} className="popup-member-card">
-                      <div className="popup-member-avatar">
-                        {m.image ? (
-                          <img src={m.image} alt={m.name} />
-                        ) : (
-                          <span>{(m.name || "?")[0].toUpperCase()}</span>
-                        )}
-                      </div>
-                      <p className="popup-member-name">{m.name}</p>
-                      {m.role && <p className="popup-member-role">{m.role}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                <div className="popup-team-list">
+                  {teamMembers.map((m, i) => {
+                    const ci = m.contactInfo || {};
+                    const social = ci.socialLinks || {};
+                    return (
+                      <div key={`${m.name}-${i}`} className="popup-member-row">
+                        {/* Avatar */}
+                        <div className="popup-member-avatar">
+                          {m.image ? (
+                            <img src={m.image} alt={m.name} />
+                          ) : (
+                            <span>{(m.name || "?")[0].toUpperCase()}</span>
+                          )}
+                        </div>
 
-            {/* ── CONTACT ── */}
-            {contact && (
-              <div className="popup-section">
-                <p className="popup-section-title">Contact</p>
-                <p className="popup-contact-text">{contact}</p>
+                        {/* Name + role */}
+                        <div className="popup-member-identity">
+                          <p className="popup-member-name">{m.name}</p>
+                          {m.role && (
+                            <p className="popup-member-role">{m.role}</p>
+                          )}
+                        </div>
+
+                        {/* Contact chips */}
+                        <div className="popup-member-contacts">
+                          {ci.email && (
+                            <a
+                              href={`mailto:${ci.email}`}
+                              className="popup-contact-chip"
+                              title={ci.email}
+                            >
+                              <span className="popup-contact-icon">✉</span>
+                              <span className="popup-contact-label">
+                                {ci.email}
+                              </span>
+                            </a>
+                          )}
+                          {ci.phone && (
+                            <a
+                              href={`tel:${ci.phone}`}
+                              className="popup-contact-chip"
+                              title={ci.phone}
+                            >
+                              <span className="popup-contact-icon">📞</span>
+                              <span className="popup-contact-label">
+                                {ci.phone}
+                              </span>
+                            </a>
+                          )}
+                          {social.linkedin && (
+                            <a
+                              href={social.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="popup-contact-chip"
+                            >
+                              <span className="popup-contact-icon">in</span>
+                              <span className="popup-contact-label">
+                                {social.linkedin.replace(
+                                  /^https?:\/\/(www\.)?linkedin\.com\/in\//i,
+                                  "",
+                                )}
+                              </span>
+                            </a>
+                          )}
+                          {ci.website && (
+                            <a
+                              href={ci.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="popup-contact-chip"
+                            >
+                              <span className="popup-contact-icon">🌐</span>
+                              <span className="popup-contact-label">
+                                {ci.website.replace(/^https?:\/\//i, "")}
+                              </span>
+                            </a>
+                          )}
+                          {social.github && (
+                            <a
+                              href={social.github}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="popup-contact-chip"
+                            >
+                              <span className="popup-contact-icon">⌥</span>
+                              <span className="popup-contact-label">
+                                {social.github.replace(
+                                  /^https?:\/\/(www\.)?github\.com\//i,
+                                  "",
+                                )}
+                              </span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
