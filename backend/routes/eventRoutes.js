@@ -14,7 +14,7 @@ const router = express.Router();
 router.get("/public/archived", eventController.getPublicArchivedEvents);
 router.get("/browse", eventController.getBrowseEvents);
 router.get("/published", eventController.getPublishedEvents);
-router.get("/default-background", eventController.getDefaultBackground);
+router.get("/default-backgrounds", eventController.getDefaultBackgrounds);
 router.get("/public/:eventId", eventController.getPublicEventById); // ADD THIS - Public event vie
 
 // Protected routes (require authentication)
@@ -52,12 +52,12 @@ router.post(
   eventController.uploadEventBackground,
 );
 
-// Set default background (admin only)
+// Set default backgrounds (up to 5, admin only)
 router.post(
-  "/admin/set-default-background",
+  "/admin/set-default-backgrounds",
   verifyToken,
-  uploadEventDefaultBackground.single("defaultBackground"),
-  eventController.setDefaultBackground,
+  uploadEventDefaultBackground.array("defaultBackgrounds", 5),
+  eventController.setDefaultBackgrounds,
 );
 
 // Update background type (switch between default and custom)

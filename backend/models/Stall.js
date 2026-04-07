@@ -228,42 +228,6 @@ const stallSchema = new Schema(
     //   max: 3,
     // },
 
-    // // 3D Model customization (optional)
-    // customModel: {
-    //   url: {
-    //     type: String,
-    //     default: null,
-    //   },
-    //   publicId: {
-    //     type: String,
-    //     default: null,
-    //   },
-    // },
-
-    // ===== CONTACT & SOCIAL LINKS =====
-    // contactInfo: {
-    //   email: {
-    //     type: String,
-    //     trim: true,
-    //     lowercase: true,
-    //   },
-    //   phone: {
-    //     type: String,
-    //     trim: true,
-    //   },
-    //   website: {
-    //     type: String,
-    //     trim: true,
-    //   },
-    //   socialLinks: {
-    //     linkedin: String,
-    //     twitter: String,
-    //     facebook: String,
-    //     instagram: String,
-    //     github: String,
-    //   },
-    // },
-
     // ===== STATUS & VISIBILITY =====
     isActive: {
       type: Boolean,
@@ -343,7 +307,7 @@ stallSchema.virtual("isReadyToPublish").get(function () {
     this.projectTitle &&
     this.projectDescription &&
     this.images.length > 0 &&
-    this.bannerImage.url
+    this.bannerImage?.url
   );
 });
 
@@ -363,7 +327,7 @@ stallSchema.methods.incrementLikes = async function () {
 
 // Check if user owns this stall
 stallSchema.methods.isOwnedBy = function (userId) {
-  return this.owner.toString() === userId.toString();
+  return this.owner?.toString() === userId.toString();
 };
 
 // Publish stall

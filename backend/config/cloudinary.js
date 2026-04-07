@@ -173,7 +173,7 @@ export const uploadVideo = multer({
 export const uploadDocument = multer({
   storage: documentStorage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 20 * 1024 * 1024, // 20MB limit
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
