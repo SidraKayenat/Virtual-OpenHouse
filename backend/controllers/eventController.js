@@ -49,7 +49,8 @@ export const getPublicEventById = async (req, res) => {
         status: 1,
         bannerImage: 1,
         backgroundType: 1,
-        customBackground: 1,
+        backgroundUrl: 1,
+        selectedBackgroundId: 1,
         eventType: 1,
         tags: 1,
         venue: 1,
@@ -127,7 +128,7 @@ export const createEvent = async (req, res) => {
       startTime,
       endTime,
       backgroundType,
-      customBackground,
+      selectedBackgroundId, // 1-5 for default backgrounds
       environmentType,
       eventType,
       tags,
@@ -135,13 +136,42 @@ export const createEvent = async (req, res) => {
       archive,
     } = req.body;
 
-    // If backgroundType is "default", fetch the default background URL from Settings
-    let defaultBackgroundUrl = null;
-    if (backgroundType === "default" || !backgroundType) {
-      const settings = await Settings.findOne();
-      if (settings && settings.defaultBackgroundUrl) {
-        defaultBackgroundUrl = settings.defaultBackgroundUrl;
+    let backgroundUrl = null;
+    let finalSelectedBackgroundId = null;
+
+    // Handle background selection
+    if (backgroundType === "custom") {
+      // Custom background will be uploaded separately
+      // For now, we don't set the backgroundUrl (will be set when file is uploaded)
+      backgroundUrl = null;
+    } else {
+      // Default background - user must select one from the 5 options (1-5)
+      if (!selectedBackgroundId || selectedBackgroundId < 1 || selectedBackgroundId > 5) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select a default background (1-5) or upload a custom background",
+        });
       }
+
+      // Fetch the selected background from Settings
+      const settings = await Settings.findOne();
+      if (!settings || !settings.defaultBackgrounds || settings.defaultBackgrounds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No default backgrounds available. Please contact admin.",
+        });
+      }
+
+      const selectedBg = settings.defaultBackgrounds.find(bg => bg.backgroundId === selectedBackgroundId);
+      if (!selectedBg || !selectedBg.url) {
+        return res.status(400).json({
+          success: false,
+          message: `Background ${selectedBackgroundId} not found or not set by admin`,
+        });
+      }
+
+      backgroundUrl = selectedBg.url;
+      finalSelectedBackgroundId = selectedBackgroundId;
     }
 
     // Create event
@@ -153,8 +183,8 @@ export const createEvent = async (req, res) => {
       startTime,
       endTime,
       backgroundType: backgroundType || "default",
-      customBackground,
-      defaultBackgroundUrl, // ← Set from Settings
+      backgroundUrl,
+      selectedBackgroundId: finalSelectedBackgroundId,
       environmentType,
       eventType,
       tags,
@@ -921,10 +951,10 @@ export const uploadEventBackground = async (req, res) => {
       });
     }
 
-    // Delete old custom background if it exists
-    if (event.customBackgroundPublicId) {
+    // Delete old background if it exists (only if it's from custom uploads)
+    if (event.backgroundPublicId && event.backgroundType === "custom") {
       try {
-        await deleteFromCloudinary(event.customBackgroundPublicId);
+        await deleteFromCloudinary(event.backgroundPublicId);
       } catch (error) {
         console.error("Error deleting old background:", error);
         // Continue anyway
@@ -932,16 +962,17 @@ export const uploadEventBackground = async (req, res) => {
     }
 
     // Update event with new background
-    event.customBackground = req.file.path;
-    event.customBackgroundPublicId = req.file.filename;
+    event.backgroundUrl = req.file.path;
+    event.backgroundPublicId = req.file.filename;
     event.backgroundType = "custom"; // Automatically set to custom when uploading
+    event.selectedBackgroundId = null; // Clear default background selection
     await event.save();
 
     res.status(200).json({
       success: true,
       message: "Event background uploaded successfully",
       data: {
-        customBackground: event.customBackground,
+        backgroundUrl: event.backgroundUrl,
         backgroundType: event.backgroundType,
         eventId: event._id,
       },
@@ -957,78 +988,86 @@ export const uploadEventBackground = async (req, res) => {
 
 // ===== SET DEFAULT BACKGROUND (Admin only) =====
 // This endpoint stores the default background that will be used for all "default" background events
-export const setDefaultBackground = async (req, res) => {
+// ===== SET DEFAULT BACKGROUNDS (UP TO 5) =====
+export const setDefaultBackgrounds = async (req, res) => {
   try {
     // Check admin role
     if (req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
-        message: "Only admins can set default background",
+        message: "Only admins can set default backgrounds",
       });
     }
 
-    if (!req.file) {
+    // Check if files were uploaded
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "No image uploaded",
+        message: "No images uploaded",
       });
     }
 
-    const newDefaultBackgroundUrl = req.file.path;
-    const newDefaultBackgroundPublicId = req.file.filename;
+    // Max 5 backgrounds allowed
+    if (req.files.length > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 5 backgrounds allowed",
+      });
+    }
 
     // Get or create Settings document
     let settings = await Settings.findOne();
+
+    // Delete old default backgrounds from Cloudinary
+    if (settings && settings.defaultBackgrounds && settings.defaultBackgrounds.length > 0) {
+      for (const bg of settings.defaultBackgrounds) {
+        if (bg.publicId) {
+          try {
+            await deleteFromCloudinary(bg.publicId);
+          } catch (error) {
+            console.error(`Error deleting background ${bg.backgroundId}:`, error);
+            // Continue anyway - don't fail the upload
+          }
+        }
+      }
+    }
+
+    // Process uploaded images and create new defaultBackgrounds array
+    const newDefaultBackgrounds = req.files.map((file, index) => ({
+      backgroundId: index + 1, // 1-5
+      url: file.path, // Cloudinary URL
+      publicId: file.filename, // Cloudinary public_id
+      name: `Background ${index + 1}`,
+    }));
+
     if (!settings) {
+      // Create new Settings document with default backgrounds
       settings = await Settings.create({
-        defaultBackgroundUrl: newDefaultBackgroundUrl,
-        defaultBackgroundPublicId: newDefaultBackgroundPublicId,
+        defaultBackgrounds: newDefaultBackgrounds,
         lastUpdatedBy: req.user._id,
         lastUpdatedAt: new Date(),
       });
     } else {
-      // Delete old default background from Cloudinary if it exists
-      if (settings.defaultBackgroundPublicId) {
-        try {
-          await deleteFromCloudinary(settings.defaultBackgroundPublicId);
-        } catch (error) {
-          console.error("Error deleting old default background:", error);
-          // Continue anyway - don't fail the upload
-        }
-      }
-
-      // Update Settings with new default background
-      settings.defaultBackgroundUrl = newDefaultBackgroundUrl;
-      settings.defaultBackgroundPublicId = newDefaultBackgroundPublicId;
+      // Update existing Settings with new default backgrounds
+      settings.defaultBackgrounds = newDefaultBackgrounds;
       settings.lastUpdatedBy = req.user._id;
       settings.lastUpdatedAt = new Date();
       await settings.save();
     }
 
-    // ===== UPDATE ALL EVENTS WITH backgroundType="default" =====
-    const updateResult = await Event.updateMany(
-      { backgroundType: "default" },
-      {
-        $set: {
-          defaultBackgroundUrl: newDefaultBackgroundUrl,
-        },
-      },
-    );
-
     res.status(200).json({
       success: true,
-      message: "Default background set successfully",
+      message: "Default backgrounds set successfully",
       data: {
-        defaultBackgroundUrl: newDefaultBackgroundUrl,
-        eventsUpdated: updateResult.modifiedCount,
-        note: `Updated ${updateResult.modifiedCount} events with default background type`,
+        defaultBackgrounds: newDefaultBackgrounds,
+        count: newDefaultBackgrounds.length,
       },
     });
   } catch (error) {
-    console.error("Set Default Background Error:", error);
+    console.error("Set Default Backgrounds Error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to set default background",
+      message: error.message || "Failed to set default backgrounds",
     });
   }
 };
@@ -1067,12 +1106,12 @@ export const updateBackgroundType = async (req, res) => {
     // Update background type
     event.backgroundType = backgroundType;
 
-    // If switching to "default", fetch the current default background URL from Settings
+    // If switching to "default", user must provide selectedBackgroundId in next request
+    // For now, clear the background URL since it will be set when user selects one
     if (backgroundType === "default") {
-      const settings = await Settings.findOne();
-      if (settings && settings.defaultBackgroundUrl) {
-        event.defaultBackgroundUrl = settings.defaultBackgroundUrl;
-      }
+      event.backgroundUrl = null;
+      event.backgroundPublicId = null;
+      event.selectedBackgroundId = null;
     }
 
     await event.save();
@@ -1082,8 +1121,8 @@ export const updateBackgroundType = async (req, res) => {
       message: "Background type updated successfully",
       data: {
         backgroundType: event.backgroundType,
-        defaultBackgroundUrl: event.defaultBackgroundUrl,
-        customBackground: event.customBackground,
+        backgroundUrl: event.backgroundUrl,
+        selectedBackgroundId: event.selectedBackgroundId,
         eventId: event._id,
       },
     });
@@ -1168,18 +1207,19 @@ export const deleteCustomBackground = async (req, res) => {
       });
     }
 
-    // Delete from cloudinary if exists
-    if (event.customBackgroundPublicId) {
+    // Delete from cloudinary if exists (only for custom backgrounds)
+    if (event.backgroundPublicId && event.backgroundType === "custom") {
       try {
-        await deleteFromCloudinary(event.customBackgroundPublicId);
+        await deleteFromCloudinary(event.backgroundPublicId);
       } catch (error) {
         console.error("Error deleting from Cloudinary:", error);
       }
     }
 
     // Clear background fields
-    event.customBackground = null;
-    event.customBackgroundPublicId = null;
+    event.backgroundUrl = null;
+    event.backgroundPublicId = null;
+    event.selectedBackgroundId = null;
     event.backgroundType = "default"; // Reset to default
     await event.save();
 
@@ -1515,18 +1555,18 @@ export const getPublicArchivedEvents = async (req, res) => {
   }
 };
 
-// ===== GET DEFAULT BACKGROUND SETTINGS (Public) =====
-// Frontend can call this to get the current default background URL
-export const getDefaultBackground = async (req, res) => {
+// ===== GET DEFAULT BACKGROUNDS SETTINGS (Public) =====
+// Frontend can call this to get all available default backgrounds (up to 5)
+export const getDefaultBackgrounds = async (req, res) => {
   try {
     const settings = await Settings.findOne();
 
-    if (!settings || !settings.defaultBackgroundUrl) {
+    if (!settings || !settings.defaultBackgrounds || settings.defaultBackgrounds.length === 0) {
       return res.status(200).json({
         success: true,
-        message: "No default background set yet",
+        message: "No default backgrounds set yet",
         data: {
-          defaultBackgroundUrl: null,
+          defaultBackgrounds: [],
         },
       });
     }
@@ -1534,7 +1574,7 @@ export const getDefaultBackground = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        defaultBackgroundUrl: settings.defaultBackgroundUrl,
+        defaultBackgrounds: settings.defaultBackgrounds,
       },
     });
   } catch (error) {

@@ -221,42 +221,8 @@ const stallSchema = new Schema(
     //   max: 3,
     // },
 
-    // // 3D Model customization (optional)
-    // customModel: {
-    //   url: {
-    //     type: String,
-    //     default: null,
-    //   },
-    //   publicId: {
-    //     type: String,
-    //     default: null,
-    //   },
-    // },
+  
 
-
-    // ===== CONTACT & SOCIAL LINKS =====
-    // contactInfo: {
-    //   email: {
-    //     type: String,
-    //     trim: true,
-    //     lowercase: true,
-    //   },
-    //   phone: {
-    //     type: String,
-    //     trim: true,
-    //   },
-    //   website: {
-    //     type: String,
-    //     trim: true,
-    //   },
-    //   socialLinks: {
-    //     linkedin: String,
-    //     twitter: String,
-    //     facebook: String,
-    //     instagram: String,
-    //     github: String,
-    //   },
-    // },
 
     // ===== STATUS & VISIBILITY =====
     isActive: {
