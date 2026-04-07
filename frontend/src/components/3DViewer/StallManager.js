@@ -10,12 +10,10 @@ export class StallManager {
     this.stalls = [];
     this.mixers = [];
     this.labels = [];
-    this.tileTexture = null;
   }
 
   async createStalls(stallCount, stallData) {
     const positions = this.calculateStallPositions(stallCount);
-
     for (let i = 0; i < stallCount; i++) {
       const position = positions[i];
       const data = stallData[i] || { id: i + 1, name: `Stall ${i + 1}` };
@@ -32,7 +30,6 @@ export class StallManager {
 
   calculateStallPositions(count) {
     const positions = [];
-
     const PADDING = 50;
     const maxX = HALL_DIMENSIONS.WIDTH - PADDING;
     const maxZ = HALL_DIMENSIONS.DEPTH - PADDING;
@@ -77,7 +74,6 @@ export class StallManager {
     ];
 
     const stallsPerWall = this.distributeStalls(count, walls, maxX, maxZ);
-
     let stallIndex = 0;
 
     for (let w = 0; w < walls.length; w++) {
@@ -96,16 +92,12 @@ export class StallManager {
           -spreadMax + PADDING,
           Math.min(spreadMax - PADDING, spreadVal),
         );
-
         const x = wall.fixedAxis === "x" ? wall.fixedVal : clampedSpread;
         const z = wall.fixedAxis === "z" ? wall.fixedVal : clampedSpread;
-
         positions.push({ x, z, rotation: wall.rotation });
         stallIndex++;
-
         if (stallIndex >= count) break;
       }
-
       if (stallIndex >= count) break;
     }
 
@@ -142,10 +134,8 @@ export class StallManager {
         remaining--;
       }
       wallIndex++;
-
       if (result.reduce((a, b) => a + b, 0) >= totalCapacity) break;
     }
-
     return result;
   }
 
@@ -153,14 +143,12 @@ export class StallManager {
     const positions = [];
     const cols = Math.ceil(Math.sqrt(count));
     const rows = Math.ceil(count / cols);
-
     const startX = (-(cols - 1) * spacing) / 2;
     const startZ = (-(rows - 1) * spacing) / 2;
 
     for (let i = 0; i < count; i++) {
       const row = Math.floor(i / cols);
       const col = i % cols;
-
       const x = Math.max(
         -(HALL_DIMENSIONS.WIDTH - 50),
         Math.min(HALL_DIMENSIONS.WIDTH - 50, startX + col * spacing),
@@ -169,32 +157,30 @@ export class StallManager {
         -(HALL_DIMENSIONS.DEPTH - 50),
         Math.min(HALL_DIMENSIONS.DEPTH - 50, startZ + row * spacing),
       );
-
       positions.push({ x, z, rotation: 0 });
     }
-
     return positions;
   }
+
+  /* ================= LABEL ================= */
 
   createLabel(x, z, name) {
     const div = document.createElement("div");
     div.textContent = name;
     div.style.cssText = `
-    background: rgba(0, 0, 0, 0.65);
-    color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-family: sans-serif;
-    font-weight: 500;
-    white-space: nowrap;
-    pointer-events: none;
-    border: 1px solid rgba(255,255,255,0.15);
-  `;
-
+      background: rgba(0,0,0,0.65);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.15);
+    `;
     const label = new CSS2DObject(div);
-    // HITBOX_SIZE is 38, SCALE is 7 — position label above stall
-    label.position.set(x + 3, 28, z); // 👈 tweak y if too high/low
+    label.position.set(x + 3, 28, z);
     this.scene.add(label);
     this.labels.push(label);
   }
@@ -215,128 +201,11 @@ export class StallManager {
       model.rotation.y = rotation;
 
       model.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-
-              if (child.name === "Plane001") {
-                child.material = new THREE.MeshStandardMaterial({
-                  color: new THREE.Color(0xd6cfc4),
-                  roughness: 0.005, // very low = mirror-like
-                  metalness: 0.8,
-                  envMapIntensity: 1.5,
-                });
-              }
-              if (child.name === "Plane001") {
-                child.scale.set(2, 1, 2);
-                child.material = new THREE.ShaderMaterial({
-                  uniforms: {
-                    tileSize: { value: 8.0 },
-                    groutWidth: { value: 0.0 },
-                    tileColor: { value: new THREE.Color(0xd6cfc4) },
-                    groutColor: { value: new THREE.Color(0x888880) },
-
-                    // Multiple lights for richer specular
-                    light1Dir: {
-                      value: new THREE.Vector3(1, 3, 1).normalize(),
-                    },
-                    light2Dir: {
-                      value: new THREE.Vector3(-1, 2, -1).normalize(),
-                    },
-                    light3Dir: {
-                      value: new THREE.Vector3(0, 5, 0).normalize(),
-                    },
-
-                    shininess: { value: 80.0 },
-                    specularStrength: { value: 0.15 },
-                    fresnelStrength: { value: 0.08 }, // edge glow like polished stone
-                    cameraPos: { value: new THREE.Vector3() },
-                  },
-                  vertexShader: `
-      varying vec3 vWorldPos;
-      varying vec3 vNormal;
-      void main() {
-        vec4 wp = modelMatrix * vec4(position, 1.0);
-        vWorldPos = wp.xyz;
-        vNormal = normalize(mat3(modelMatrix) * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-                  fragmentShader: `
-      uniform float tileSize;
-      uniform float groutWidth;
-      uniform vec3  tileColor;
-      uniform vec3  groutColor;
-      uniform vec3  light1Dir;
-      uniform vec3  light2Dir;
-      uniform vec3  light3Dir;
-      uniform float shininess;
-      uniform float specularStrength;
-      uniform float fresnelStrength;
-      uniform vec3  cameraPos;
-
-      varying vec3 vWorldPos;
-      varying vec3 vNormal;
-
-      float blinnPhong(vec3 N, vec3 L, vec3 V, float power) {
-        vec3 H = normalize(L + V);
-        return pow(max(dot(N, H), 0.0), power);
-      }
-
-      void main() {
-        // ── Tile pattern ──
-        vec2 pos  = vec2(vWorldPos.x, vWorldPos.z);
-        vec2 cell = fract(pos / tileSize);
-        float gw  = groutWidth;
-        bool isGrout = cell.x < gw || cell.x > (1.0 - gw)
-                    || cell.y < gw || cell.y > (1.0 - gw);
-
-        vec2  tileId    = floor(pos / tileSize);
-        float variation = fract(sin(dot(tileId, vec2(12.9898, 78.233))) * 43758.5453) * 0.06;
-        vec3  baseColor = isGrout ? groutColor : tileColor + variation;
-
-        // ── Lighting vectors ──
-        vec3 N = vec3(0.0, 1.0, 0.0); // floor always faces up
-        vec3 V = normalize(cameraPos - vWorldPos);
-
-        // ── Fresnel (grazing angle = more reflective, like real polished stone) ──
-        float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0) * fresnelStrength;
-
-        // ── Multi-light specular ──
-        float spec = 0.0;
-        spec += blinnPhong(N, light1Dir, V, shininess) * 1.0;
-        spec += blinnPhong(N, light2Dir, V, shininess * 0.6) * 0.4;
-        spec += blinnPhong(N, light3Dir, V, shininess * 1.5) * 0.6;
-        spec *= specularStrength;
-        if (isGrout) spec *= 0.04; // grout stays matte
-
-        // ── Fake floor reflection: bright band near horizon ──
-        // As V becomes more horizontal the floor appears brighter (like a mirror)
-        float horizonGlow = pow(max(1.0 - abs(dot(N, V)), 0.0), 4.0) * 0.08; // was 0.35
-
-        // ── Ambient + diffuse base ──
-        float diff = max(dot(N, light1Dir), 0.0);
-        vec3 ambient = 0.4 * baseColor;
-        vec3 color   = ambient + 0.2 * diff * baseColor;
-
-        // ── Add specular + fresnel + horizon ──
-        color += spec * vec3(1.0, 0.98, 0.95);      // slightly warm highlight
-        color += fresnel * vec3(0.9, 0.92, 1.0);     // cool fresnel rim
-        color += horizonGlow * vec3(1.0, 0.98, 0.95);
-
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `,
-                  side: THREE.DoubleSide,
-                });
-              }
-            }
-          });
+        if (!child.isMesh) return;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.name === "Plane001") {
+          child.visible = false;
         }
       });
 
@@ -344,7 +213,6 @@ export class StallManager {
 
       const hitbox = this.createHitbox(x, z, stallData);
       this.stalls.push(hitbox);
-
       this.createLabel(x, z, stallData.name || `Stall ${stallData.id}`);
 
       if (gltf.animations.length) {
@@ -356,6 +224,7 @@ export class StallManager {
       console.error(`Failed to load stall at (${x}, ${z}):`, error);
     }
   }
+
   loadStallModel() {
     return new Promise((resolve, reject) => {
       this.loader.load(
@@ -374,9 +243,7 @@ export class StallManager {
         STALL_CONFIG.HITBOX_SIZE,
         STALL_CONFIG.HITBOX_SIZE - 15,
       ),
-      new THREE.MeshBasicMaterial({
-        visible: false,
-      }),
+      new THREE.MeshBasicMaterial({ visible: false }),
     );
     hitbox.position.set(x + 2, 3, z);
     hitbox.userData = stallData;
@@ -401,11 +268,11 @@ export class StallManager {
       stall.material.dispose();
     });
     this.labels.forEach((label) => {
-      // 👈 add this block
       this.scene.remove(label);
-      label.element.remove();
+      label.element?.remove();
     });
     this.stalls = [];
     this.mixers = [];
+    this.labels = [];
   }
 }
