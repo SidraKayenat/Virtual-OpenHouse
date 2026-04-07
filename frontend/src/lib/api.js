@@ -52,6 +52,13 @@ export const eventAPI = {
     const queryString = new URLSearchParams(params).toString();
     return api(`/events?${queryString}`, { method: "GET" });
   },
+  getBrowseEvents: (type, params = {}) => {
+    const queryString = new URLSearchParams({
+      type,
+      ...params,
+    }).toString();
+    return api(`/events/browse?${queryString}`, { method: "GET" });
+  },
 
   // Get my events
   getMyEvents: () =>
@@ -63,6 +70,11 @@ export const eventAPI = {
   getPublished: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return api(`/events/published?${queryString}`, { method: "GET" });
+  },
+
+  getPublicArchivedEvents: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api(`/events/public/archived?${queryString}`, { method: "GET" });
   },
 
   // Get single event  -Auth required

@@ -10,6 +10,9 @@ import {
 const router = express.Router();
 
 // Public routes (no authentication required)
+// Get public archived events (past events)
+router.get("/public/archived", eventController.getPublicArchivedEvents);
+router.get("/browse", eventController.getBrowseEvents);
 router.get("/published", eventController.getPublishedEvents);
 router.get("/default-background", eventController.getDefaultBackground);
 router.get("/public/:eventId", eventController.getPublicEventById); // ADD THIS - Public event vie
@@ -83,21 +86,21 @@ router.delete(
 router.post(
   "/:eventId/reminder",
   verifyToken,
-  eventController.setEventReminder
+  eventController.setEventReminder,
 );
 
 // Remove a reminder for the event
 router.delete(
   "/:eventId/reminder",
   verifyToken,
-  eventController.removeEventReminder
+  eventController.removeEventReminder,
 );
 
 // Check if user has set a reminder
 router.get(
   "/:eventId/reminder/status",
   verifyToken,
-  eventController.hasUserSetReminder
+  eventController.hasUserSetReminder,
 );
 
 // ===== EVENT ARCHIVE ROUTES =====
@@ -105,18 +108,15 @@ router.get(
 router.patch(
   "/:eventId/archive",
   verifyToken,
-  eventController.toggleArchiveEvent
+  eventController.toggleArchiveEvent,
 );
 
 // Get user's archived (past) events
 router.get(
   "/archived/my-past-events",
   verifyToken,
-  eventController.getArchivedEvents
+  eventController.getArchivedEvents,
 );
-
-// Get public archived events (past events)
-router.get("/public/archived", eventController.getPublicArchivedEvents);
 
 // Admin route - get all events
 router.get("/", verifyToken, eventController.getAllEvents);

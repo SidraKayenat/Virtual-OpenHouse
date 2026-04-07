@@ -198,7 +198,13 @@ export const createEvent = async (req, res) => {
 // Role: System Admin views all events for approval
 export const getAllEvents = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 10, sortBy = "latest" } = req.query;
+    const {
+      status,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = "latest",
+    } = req.query;
 
     let query = {};
 
@@ -255,6 +261,102 @@ export const getAllEvents = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch events",
+    });
+  }
+};
+
+// ===== GET EVENTS FOR BROWSE PAGE (Unified) =====
+export const getBrowseEvents = async (req, res) => {
+  try {
+    const {
+      type, // "all", "live", "upcoming", "past"
+      search,
+      eventType,
+      tags,
+      page = 1,
+      limit = 12,
+      sortBy = "latest",
+    } = req.query;
+
+    let query = {};
+
+    // Build query based on tab type
+    if (type === "live") {
+      query.status = "live";
+    } else if (type === "upcoming") {
+      query.status = "published";
+      query.liveDate = { $gt: new Date() };
+    } else if (type === "past") {
+      query.archive = true;
+      query.status = "completed";
+    } else {
+      // "all" - show everything
+      query.$or = [
+        { status: "published" },
+        { status: "live" },
+        { status: "completed", archive: true }, // Only completed if archived
+      ];
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = query.$or || [];
+      query.$or.push(
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      );
+    }
+
+    // Event type filter
+    if (eventType) {
+      query.eventType = eventType;
+    }
+
+    // Tags filter
+    if (tags) {
+      const tagArray = tags.split(",");
+      query.tags = { $in: tagArray };
+    }
+
+    // Sort order
+    let sortObject = { createdAt: -1 };
+    if (sortBy === "oldest") sortObject = { createdAt: 1 };
+    else if (sortBy === "asc_alphabetically") sortObject = { name: 1 };
+    else if (sortBy === "desc_alphabetically") sortObject = { name: -1 };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const events = await Event.find(query)
+      .populate("createdBy", "name organization")
+      .sort(sortObject)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select("-reviewedBy -rejectionReason");
+
+    // Update live status for events that should be live
+    for (const event of events) {
+      if (event.status === "published" && event.liveDate <= new Date()) {
+        event.status = "live";
+        await event.save();
+      }
+    }
+
+    const total = await Event.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: events,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get Browse Events Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch events",
     });
   }
 };
@@ -475,7 +577,14 @@ export const publishEvent = async (req, res) => {
 // ===== GET PUBLISHED EVENTS (Public) =====
 export const getPublishedEvents = async (req, res) => {
   try {
-    const { search, eventType, tags, page = 1, limit = 10, sortBy = "latest" } = req.query;
+    const {
+      search,
+      eventType,
+      tags,
+      page = 1,
+      limit = 10,
+      sortBy = "latest",
+    } = req.query;
 
     let query = {
       status: { $in: ["published", "live"] },
@@ -1229,7 +1338,7 @@ export const setEventReminder = async (req, res) => {
 
     // Check if user already has a reminder set
     const reminderExists = event.reminders.some(
-      (reminder) => reminder.user.toString() === userId.toString()
+      (reminder) => reminder.user.toString() === userId.toString(),
     );
 
     if (reminderExists) {
@@ -1250,7 +1359,8 @@ export const setEventReminder = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Reminder set successfully. You will receive a notification 24 hours before the event goes live.",
+      message:
+        "Reminder set successfully. You will receive a notification 24 hours before the event goes live.",
       data: {
         eventId: event._id,
         eventName: event.name,
@@ -1290,7 +1400,7 @@ export const removeEventReminder = async (req, res) => {
 
     // Remove reminder
     event.reminders = event.reminders.filter(
-      (reminder) => reminder.user.toString() !== userId.toString()
+      (reminder) => reminder.user.toString() !== userId.toString(),
     );
 
     await event.save();
@@ -1334,7 +1444,7 @@ export const hasUserSetReminder = async (req, res) => {
     }
 
     const hasReminder = event.reminders.some(
-      (reminder) => reminder.user.toString() === userId.toString()
+      (reminder) => reminder.user.toString() === userId.toString(),
     );
 
     res.status(200).json({
