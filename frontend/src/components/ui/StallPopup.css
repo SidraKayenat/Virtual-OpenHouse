@@ -1,132 +1,453 @@
 /* src/components/UI/StallPopup.css */
 
+/* ── Overlay ── */
 .popup-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
+  inset: 0;
+  background: rgba(4, 4, 14, 0.85);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  padding: 16px;
   animation: fadeIn 0.3s ease;
 }
 
-.popup-inner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 2rem;
-  border-radius: 20px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
+/* ── Card ── */
+.popup-card {
   position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #0d0d1a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(120, 80, 255, 0.15);
+  font-family: "Sora", "Segoe UI", sans-serif;
+  color: #e8e8f0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 80, 255, 0.3) transparent;
   animation: slideUp 0.3s ease;
 }
 
-.close-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.popup-card::-webkit-scrollbar {
+  width: 6px;
+}
+.popup-card::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 255, 0.3);
+  border-radius: 6px;
+}
+.popup-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Banner ── */
+.popup-banner {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 20px 20px 0 0;
+  display: block;
+}
+
+.popup-banner-placeholder {
+  width: 100%;
+  height: 140px;
+  border-radius: 20px 20px 0 0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 40px;
 }
 
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+/* ── Close Button ── */
+.popup-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition:
+    background 0.2s,
+    transform 0.3s ease;
+}
+
+.popup-close-btn:hover {
+  background: rgba(120, 85, 255, 0.3);
   transform: rotate(90deg);
 }
 
+/* ── Body ── */
+.popup-body {
+  padding: 24px 28px 28px;
+}
+
+/* ── Title ── */
 .popup-title {
-  font-size: 28px;
-  margin-bottom: 1rem;
-  font-weight: bold;
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #fff;
 }
 
+/* ── Description ── */
 .popup-description {
-  font-size: 16px;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-  opacity: 0.95;
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #a0a0c0;
 }
 
+/* ── Section ── */
 .popup-section {
-  margin-top: 1.5rem;
+  margin-bottom: 20px;
 }
 
-.popup-section h3 {
-  font-size: 18px;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
+.popup-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #7855ff;
+  margin-bottom: 10px;
 }
 
-.tech-list {
-  list-style: none;
-  padding: 0;
+/* ── Category Badge ── */
+.popup-category-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  background: rgba(0, 200, 150, 0.1);
+  border: 1px solid rgba(0, 200, 150, 0.25);
+  font-size: 12px;
+  color: #00d4a0;
+  text-transform: capitalize;
+  margin-bottom: 14px;
+}
+
+/* ── Tags ── */
+.popup-tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
-.tech-list li {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.5rem 1rem;
+.popup-tag {
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 14px;
+  background: rgba(120, 85, 255, 0.12);
+  border: 1px solid rgba(120, 85, 255, 0.25);
+  font-size: 12px;
+  color: #c0a8ff;
 }
 
-.popup-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+/* ── Image Grid ── */
+.popup-img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
 }
 
-.action-btn {
-  flex: 1;
-  padding: 0.8rem 1.5rem;
-  border: none;
+.popup-img-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
   border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+.popup-img-thumb:hover {
+  border-color: rgba(120, 85, 255, 0.6);
+  transform: scale(1.04);
+}
+
+/* ── Video Grid ── */
+.popup-video-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.popup-video-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+.popup-video-thumb:hover {
+  border-color: rgba(120, 85, 255, 0.6);
+}
+
+.popup-video-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
+
+/* ── Team ── */
+.popup-team-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.popup-member-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 80px;
+}
+
+.popup-member-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(120, 85, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  border: 2px solid rgba(120, 85, 255, 0.3);
+  overflow: hidden;
+}
+
+.popup-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.popup-member-name {
   font-size: 14px;
   font-weight: 600;
+  color: #ddd;
+  margin: 6px 0 0;
+}
+
+.popup-member-role {
+  font-size: 12px;
+  color: #888;
+  margin: 2px 0 0;
+}
+
+/* ── Contact ── */
+.popup-contact-text {
+  font-size: 14px;
+  color: #a0a0c0;
+  margin: 0;
+}
+
+/* ── Loading ── */
+.popup-loading-box {
+  padding: 40px 0;
+  text-align: center;
+  color: #555;
+  font-size: 14px;
+}
+
+/* ── Actions ── */
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.popup-action-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #7855ff, #a855f7);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: white;
-  color: #667eea;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
   text-decoration: none;
   text-align: center;
 }
 
-.action-btn:hover {
+.popup-action-btn:hover {
+  opacity: 0.88;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.action-btn.secondary {
-  background: transparent;
-  border: 2px solid white;
-  color: white;
+.popup-action-btn-secondary {
+  flex: 1;
+  min-width: 140px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+  text-decoration: none;
+  text-align: center;
 }
 
-.action-btn.secondary:hover {
-  background: white;
-  color: #667eea;
+.popup-action-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
+/* ── Lightbox Overlay ── */
+.popup-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.popup-lightbox-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 0 60px rgba(120, 85, 255, 0.3);
+}
+
+.popup-lightbox-caption {
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.popup-lightbox-counter {
+  color: #555;
+  font-size: 12px;
+}
+
+.popup-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.popup-lightbox-nav:hover {
+  background: rgba(120, 85, 255, 0.3);
+}
+
+.popup-lightbox-nav.prev {
+  left: 20px;
+}
+
+.popup-lightbox-nav.next {
+  right: 20px;
+}
+
+/* ── Video Overlay ── */
+.popup-video-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeIn 0.2s ease;
+}
+
+.popup-video-player {
+  max-width: 90vw;
+  max-height: 75vh;
+  border-radius: 12px;
+  outline: none;
+  box-shadow: 0 0 60px rgba(120, 85, 255, 0.25);
+}
+
+.popup-video-title {
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* ── Modal Close (shared by lightbox + video modal) ── */
+.popup-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s,
+    transform 0.3s ease;
+}
+
+.popup-modal-close:hover {
+  background: rgba(120, 85, 255, 0.35);
+  transform: rotate(90deg);
+}
+
+/* ── Animations (reused across popup + chatbot) ── */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -144,5 +465,21 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .popup-card {
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .popup-body {
+    padding: 20px 16px 24px;
+  }
+
+  .popup-actions {
+    flex-direction: column;
   }
 }
