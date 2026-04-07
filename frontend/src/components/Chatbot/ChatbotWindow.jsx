@@ -58,11 +58,12 @@ const ChatbotWindow = ({ stallData, onClose }) => {
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Chatbot error:", error);
+      const reason = error?.message ? ` (${error.message})` : "";
 
       // Error message
       const errorMessage = {
         id: `error-${Date.now()}`,
-        text: "Sorry, I'm having trouble connecting. Please try again!",
+        text: `Sorry, I'm having trouble connecting. Please try again!${reason}`,
         sender: "bot",
         timestamp: new Date(),
       };

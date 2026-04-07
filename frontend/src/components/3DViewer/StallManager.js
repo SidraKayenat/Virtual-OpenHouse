@@ -225,7 +225,7 @@ export class StallManager {
             child.name.toLowerCase().includes("plane")
           ) {
             child.material = child.material.clone();
-            child.material.color.set(0xffffff); // your color here
+            child.material.color.set(0xb5aea3); // your color here
           }
         }
       });

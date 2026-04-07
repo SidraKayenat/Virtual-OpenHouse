@@ -16,12 +16,20 @@ from langchain_community.document_loaders import UnstructuredPowerPointLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
+import chromadb
+from dotenv import load_dotenv
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(CURRENT_DIR, ".env"))
+load_dotenv(os.path.join(CURRENT_DIR, "..", ".env"))
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 REQUIRED_ENV_VARS = [
     "GROQ_API_KEY",
 ]
+DEFAULT_EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-mpnet-base-v2")
 
 
 def validate_env():
