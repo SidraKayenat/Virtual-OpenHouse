@@ -719,7 +719,7 @@ export default function CreateEvent() {
     setStep((s) => Math.max(s - 1, 0));
   };
 
-  const handleSubmit = async () => {
+  const handleArchiveConfirm = async () => {
     setLoading(true);
     setSubmitError(null);
     try {
@@ -771,7 +771,21 @@ export default function CreateEvent() {
     }
   };
 
-  const handleArchiveDecision = async (shouldArchive) => {
+  const handleSubmitClick = () => {
+    // Validate all steps first
+    for (let i = 0; i < STEPS.length; i++) {
+      const errs = validateStep(i, form);
+      if (Object.keys(errs).length) {
+        setStep(i);
+        setErrors(errs);
+        return;
+      }
+    }
+    // Show archive popup BEFORE submitting
+    setShowArchivePopup(true);
+  };
+
+  const submitEventWithArchive = async (shouldArchive) => {
     setArchiveUpdating(true);
     setArchiveDecision(shouldArchive);
 
@@ -1288,7 +1302,7 @@ export default function CreateEvent() {
                   ) : (
                     <button
                       type="button"
-                      onClick={handleSubmit}
+                      onClick={handleSubmitClick}
                       disabled={loading}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all"
                       style={{
@@ -1435,7 +1449,7 @@ export default function CreateEvent() {
                 {/* Decision buttons */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleArchiveDecision(false)}
+                    onClick={() => submitEventWithArchive(false)}
                     disabled={archiveUpdating}
                     className="flex-1 py-3 rounded-xl text-[13px] font-semibold transition-all"
                     style={{
@@ -1449,7 +1463,7 @@ export default function CreateEvent() {
                     No, keep it private
                   </button>
                   <button
-                    onClick={() => handleArchiveDecision(true)}
+                    onClick={() => submitEventWithArchive(true)}
                     disabled={archiveUpdating}
                     className="flex-1 py-3 rounded-xl text-[13px] font-semibold transition-all flex items-center justify-center gap-2"
                     style={{
@@ -1476,7 +1490,7 @@ export default function CreateEvent() {
 
                 {/* Skip option */}
                 <button
-                  onClick={() => setShowArchivePopup(false)}
+                  onClick={() => submitEventWithArchive(false)}
                   disabled={archiveUpdating}
                   className="text-[11px] py-2 transition-colors"
                   style={{
