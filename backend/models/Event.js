@@ -257,6 +257,11 @@ const eventSchema = new Schema(
       default: null,
     },
 
+    backgroundUrl: {
+      type: String,
+      default: null,
+    },
+
     // environmentType: {
     //   type: String,
     //   enum: ["indoor", "outdoor", "hybrid"],

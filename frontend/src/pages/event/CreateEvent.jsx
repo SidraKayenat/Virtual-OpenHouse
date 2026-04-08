@@ -563,7 +563,9 @@ export default function CreateEvent() {
         endTime: form.endTime,
         backgroundType: backgroundType,
         selectedBackgroundId:
-          backgroundType === "default" ? selectedBackgroundId : null,
+          backgroundType === "default" && selectedBackgroundId
+            ? Number(selectedBackgroundId)
+            : null,
         eventType: form.eventType,
         tags: form.tags
           ? form.tags
@@ -577,7 +579,6 @@ export default function CreateEvent() {
       const res = await eventAPI.create(payload);
 
       if (res.success) {
-        // Upload custom background if there's a pending file
         if (
           backgroundType === "custom" &&
           customBackgroundFile &&
@@ -586,12 +587,26 @@ export default function CreateEvent() {
           try {
             const formData = new FormData();
             formData.append("background", customBackgroundFile);
-            await eventAPI.uploadBackground(res.data._id, formData);
+            const bgRes = await eventAPI.uploadBackground(
+              res.data._id,
+              formData,
+            );
+            if (!bgRes.success) {
+              console.warn(
+                "Background upload returned failure:",
+                bgRes.message,
+              );
+              toast.error(
+                "Event created but background upload failed. You can retry in event settings.",
+              );
+            }
           } catch (bgErr) {
-            console.warn("Background upload failed, can retry in edit:", bgErr);
+            console.warn("Background upload failed:", bgErr);
+            toast.error(
+              "Event created but background upload failed. You can retry in event settings.",
+            );
           }
         }
-
         navigate("/user/events");
       } else {
         throw new Error(res.message);
@@ -1027,6 +1042,11 @@ export default function CreateEvent() {
                                   key={bg.backgroundId}
                                   type="button"
                                   onClick={() => {
+                                    console.log(
+                                      "Selected bg:",
+                                      bg.backgroundId,
+                                      typeof bg.backgroundId,
+                                    );
                                     setSelectedBackgroundId(bg.backgroundId);
                                   }}
                                   className="relative rounded-xl overflow-hidden transition-all group"
@@ -1131,9 +1151,9 @@ export default function CreateEvent() {
                                 onChange={(e) => {
                                   const file = e.target.files[0];
                                   if (file) {
-                                    if (file.size > 5 * 1024 * 1024) {
+                                    if (file.size > 20 * 1024 * 1024) {
                                       toast.error(
-                                        "File too large. Maximum size is 5MB",
+                                        "File too large. Maximum size is 20MB",
                                       );
                                       e.target.value = "";
                                       return;
@@ -1199,7 +1219,7 @@ export default function CreateEvent() {
                                     className="text-[10px]"
                                     style={{ color: "rgba(255,255,255,0.2)" }}
                                   >
-                                    JPG, PNG, WebP · Max 5MB · 360°
+                                    JPG, PNG, WebP · Max 20MB · 360°
                                     equirectangular recommended
                                   </p>
                                 </div>

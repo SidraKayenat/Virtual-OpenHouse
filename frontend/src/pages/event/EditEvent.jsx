@@ -10,10 +10,8 @@ import toast from "react-hot-toast";
 import {
   Calendar,
   Clock,
-  Palette,
   Image,
   Send,
-  Box,
   ChevronRight,
   AlertCircle,
   CheckCircle,
@@ -29,61 +27,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-function ChoiceCard({
-  selected,
-  label,
-  desc,
-  icon,
-  color = "#a78bfa",
-  onClick,
-  locked,
-}) {
-  return (
-    <button
-      type="button"
-      onClick={!locked ? onClick : undefined}
-      className="flex flex-col gap-2 p-4 rounded-xl text-left transition-all duration-150"
-      style={{
-        background: selected ? `${color}12` : "rgba(255,255,255,0.03)",
-        border: selected
-          ? `1px solid ${color}45`
-          : "1px solid rgba(255,255,255,0.08)",
-        boxShadow: selected ? `0 0 18px ${color}12` : "none",
-        cursor: locked ? "not-allowed" : "pointer",
-        opacity: locked ? 0.5 : 1,
-      }}
-    >
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center"
-        style={{
-          background: selected ? `${color}20` : "rgba(255,255,255,0.06)",
-        }}
-      >
-        <icon
-          size={15}
-          style={{ color: selected ? color : "rgba(255,255,255,0.35)" }}
-        />
-      </div>
-      <div>
-        <p
-          className="text-[13px] font-semibold"
-          style={{ color: selected ? "white" : "rgba(255,255,255,0.55)" }}
-        >
-          {label}
-        </p>
-        {desc && (
-          <p
-            className="text-[11px] mt-0.5"
-            style={{ color: "rgba(255,255,255,0.28)" }}
-          >
-            {desc}
-          </p>
-        )}
-      </div>
-    </button>
-  );
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────
 const EVENT_TYPES = [
   "conference",
@@ -92,20 +35,6 @@ const EVENT_TYPES = [
   "workshop",
   "seminar",
   "other",
-];
-
-const SKYBOX_PRESETS = [
-  { value: "/Environments/AlgerLakessunset.webp", label: "Alger Lakes" },
-  { value: "/Environments/Mountainmeadow.webp", label: "Mountain Meadow" },
-  { value: "/Environments/RetroSpaceSkybox.webp", label: "Retro Space" },
-  { value: "/Environments/RoyalPalaceasi.webp", label: "Royal Palace" },
-  { value: "/Environments/WaimeaCanyon.webp", label: "Waimea Canyon" },
-];
-
-const ENV_TYPES = [
-  { value: "indoor", label: "Indoor", icon: Building, desc: "Inside venue" },
-  { value: "outdoor", label: "Outdoor", icon: Building, desc: "Open air" },
-  { value: "hybrid", label: "Hybrid", icon: Building, desc: "Mixed setup" },
 ];
 
 // ─── Styled primitives ────────────────────────────────────────────────────
@@ -240,172 +169,6 @@ function StyledTextarea({ ...props }) {
   );
 }
 
-// // ─── Skybox Picker ────────────────────────────────────────────────────────
-// function SkyboxPicker({
-//   value,
-//   backgroundType,
-//   onChange,
-//   onUpload,
-//   uploading,
-// }) {
-//   const fileInputRef = useRef(null);
-
-//   const handleFileSelect = (e) => {
-//     const file = e.target.files[0];
-//     if (file) onUpload(file);
-//   };
-
-//   return (
-//     <div className="flex flex-col gap-3">
-//       <div className="grid grid-cols-3 gap-3">
-//         {SKYBOX_PRESETS.map(({ value: presetValue, label }) => {
-//           const isSelected =
-//             value === presetValue && backgroundType !== "upload";
-//           return (
-//             <button
-//               key={presetValue}
-//               type="button"
-//               onClick={() =>
-//                 onChange({
-//                   backgroundType: "custom",
-//                   customBackground: presetValue,
-//                   customBackgroundPublicId: "",
-//                 })
-//               }
-//               className="flex flex-col rounded-xl overflow-hidden text-left transition-all"
-//               style={{
-//                 border: isSelected
-//                   ? "2px solid rgba(52,211,153,0.7)"
-//                   : "2px solid rgba(255,255,255,0.07)",
-//                 boxShadow: isSelected
-//                   ? "0 0 16px rgba(52,211,153,0.15)"
-//                   : "none",
-//               }}
-//             >
-//               <div className="relative w-full" style={{ height: 72 }}>
-//                 <img
-//                   src={presetValue}
-//                   alt={label}
-//                   className="w-full h-full object-cover"
-//                 />
-//                 {isSelected && (
-//                   <div
-//                     className="absolute inset-0 flex items-center justify-center"
-//                     style={{ background: "rgba(52,211,153,0.18)" }}
-//                   >
-//                     <CheckCircle size={20} style={{ color: "#34d399" }} />
-//                   </div>
-//                 )}
-//               </div>
-//               <div
-//                 className="px-2 py-1.5"
-//                 style={{ background: "rgba(255,255,255,0.04)" }}
-//               >
-//                 <p
-//                   className="text-[11px] font-medium truncate"
-//                   style={{
-//                     color: isSelected ? "#6ee7b7" : "rgba(255,255,255,0.45)",
-//                   }}
-//                 >
-//                   {label}
-//                 </p>
-//               </div>
-//             </button>
-//           );
-//         })}
-
-//         {/* Custom upload tile */}
-//         <button
-//           type="button"
-//           onClick={() => {
-//             onChange({
-//               backgroundType: "upload",
-//               customBackground: value?.startsWith("http") ? value : "",
-//               customBackgroundPublicId: "",
-//             });
-//             setTimeout(() => fileInputRef.current?.click(), 50);
-//           }}
-//           className="flex flex-col items-center justify-center gap-2 rounded-xl transition-all"
-//           style={{
-//             height: 105,
-//             border:
-//               backgroundType === "upload"
-//                 ? "2px solid rgba(96,165,250,0.7)"
-//                 : "2px dashed rgba(255,255,255,0.12)",
-//             background:
-//               backgroundType === "upload"
-//                 ? "rgba(96,165,250,0.08)"
-//                 : "rgba(255,255,255,0.02)",
-//           }}
-//         >
-//           {uploading ? (
-//             <div className="w-6 h-6 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
-//           ) : (
-//             <Upload
-//               size={18}
-//               style={{
-//                 color:
-//                   backgroundType === "upload"
-//                     ? "#60a5fa"
-//                     : "rgba(255,255,255,0.3)",
-//               }}
-//             />
-//           )}
-//           <span
-//             className="text-[11px] font-medium"
-//             style={{
-//               color:
-//                 backgroundType === "upload"
-//                   ? "#93c5fd"
-//                   : "rgba(255,255,255,0.3)",
-//             }}
-//           >
-//             {uploading ? "Uploading…" : "Custom Upload"}
-//           </span>
-//         </button>
-//       </div>
-
-//       <input
-//         ref={fileInputRef}
-//         type="file"
-//         accept="image/*"
-//         className="hidden"
-//         onChange={handleFileSelect}
-//       />
-
-//       {/* Show uploaded preview */}
-//       {backgroundType === "upload" && value?.startsWith("http") && (
-//         <div
-//           className="relative rounded-xl overflow-hidden"
-//           style={{ height: 100 }}
-//         >
-//           <img
-//             src={value}
-//             alt="Custom skybox"
-//             className="w-full h-full object-cover"
-//           />
-//           <div
-//             className="absolute inset-0 flex items-end p-2"
-//             style={{
-//               background:
-//                 "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
-//             }}
-//           >
-//             <span className="text-[11px] text-white font-medium">
-//               Custom background uploaded ✓
-//             </span>
-//           </div>
-//         </div>
-//       )}
-
-//       <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.22)" }}>
-//         Select a preset skybox or upload your own equirectangular (360°) image ·
-//         Max 20MB
-//       </p>
-//     </div>
-//   );
-// }
-
 // ─── Tag input ────────────────────────────────────────────────────────────
 function TagInput({ value, onChange }) {
   const [input, setInput] = useState("");
@@ -489,24 +252,7 @@ function TagInput({ value, onChange }) {
 
 // ─── Image Uploader ───────────────────────────────────────────────────────
 function ImageUploader({ value, onUpload, uploading, onClear, label }) {
-  // const [preview, setPreview] = useState(value || "");
   const fileInputRef = useRef(null);
-
-  // Sync preview when the real URL arrives from the parent (after upload completes)
-  // useEffect(() => {
-  //   if (value) setPreview(value);
-  // }, [value]);
-
-  // Clear preview when parent clears the value
-  // useEffect(() => {
-  //   if (!value && !uploading) setPreview("");
-  // }, [value, uploading]);
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    onUpload(file); // parent handles preview via setThumbnailPreview
-  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -524,11 +270,12 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={handleFileSelect}
+          onChange={(e) => {
+            const f = e.target.files[0];
+            if (f) onUpload(f);
+          }}
           disabled={uploading}
         />
-
-        {/* Always show image if we have a preview — even during upload */}
         {value && (
           <>
             <img
@@ -536,7 +283,6 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
               alt={label}
               className="w-full h-full object-cover"
             />
-            {/* Hover overlay to remove — only when not uploading */}
             {!uploading && (
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
@@ -559,8 +305,6 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
             )}
           </>
         )}
-
-        {/* Upload spinner overlay — shown ON TOP of image, not instead of it */}
         {uploading && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-2"
@@ -578,8 +322,6 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
             </p>
           </div>
         )}
-
-        {/* Empty state — only when no preview and not uploading */}
         {!value && !uploading && (
           <div className="flex flex-col items-center justify-center gap-2 text-center h-full">
             <Upload size={24} style={{ color: "rgba(255,255,255,0.4)" }} />
@@ -783,33 +525,6 @@ function ConfirmModal({ changes, onConfirm, onCancel, loading }) {
   );
 }
 
-// ─── Diff calculator ──────────────────────────────────────────────────────
-function getDiff(original, current) {
-  // const LOCKED = ["name", "liveDate", "numberOfStalls", "backgroundType"];
-  const LOCKED = ["name", "liveDate", "numberOfStalls", "backgroundType"];
-  const LABELS = {
-    description: "Description",
-    numberOfStalls: "Number of Stalls",
-    startTime: "Start Time",
-    endTime: "End Time",
-    backgroundType: "Background Type",
-    customBackground: "Skybox",
-    eventType: "Event Type",
-    tags: "Tags",
-    thumbnailUrl: "Thumbnail",
-  };
-  return Object.keys(current)
-    .filter(
-      (k) =>
-        !LOCKED.includes(k) && String(current[k]) !== String(original[k] ?? ""),
-    )
-    .map((k) => ({
-      field: LABELS[k] || k,
-      from: original[k] ?? "",
-      to: current[k],
-    }));
-}
-
 // ─── Live preview ─────────────────────────────────────────────────────────
 function LivePreview({ form, thumbnailPreview }) {
   const tags = form.tags
@@ -818,9 +533,6 @@ function LivePreview({ form, thumbnailPreview }) {
         .map((t) => t.trim())
         .filter(Boolean)
     : [];
-  const skyboxLabel =
-    SKYBOX_PRESETS.find((p) => p.value === form.customBackground)?.label ||
-    "Custom";
 
   return (
     <div
@@ -837,7 +549,7 @@ function LivePreview({ form, thumbnailPreview }) {
         {(thumbnailPreview || form.thumbnailUrl) && (
           <img
             key={thumbnailPreview || form.thumbnailUrl}
-            src={thumbnailPreview || form.thumbnailUrl} // ← use preview first
+            src={thumbnailPreview || form.thumbnailUrl}
             alt=""
             className="w-full h-full object-cover"
             onError={() => {}}
@@ -907,7 +619,6 @@ function LivePreview({ form, thumbnailPreview }) {
               <Users size={10} /> {form.numberOfStalls} stalls
             </span>
           )}
-          {form.customBackground && <span>🌐 {skyboxLabel}</span>}
         </div>
       </div>
     </div>
@@ -920,146 +631,79 @@ export default function EditEvent() {
   const navigate = useNavigate();
 
   const [original, setOriginal] = useState(null);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    numberOfStalls: 10,
-    liveDate: "",
-    startTime: "",
-    endTime: "",
-    eventType: "exhibition",
-    tags: "",
-    backgroundType: "default",
-    selectedBackgroundId: null,
-    customBackground: null,
-  });
+  const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
-  const [uploadingBackground, setUploadingBackground] = useState(false);
-
   const [publishing, setPublishing] = useState(false);
   const [event, setEvent] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState("");
 
-  const [backgrounds, setBackgrounds] = useState([]); // Default backgrounds from backend
-  const [selectedBackgroundId, setSelectedBackgroundId] = useState(null); // 1-5
-  const [backgroundType, setBackgroundType] = useState("default"); // "default" or "custom"
+  // ── Background state (tracked separately from form for UI, but
+  //    synced into form so getDiff can catch changes) ──────────────
+  const [backgrounds, setBackgrounds] = useState([]);
+  const [selectedBackgroundId, setSelectedBackgroundId] = useState(null);
+  const [backgroundType, setBackgroundType] = useState("default");
   const [customBackgroundFile, setCustomBackgroundFile] = useState(null);
   const [customBackgroundPreview, setCustomBackgroundPreview] = useState("");
   const [uploadingCustomBg, setUploadingCustomBg] = useState(false);
 
-  const loadData = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      const res = await eventAPI.getById(id);
-      setEvent(res.data || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // ── Map raw event → form fields ────────────────────────────────
+  const mapEventToForm = (e) => ({
+    name: e.name || "",
+    description: e.description || "",
+    numberOfStalls: e.numberOfStalls || 1,
+    liveDate: e.liveDate ? e.liveDate.slice(0, 16) : "",
+    startTime: e.startTime || "",
+    endTime: e.endTime || "",
+    eventType: e.eventType || "exhibition",
+    tags: e.tags ? e.tags.join(", ") : "",
+    thumbnailUrl: e.thumbnailUrl || "",
+    thumbnailPublicId: e.thumbnailPublicId || "",
+    backgroundUrl: e.backgroundUrl || "",
+    // ↓ These are tracked in form so getDiff detects them
+    backgroundType: e.backgroundType || "default",
+    selectedBackgroundId: e.selectedBackgroundId ?? null,
+  });
 
-  // useEffect(() => {
-  //   if (eventId) loadData(eventId);
-  // }, [eventId, loadData]);
-
-  const handlePublish = async () => {
-    try {
-      setPublishing(true);
-
-      // Optional: save changes first if dirty
-      if (isDirty) {
-        // Instead of calling handleSaveClick directly (which shows a modal),
-        // you might want to auto-save or show a message
-        const shouldSave = window.confirm(
-          "You have unsaved changes. Save before publishing?",
-        );
-        if (shouldSave) {
-          await handleConfirm(); // Call this directly to save without modal
-        }
-      }
-
-      // Use eventId from params, not event._id
-      await eventAPI.publish(eventId);
-
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-
-      setEvent((prev) => ({
-        ...prev,
-        status: "published", // or whatever your backend returns
-      }));
-
-      // Optionally refresh the event data to get updated status
-      const refreshedEvent = await eventAPI.getById(eventId);
-      setEvent(refreshedEvent.data);
-    } catch (err) {
-      alert(err.message || "Failed to publish");
-    } finally {
-      setPublishing(false);
-    }
-  };
+  // ── Load event ─────────────────────────────────────────────────
   useEffect(() => {
+    if (!eventId) return;
     const fetchEvent = async () => {
       try {
         setLoading(true);
         const res = await eventAPI.getById(eventId);
         const e = res.data;
-
         if (!e) {
           setError("Event not found");
-          setForm(null);
           return;
         }
 
-        // 👇 THIS IS THE CRITICAL FIX - set the event state
-        setEvent(e); // Add this line
+        setEvent(e);
+        const mapped = mapEventToForm(e);
+        setForm(mapped);
+        setOriginal(mapped);
+        setThumbnailPreview(mapped.thumbnailUrl || "");
 
-        const mapped = {
-          name: e.name || "",
-          description: e.description || "",
-          numberOfStalls: e.numberOfStalls || 1,
-          liveDate: e.liveDate ? e.liveDate.slice(0, 16) : "",
-          startTime: e.startTime || "",
-          endTime: e.endTime || "",
-          backgroundType: e.backgroundType || "default",
-          customBackground: e.customBackground || "",
-          customBackgroundPublicId: e.customBackgroundPublicId || "",
-          environmentType: e.environmentType || "indoor",
-          eventType: e.eventType || "exhibition",
-          tags: e.tags ? e.tags.join(", ") : "",
-          thumbnailUrl: e.thumbnailUrl || "",
-          thumbnailPublicId: e.thumbnailPublicId || "",
-          backgroundUrl: e.backgroundUrl || "", // ✅ Add this line
-        };
-
-        if (e.backgroundType) setBackgroundType(e.backgroundType);
-        if (e.selectedBackgroundId)
-          setSelectedBackgroundId(e.selectedBackgroundId);
-        if (e.backgroundUrl && e.backgroundType === "custom") {
+        // Sync background UI state
+        setBackgroundType(e.backgroundType || "default");
+        setSelectedBackgroundId(e.selectedBackgroundId ?? null);
+        if (e.backgroundType === "custom" && e.backgroundUrl) {
           setCustomBackgroundPreview(e.backgroundUrl);
         }
-        setForm(mapped);
-        setThumbnailPreview(mapped.thumbnailUrl || "");
-        setOriginal(mapped);
-        setError(null);
       } catch (err) {
         setError(err.message || "Failed to fetch event");
-        setForm(null);
       } finally {
         setLoading(false);
       }
     };
-
-    if (eventId) fetchEvent();
+    fetchEvent();
   }, [eventId]);
 
-  // Fetch default backgrounds from backend
+  // ── Fetch default backgrounds ──────────────────────────────────
   useEffect(() => {
     const fetchDefaultBackgrounds = async () => {
       try {
@@ -1080,112 +724,124 @@ export default function EditEvent() {
     set(name, value);
   };
 
+  // ── Background type toggle ─────────────────────────────────────
+  const switchToDefault = () => {
+    setBackgroundType("default");
+    setCustomBackgroundPreview("");
+    setCustomBackgroundFile(null);
+    // Write into form so getDiff picks it up
+    setForm((f) => ({
+      ...f,
+      backgroundType: "default",
+      selectedBackgroundId: null,
+    }));
+  };
+
+  const switchToCustom = () => {
+    setBackgroundType("custom");
+    setSelectedBackgroundId(null);
+    setForm((f) => ({
+      ...f,
+      backgroundType: "custom",
+      selectedBackgroundId: null,
+    }));
+  };
+
+  const selectDefaultBackground = (bgId) => {
+    const numId = Number(bgId);
+    setSelectedBackgroundId(numId);
+    setForm((f) => ({
+      ...f,
+      selectedBackgroundId: numId,
+      backgroundType: "default",
+    }));
+  };
+
+  // ── Diff: only non-locked fields ──────────────────────────────
+  const getDiff = (orig, curr) => {
+    const LOCKED = ["name", "liveDate", "numberOfStalls"];
+    const LABELS = {
+      description: "Description",
+      startTime: "Start Time",
+      endTime: "End Time",
+      backgroundType: "Background Type",
+      selectedBackgroundId: "Background",
+      eventType: "Event Type",
+      tags: "Tags",
+      thumbnailUrl: "Thumbnail",
+      backgroundUrl: "Background Image",
+    };
+    return Object.keys(curr)
+      .filter(
+        (k) =>
+          !LOCKED.includes(k) &&
+          String(curr[k] ?? "") !== String(orig[k] ?? ""),
+      )
+      .map((k) => ({
+        field: LABELS[k] || k,
+        from: orig[k] ?? "",
+        to: curr[k],
+      }));
+  };
+
   const diff = original && form ? getDiff(original, form) : [];
-  const isDirty = diff.length > 0;
+  const isDirty = diff.length > 0 || !!customBackgroundFile;
 
+  // ── Save ───────────────────────────────────────────────────────
   const handleSaveClick = () => {
-    if (!form.thumbnailUrl) {
-      setError("Thumbnail is required");
-      return;
-    }
-    if (form.backgroundType === "upload" && !form.customBackground) {
-      setError("Please upload a custom background or select a preset");
-      return;
-    }
     if (!isDirty) return;
+    setError(null);
     setShowConfirm(true);
-  };
-
-  const handleThumbnailUpload = async (file) => {
-    if (!file) return;
-    // Set blob preview instantly — shared with LivePreview
-    const blobUrl = URL.createObjectURL(file);
-    setThumbnailPreview(blobUrl);
-
-    const formData = new FormData();
-    formData.append("thumbnail", file);
-    try {
-      setUploadingThumbnail(true);
-      const response = await eventAPI.uploadThumbnail(eventId, formData);
-      if (response.success) {
-        setForm((prev) => ({
-          ...prev,
-          thumbnailUrl: response.data.url,
-          thumbnailPublicId: response.data.publicId,
-        }));
-        setThumbnailPreview(response.data.url); // swap blob → real URL
-        window.location.reload();
-      }
-    } catch (err) {
-      setError("Failed to upload thumbnail");
-      setThumbnailPreview(form.thumbnailUrl || ""); // revert on error
-    } finally {
-      setUploadingThumbnail(false);
-    }
-  };
-
-  const handleBackgroundUpload = async (file) => {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("background", file);
-    try {
-      setUploadingBackground(true);
-      const response = await eventAPI.uploadBackground(eventId, formData);
-      if (response.success) {
-        setForm((f) => ({
-          ...f,
-          backgroundType: "upload",
-          customBackground: response.data.customBackground,
-          customBackgroundPublicId: response.data.publicId || "",
-        }));
-      }
-    } catch (err) {
-      setError("Failed to upload background");
-    } finally {
-      setUploadingBackground(false);
-    }
   };
 
   const handleConfirm = async () => {
     try {
       setSaving(true);
 
-      // First, upload custom background if there's a pending file
+      // 1. Upload custom background first if there's a pending file
       if (backgroundType === "custom" && customBackgroundFile) {
+        setUploadingCustomBg(true);
         const formData = new FormData();
         formData.append("background", customBackgroundFile);
         try {
           const uploadRes = await eventAPI.uploadBackground(eventId, formData);
           if (uploadRes.success) {
+            const newUrl =
+              uploadRes.data?.backgroundUrl || uploadRes.data?.url || "";
             setCustomBackgroundFile(null);
-            setCustomBackgroundPreview(uploadRes.data.backgroundUrl);
-            // ✅ Update form with the actual URL
+            setCustomBackgroundPreview(newUrl);
+            // Update form so the refreshed diff is clean
             setForm((prev) => ({
               ...prev,
-              customBackground: uploadRes.data.backgroundUrl,
-              backgroundUrl: uploadRes.data.backgroundUrl,
+              backgroundUrl: newUrl,
               backgroundType: "custom",
             }));
-            toast.success("Custom background uploaded successfully");
+            toast.success("Custom background uploaded");
           } else {
-            throw new Error(uploadRes.message || "Upload failed");
+            throw new Error(uploadRes.message || "Background upload failed");
           }
         } catch (uploadErr) {
-          setError("Failed to upload custom background: " + uploadErr.message);
+          toast.error(
+            "Failed to upload custom background: " + uploadErr.message,
+          );
           setSaving(false);
+          setUploadingCustomBg(false);
           return;
+        } finally {
+          setUploadingCustomBg(false);
         }
       }
 
-      // Then update event details
+      // 2. Update event fields
       const payload = {
         description: form.description,
-        numberOfStalls: parseInt(form.numberOfStalls),
         startTime: form.startTime,
         endTime: form.endTime,
         backgroundType: backgroundType,
         selectedBackgroundId:
-          backgroundType === "default" ? selectedBackgroundId : null,
+          backgroundType === "default" && selectedBackgroundId
+            ? Number(selectedBackgroundId)
+            : null,
         eventType: form.eventType,
         tags: form.tags
           ? form.tags
@@ -1197,57 +853,84 @@ export default function EditEvent() {
         thumbnailPublicId: form.thumbnailPublicId,
       };
 
-      // If we have a custom background URL from upload, include it
-      if (form.backgroundUrl && backgroundType === "custom") {
-        payload.backgroundUrl = form.backgroundUrl;
-      }
-
       await eventAPI.update(eventId, payload);
 
-      // Refresh the event data
+      // 3. Refresh state from server so diff resets cleanly
       const refreshed = await eventAPI.getById(eventId);
       const e = refreshed.data;
-
-      const updatedMapped = {
-        name: e.name || "",
-        description: e.description || "",
-        numberOfStalls: e.numberOfStalls || 1,
-        liveDate: e.liveDate ? e.liveDate.slice(0, 16) : "",
-        startTime: e.startTime || "",
-        endTime: e.endTime || "",
-        backgroundType: e.backgroundType || "default",
-        customBackground: e.customBackground || "",
-        customBackgroundPublicId: e.customBackgroundPublicId || "",
-        environmentType: e.environmentType || "indoor",
-        eventType: e.eventType || "exhibition",
-        tags: e.tags ? e.tags.join(", ") : "",
-        thumbnailUrl: e.thumbnailUrl || "",
-        thumbnailPublicId: e.thumbnailPublicId || "",
-        backgroundUrl: e.backgroundUrl || "",
-      };
+      const updatedMapped = mapEventToForm(e);
 
       setOriginal(updatedMapped);
       setForm(updatedMapped);
-
-      if (e.backgroundUrl && e.backgroundType === "custom") {
+      setEvent(e);
+      setBackgroundType(e.backgroundType || "default");
+      setSelectedBackgroundId(e.selectedBackgroundId ?? null);
+      if (e.backgroundType === "custom" && e.backgroundUrl) {
         setCustomBackgroundPreview(e.backgroundUrl);
+      } else {
+        setCustomBackgroundPreview("");
       }
-      if (e.backgroundType) setBackgroundType(e.backgroundType);
-      if (e.selectedBackgroundId)
-        setSelectedBackgroundId(e.selectedBackgroundId);
 
       setShowConfirm(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+      toast.success("Event saved successfully");
     } catch (err) {
       setError(err.message || "Failed to save changes");
+      toast.error(err.message || "Failed to save changes");
       setShowConfirm(false);
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Loading / error states ─────────────────────────────────────────
+  // ── Thumbnail upload ───────────────────────────────────────────
+  const handleThumbnailUpload = async (file) => {
+    if (!file) return;
+    const blobUrl = URL.createObjectURL(file);
+    setThumbnailPreview(blobUrl);
+
+    const formData = new FormData();
+    formData.append("thumbnail", file);
+    try {
+      setUploadingThumbnail(true);
+      const response = await eventAPI.uploadThumbnail(eventId, formData);
+      if (response.success) {
+        const url = response.data?.thumbnailUrl || response.data?.url || "";
+        setThumbnailPreview(url);
+        setForm((prev) => ({ ...prev, thumbnailUrl: url }));
+        // Also update original so this doesn't show as a dirty change
+        setOriginal((prev) => ({ ...prev, thumbnailUrl: url }));
+        toast.success("Thumbnail uploaded");
+      } else {
+        throw new Error(response.message || "Upload failed");
+      }
+    } catch (err) {
+      toast.error("Failed to upload thumbnail");
+      setThumbnailPreview(form?.thumbnailUrl || "");
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  // ── Publish ────────────────────────────────────────────────────
+  const handlePublish = async () => {
+    try {
+      setPublishing(true);
+      await eventAPI.publish(eventId);
+      const refreshed = await eventAPI.getById(eventId);
+      setEvent(refreshed.data);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+      toast.success("Event published!");
+    } catch (err) {
+      toast.error(err.message || "Failed to publish");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  // ── Loading / error states ─────────────────────────────────────
   if (loading) {
     return (
       <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
@@ -1451,24 +1134,6 @@ export default function EditEvent() {
             </div>
           )}
 
-          {/* <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.06, duration: 0.3 }}
-            className="mb-5 flex items-center gap-3 p-3.5 rounded-xl text-[12.5px]"
-            style={{
-              background: "rgba(251,191,36,0.06)",
-              border: "1px solid rgba(251,191,36,0.15)",
-              color: "#fde68a",
-            }}
-          >
-            <Lock size={13} style={{ color: "#fbbf24", flexShrink: 0 }} />
-            <span>
-              <strong>Event Name</strong> and <strong>Live Date</strong> cannot
-              be changed after creation.
-            </span>
-          </motion.div> */}
-
           {/* 2-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6">
             <div className="flex flex-col gap-5">
@@ -1595,7 +1260,6 @@ export default function EditEvent() {
                         type="number"
                         value={form.numberOfStalls}
                         disabled
-                        style={lockedBase}
                       />
                       <button
                         disabled
@@ -1614,17 +1278,12 @@ export default function EditEvent() {
                     </div>
                   </Field>
 
-                  {/* Background Type Selection */}
+                  {/* Background Type Toggle */}
                   <Field label="Background Type">
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
-                        onClick={() => {
-                          setBackgroundType("default");
-                          set("backgroundType", "default");
-                          setCustomBackgroundPreview("");
-                          setCustomBackgroundFile(null);
-                        }}
+                        onClick={switchToDefault}
                         className="py-3 px-4 rounded-xl text-[13px] font-medium transition-all"
                         style={
                           backgroundType === "default"
@@ -1644,11 +1303,7 @@ export default function EditEvent() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          setBackgroundType("custom");
-                          set("backgroundType", "custom");
-                          setSelectedBackgroundId(null);
-                        }}
+                        onClick={switchToCustom}
                         className="py-3 px-4 rounded-xl text-[13px] font-medium transition-all"
                         style={
                           backgroundType === "custom"
@@ -1683,10 +1338,9 @@ export default function EditEvent() {
                           <button
                             key={bg.backgroundId}
                             type="button"
-                            onClick={() => {
-                              setSelectedBackgroundId(bg.backgroundId);
-                              set("selectedBackgroundId", bg.backgroundId);
-                            }}
+                            onClick={() =>
+                              selectDefaultBackground(bg.backgroundId)
+                            }
                             className="relative rounded-xl overflow-hidden transition-all group"
                             style={{
                               border:
@@ -1755,7 +1409,6 @@ export default function EditEvent() {
                   )}
 
                   {/* Custom Background Upload */}
-                  {/* Custom Background Upload */}
                   {backgroundType === "custom" && (
                     <div>
                       <p
@@ -1789,32 +1442,29 @@ export default function EditEvent() {
                           className="hidden"
                           onChange={(e) => {
                             const file = e.target.files[0];
-                            if (file) {
-                              // Validate file size (max 20MB)
-                              if (file.size > 5 * 1024 * 1024) {
-                                toast.error(
-                                  "File too large. Maximum size is 5MB",
-                                );
-                                e.target.value = "";
-                                return;
-                              }
-                              // Show preview immediately using FileReader
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setCustomBackgroundPreview(reader.result);
-                                setCustomBackgroundFile(file);
-                                // Update form to trigger isDirty
-                                setForm((prev) => ({
-                                  ...prev,
-                                  customBackground: reader.result,
-                                  backgroundType: "custom",
-                                }));
-                                setBackgroundType("custom");
-                              };
-                              reader.readAsDataURL(file);
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast.error(
+                                "File too large. Maximum size is 5MB",
+                              );
+                              e.target.value = "";
+                              return;
                             }
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setCustomBackgroundPreview(reader.result);
+                              setCustomBackgroundFile(file);
+                              // Write a sentinel into form so isDirty becomes true
+                              setForm((prev) => ({
+                                ...prev,
+                                backgroundType: "custom",
+                                backgroundUrl: "__pending__",
+                              }));
+                            };
+                            reader.readAsDataURL(file);
                           }}
                         />
+
                         {uploadingCustomBg ? (
                           <div className="flex flex-col items-center justify-center gap-2 py-8">
                             <div className="w-6 h-6 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
@@ -1832,7 +1482,6 @@ export default function EditEvent() {
                               alt="Custom background preview"
                               className="w-full h-40 object-cover"
                             />
-                            {/* ✅ DELETE BUTTON GOES HERE - INSIDE THE PREVIEW SECTION */}
                             <div
                               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                               style={{ background: "rgba(0,0,0,0.55)" }}
@@ -1840,10 +1489,10 @@ export default function EditEvent() {
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  // If there's an existing custom background, delete it
+                                  // If it's an already-saved custom bg, delete it from backend
                                   if (
-                                    form.backgroundUrl &&
-                                    backgroundType === "custom"
+                                    original?.backgroundType === "custom" &&
+                                    original?.backgroundUrl
                                   ) {
                                     try {
                                       await eventAPI.deleteCustomBackground(
@@ -1858,14 +1507,12 @@ export default function EditEvent() {
                                   }
                                   setCustomBackgroundPreview("");
                                   setCustomBackgroundFile(null);
-                                  // Clear form state
+                                  setBackgroundType("default");
                                   setForm((prev) => ({
                                     ...prev,
-                                    customBackground: null,
-                                    backgroundUrl: null,
                                     backgroundType: "default",
+                                    backgroundUrl: "",
                                   }));
-                                  setBackgroundType("default");
                                   toast.success("Background removed");
                                 }}
                                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-semibold text-white"
@@ -1959,6 +1606,7 @@ export default function EditEvent() {
                   {isDirty ? (
                     <p className="text-[12.5px]" style={{ color: "#fbbf24" }}>
                       {diff.length} field{diff.length !== 1 ? "s" : ""} modified
+                      {customBackgroundFile ? " + new background pending" : ""}
                     </p>
                   ) : (
                     <p

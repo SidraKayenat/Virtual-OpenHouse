@@ -181,9 +181,13 @@ export const eventAPI = {
   },
 
   uploadBackground: (eventId, formData) => {
+    const token = localStorage.getItem("token");
     return fetch(`${API_BASE_URL}/events/${eventId}/upload-background`, {
       method: "POST",
       credentials: "include",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       body: formData,
     }).then((res) => res.json());
   },
