@@ -335,7 +335,7 @@ function ImageUploader({ value, onUpload, uploading, onClear, label }) {
               className="text-[10px]"
               style={{ color: "rgba(255,255,255,0.2)" }}
             >
-              JPG, PNG, WebP · Max 5MB
+              JPG, PNG, WebP · Max 20MB
             </p>
           </div>
         )}
@@ -1443,9 +1443,9 @@ export default function EditEvent() {
                           onChange={(e) => {
                             const file = e.target.files[0];
                             if (!file) return;
-                            if (file.size > 5 * 1024 * 1024) {
+                            if (file.size > 20 * 1024 * 1024) {
                               toast.error(
-                                "File too large. Maximum size is 5MB",
+                                "File too large. Maximum size is 20MB",
                               );
                               e.target.value = "";
                               return;
@@ -1541,7 +1541,7 @@ export default function EditEvent() {
                               className="text-[10px]"
                               style={{ color: "rgba(255,255,255,0.2)" }}
                             >
-                              JPG, PNG, WebP · Max 5MB · 360° equirectangular
+                              JPG, PNG, WebP · Max 20MB · 360° equirectangular
                               recommended
                             </p>
                           </div>
