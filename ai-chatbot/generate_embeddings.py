@@ -16,12 +16,23 @@ from langchain_community.document_loaders import UnstructuredPowerPointLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
+import chromadb
+from dotenv import load_dotenv
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_ROOT = os.path.join(CURRENT_DIR, "db")
+load_dotenv(os.path.join(CURRENT_DIR, ".env"))
+load_dotenv(os.path.join(CURRENT_DIR, "..", ".env"))
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 REQUIRED_ENV_VARS = [
     "GROQ_API_KEY",
 ]
+DEFAULT_EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-mpnet-base-v2")
+MAX_CLOUD_UPSERT_BATCH = 300
+DEFAULT_CLOUD_UPSERT_BATCH = int(os.getenv("CHROMA_UPSERT_BATCH_SIZE", "300"))
 
 
 def validate_env():
@@ -92,14 +103,14 @@ def describe_storage_target(project_id):
         }
     return {
         "storage_mode": "local",
-        "persist_directory": f"./db/{project_id}",
+        "persist_directory": os.path.join(DB_ROOT, project_id),
     }
 
 def process_project(folder, project_id):
     if not os.path.isdir(folder):
         raise FileNotFoundError(f"Upload folder not found: {folder}")
 
-    persist_directory = f"./db/{project_id}"
+    persist_directory = os.path.join(DB_ROOT, project_id)
     cloud_mode = use_cloud_chroma()
     cloud_client = get_cloud_client() if cloud_mode else None
     storage_target = describe_storage_target(project_id)
@@ -169,7 +180,7 @@ def process_project(folder, project_id):
         page = doc.metadata.get("page", 99)
         doc.metadata["is_title_page"] = page <= 1
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
 
     # =========================
@@ -189,12 +200,27 @@ def process_project(folder, project_id):
 
     embedding_model = HuggingFaceEmbeddings()
     if cloud_mode:
-        Chroma.from_documents(
-            chunks,
-            embedding_model,
+        vector_store = Chroma(
             collection_name=project_id,
             client=cloud_client,
+            embedding_function=embedding_model,
         )
+        batch_size = max(1, min(DEFAULT_CLOUD_UPSERT_BATCH, MAX_CLOUD_UPSERT_BATCH))
+        logging.info(
+            "Cloud ingestion batching enabled: batch_size=%s total_chunks=%s",
+            batch_size,
+            len(chunks),
+        )
+
+        for start in range(0, len(chunks), batch_size):
+            end = min(start + batch_size, len(chunks))
+            vector_store.add_documents(chunks[start:end])
+            logging.info(
+                "Upserted chunks %s-%s / %s",
+                start + 1,
+                end,
+                len(chunks),
+            )
     else:
         Chroma.from_documents(
             chunks,

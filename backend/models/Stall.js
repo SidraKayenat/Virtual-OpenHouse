@@ -194,6 +194,16 @@ const stallSchema = new Schema(
     }],
 >>>>>>> archived-events
 
+     // ===== CHATBOT INGEST STATE =====
+    chatbotDocFingerprint: {
+      type: String,
+      default: null,
+    },
+    chatbotLastIngestedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Banner/Thumbnail image (main display image)
     bannerImage: {
       url: {

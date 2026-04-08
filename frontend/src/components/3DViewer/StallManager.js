@@ -14,7 +14,6 @@ export class StallManager {
 
   async createStalls(stallCount, stallData) {
     const positions = this.calculateStallPositions(stallCount);
-
     for (let i = 0; i < stallCount; i++) {
       const position = positions[i];
       const data = stallData[i] || { id: i + 1, name: `Stall ${i + 1}` };
@@ -31,8 +30,7 @@ export class StallManager {
 
   calculateStallPositions(count) {
     const positions = [];
-
-    const PADDING = 30;
+    const PADDING = 50;
     const maxX = HALL_DIMENSIONS.WIDTH - PADDING;
     const maxZ = HALL_DIMENSIONS.DEPTH - PADDING;
 
@@ -76,7 +74,6 @@ export class StallManager {
     ];
 
     const stallsPerWall = this.distributeStalls(count, walls, maxX, maxZ);
-
     let stallIndex = 0;
 
     for (let w = 0; w < walls.length; w++) {
@@ -95,16 +92,12 @@ export class StallManager {
           -spreadMax + PADDING,
           Math.min(spreadMax - PADDING, spreadVal),
         );
-
         const x = wall.fixedAxis === "x" ? wall.fixedVal : clampedSpread;
         const z = wall.fixedAxis === "z" ? wall.fixedVal : clampedSpread;
-
         positions.push({ x, z, rotation: wall.rotation });
         stallIndex++;
-
         if (stallIndex >= count) break;
       }
-
       if (stallIndex >= count) break;
     }
 
@@ -141,10 +134,8 @@ export class StallManager {
         remaining--;
       }
       wallIndex++;
-
       if (result.reduce((a, b) => a + b, 0) >= totalCapacity) break;
     }
-
     return result;
   }
 
@@ -152,14 +143,12 @@ export class StallManager {
     const positions = [];
     const cols = Math.ceil(Math.sqrt(count));
     const rows = Math.ceil(count / cols);
-
     const startX = (-(cols - 1) * spacing) / 2;
     const startZ = (-(rows - 1) * spacing) / 2;
 
     for (let i = 0; i < count; i++) {
       const row = Math.floor(i / cols);
       const col = i % cols;
-
       const x = Math.max(
         -(HALL_DIMENSIONS.WIDTH - 50),
         Math.min(HALL_DIMENSIONS.WIDTH - 50, startX + col * spacing),
@@ -168,32 +157,30 @@ export class StallManager {
         -(HALL_DIMENSIONS.DEPTH - 50),
         Math.min(HALL_DIMENSIONS.DEPTH - 50, startZ + row * spacing),
       );
-
       positions.push({ x, z, rotation: 0 });
     }
-
     return positions;
   }
+
+  /* ================= LABEL ================= */
 
   createLabel(x, z, name) {
     const div = document.createElement("div");
     div.textContent = name;
     div.style.cssText = `
-    background: rgba(0, 0, 0, 0.65);
-    color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-family: sans-serif;
-    font-weight: 500;
-    white-space: nowrap;
-    pointer-events: none;
-    border: 1px solid rgba(255,255,255,0.15);
-  `;
-
+      background: rgba(0,0,0,0.65);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.15);
+    `;
     const label = new CSS2DObject(div);
-    // HITBOX_SIZE is 38, SCALE is 7 — position label above stall
-    label.position.set(x + 3, 28, z); // 👈 tweak y if too high/low
+    label.position.set(x + 3, 28, z);
     this.scene.add(label);
     this.labels.push(label);
   }
@@ -214,19 +201,11 @@ export class StallManager {
       model.rotation.y = rotation;
 
       model.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-
-          // Change floor color — adjust the name to match what console shows
-          if (
-            child.name.toLowerCase().includes("floor") ||
-            child.name.toLowerCase().includes("ground") ||
-            child.name.toLowerCase().includes("plane")
-          ) {
-            child.material = child.material.clone();
-            child.material.color.set(0xffffff); // your color here
-          }
+        if (!child.isMesh) return;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.name === "Plane001") {
+          child.visible = false;
         }
       });
 
@@ -234,7 +213,6 @@ export class StallManager {
 
       const hitbox = this.createHitbox(x, z, stallData);
       this.stalls.push(hitbox);
-
       this.createLabel(x, z, stallData.name || `Stall ${stallData.id}`);
 
       if (gltf.animations.length) {
@@ -265,9 +243,7 @@ export class StallManager {
         STALL_CONFIG.HITBOX_SIZE,
         STALL_CONFIG.HITBOX_SIZE - 15,
       ),
-      new THREE.MeshBasicMaterial({
-        visible: false,
-      }),
+      new THREE.MeshBasicMaterial({ visible: false }),
     );
     hitbox.position.set(x + 2, 3, z);
     hitbox.userData = stallData;
@@ -292,11 +268,11 @@ export class StallManager {
       stall.material.dispose();
     });
     this.labels.forEach((label) => {
-      // 👈 add this block
       this.scene.remove(label);
-      label.element.remove();
+      label.element?.remove();
     });
     this.stalls = [];
     this.mixers = [];
+    this.labels = [];
   }
 }
