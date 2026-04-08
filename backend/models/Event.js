@@ -237,8 +237,7 @@ const eventSchema = new Schema(
       default: "default",
     },
 
-    // Background URL (either selected from default backgrounds or custom uploaded)
-    backgroundUrl: {
+    customBackground: {
       type: String,
       default: null,
     },
