@@ -1,5 +1,5 @@
-export const API_BASE_URL = "http://localhost:8747/api";
-import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8747/api";
 
 export const api = async (endpoint, options = {}) => {
   // Get token from localStorage
