@@ -81,21 +81,21 @@ const adminGroups = [
       // { name: "All Stalls", path: "/admin/stalls", icon: ClipboardList },
     ],
   },
-  {
-    label: "Moderation",
-    links: [
-      // {
-      //   name: "Pending Events",
-      //   path: "/admin/events/requests",
-      //   icon: CheckSquare,
-      // },
-      {
-        name: "Reported Content",
-        path: "/admin/reports", // future
-        icon: Bell,
-      },
-    ],
-  },
+  // {
+  //   label: "Moderation",
+  //   links: [
+  //     // {
+  //     //   name: "Pending Events",
+  //     //   path: "/admin/events/requests",
+  //     //   icon: CheckSquare,
+  //     // },
+  //     {
+  //       name: "Reported Content",
+  //       path: "/admin/reports", // future
+  //       icon: Bell,
+  //     },
+  //   ],
+  // },
   {
     label: "System",
     links: [
@@ -247,13 +247,14 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await logout?.();
-      navigate("/login");
-    } catch {
-      navigate("/login");
+      await logout();
+      // Force a hard navigation to clear all state
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.href = "/";
     }
   };
-
   return (
     <motion.aside
       variants={sidebarVariants}

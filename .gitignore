@@ -16,3 +16,5 @@ build/
 
 *-files.txt
 nul
+ai-chatbot/venv/
+venv/

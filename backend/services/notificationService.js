@@ -632,3 +632,75 @@ export const notifyAllParticipantsEventEnded = async (eventId, eventName) => {
     };
   }
 };
+
+/**
+ * SEND REMINDERS TO USERS WHO SET REMINDERS
+ * Send notification 24 hours before event goes live
+ */
+export const notifyUsersWhoSetReminders = async (eventId, eventName) => {
+  try {
+    const Event = mongoose.model("Event");
+    // Find event and get users who set reminders
+    const event = await Event.findById(eventId)
+      .select("reminders liveDate")
+      .lean();
+
+    if (!event || event.reminders.length === 0) {
+      console.log(`No reminders set for event ${eventId}`);
+      return { success: true, sent: 0 };
+    }
+
+    // Filter reminders that haven't been sent yet
+    const remindersToSend = event.reminders.filter((r) => !r.reminderSent);
+
+    if (remindersToSend.length === 0) {
+      console.log(`All reminders already sent for event ${eventId}`);
+      return { success: true, sent: 0 };
+    }
+
+    const notificationPromises = remindersToSend.map((reminder) =>
+      createNotification(
+        reminder.user,
+        "Event Reminder - 24 Hours",
+        `${eventName} is going live tomorrow! Click to view more details.`,
+        "event_reminder_24h",
+        eventId,
+        "Event",
+      ).catch((err) => {
+        console.error(`Failed to send reminder to ${reminder.user}:`, err);
+        return null;
+      }),
+    );
+
+    const results = await Promise.all(notificationPromises);
+    const successCount = results.filter((r) => r !== null).length;
+
+    // Update reminder sent status
+    await Event.findByIdAndUpdate(
+      eventId,
+      {
+        $set: {
+          "reminders.$[elem].reminderSent": true,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.reminderSent": false }],
+      },
+    );
+
+    console.log(
+      `24-hour reminders sent to ${successCount} users for event ${eventName}`,
+    );
+    return {
+      success: true,
+      sent: successCount,
+      total: remindersToSend.length,
+    };
+  } catch (error) {
+    console.error("Error notifying users who set reminders:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};

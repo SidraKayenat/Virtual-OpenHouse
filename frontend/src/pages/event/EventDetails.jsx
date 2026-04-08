@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { eventAPI, stallAPI } from "@/lib/api";
 import {
   Search,
@@ -11,6 +12,7 @@ import {
   Building,
   ChevronRight,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 const CATEGORY_COLORS = {
@@ -503,8 +505,13 @@ export default function EventDetails() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [reminderSet, setReminderSet] = useState(false);
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderError, setReminderError] = useState(null);
 
+  const { user } = useAuth();
+
+  // Fetch event data
   useEffect(() => {
     if (!eventId) return;
     setLoading(true);
@@ -515,6 +522,80 @@ export default function EventDetails() {
       .catch((err) => setError(err.message || "Failed to load event"))
       .finally(() => setLoading(false));
   }, [eventId]);
+
+  // Check if user has reminder set for this event
+  useEffect(() => {
+    if (!eventId) return;
+    checkReminderStatus();
+  }, [eventId]);
+
+  const checkReminderStatus = async () => {
+    try {
+      const response = await eventAPI.checkReminderStatus(eventId);
+      setHasReminder(response.data?.hasReminder || false);
+    } catch (err) {
+      console.error("Failed to check reminder status:", err);
+      // Don't show error to user, just default to false
+      setHasReminder(false);
+    }
+  };
+
+  const handleSetReminder = async () => {
+    try {
+      setReminderLoading(true);
+      setReminderError(null);
+
+      const response = await eventAPI.setReminder(eventId);
+
+      setHasReminder(true);
+      toast.success(
+        response.message ||
+          "Reminder set successfully! You'll be notified 24 hours before the event.",
+      );
+    } catch (err) {
+      const errorMessage =
+        err.message || "Failed to set reminder. Please try again.";
+      setReminderError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
+  const handleRemoveReminder = async () => {
+    try {
+      setReminderLoading(true);
+      setReminderError(null);
+
+      await eventAPI.removeReminder(eventId);
+
+      setHasReminder(false);
+      toast.success("Reminder removed successfully");
+    } catch (err) {
+      const errorMessage =
+        err.message || "Failed to remove reminder. Please try again.";
+      setReminderError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
+  const handleReminderClick = () => {
+    // Check if user is logged in (adjust based on your auth system)
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Redirect to login or show login modal
+      navigate("/login", { state: { from: `/events/${eventId}` } });
+      return;
+    }
+
+    if (hasReminder) {
+      handleRemoveReminder();
+    } else {
+      handleSetReminder();
+    }
+  };
 
   const countdownTarget = useMemo(
     () => (event?.liveDate ? new Date(event.liveDate) : null),
@@ -1052,24 +1133,75 @@ export default function EventDetails() {
               />
             </div>
 
-            <Link to={`/user/register/${eventId}`}>
+            {/* Check if current user is the event creator */}
+            {user?._id === event.createdBy?._id ? (
+              // Event creator / Admin view
               <button
-                className="register-btn text-white"
-                disabled={
-                  event.availableStalls === 0 ||
-                  !["published", "live"].includes(event.status)
-                }
+                className="register-btn"
+                disabled
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  boxShadow: "none",
+                  cursor: "not-allowed",
+                  opacity: 0.6,
+                }}
               >
-                {event.availableStalls === 0 ? "Stalls Full" : "Register Now"}
+                You are the organizer
               </button>
-            </Link>
+            ) : isLive ? (
+              // Live event: Show "Join Now" button that goes to 3D viewer
+              <Link to={`/event/view/${eventId}`}>
+                <button
+                  className="register-btn text-white"
+                  style={{
+                    background: "linear-gradient(135deg,#ef4444,#dc2626)",
+                    boxShadow: "0 4px 24px rgba(239,68,68,0.35)",
+                  }}
+                >
+                  Join Now
+                </button>
+              </Link>
+            ) : (
+              // Non-live event: Show "Register Now" button (if stalls available)
+              <Link to={`/user/register/${eventId}`}>
+                <button
+                  className="register-btn text-white"
+                  disabled={
+                    event.availableStalls === 0 ||
+                    !["published", "live"].includes(event.status)
+                  }
+                >
+                  {event.availableStalls === 0 ? "Stalls Full" : "Register Now"}
+                </button>
+              </Link>
+            )}
 
             <button
-              className={`reminder-btn ${reminderSet ? "text-violet-300 border-violet-500/40" : "text-slate-300"}`}
-              onClick={() => setReminderSet(!reminderSet)}
+              className={`reminder-btn ${
+                hasReminder
+                  ? "text-violet-300 border-violet-500/40"
+                  : "text-slate-300"
+              } transition-all duration-250 disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={handleReminderClick}
+              disabled={reminderLoading}
+              title={reminderError ? reminderError : ""}
             >
-              {reminderSet ? "✓ Reminder Set" : "🔔 Set a Reminder"}
+              {reminderLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+                  Processing...
+                </span>
+              ) : hasReminder ? (
+                "✓ Reminder Set"
+              ) : (
+                "🔔 Set a Reminder"
+              )}
             </button>
+            {reminderError && (
+              <p className="text-xs text-red-400 text-center">
+                {reminderError}
+              </p>
+            )}
 
             <hr className="divider" />
 
