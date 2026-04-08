@@ -146,23 +146,34 @@ export const createEvent = async (req, res) => {
       backgroundUrl = null;
     } else {
       // Default background - user must select one from the 5 options (1-5)
-      if (!selectedBackgroundId || selectedBackgroundId < 1 || selectedBackgroundId > 5) {
+      if (
+        !selectedBackgroundId ||
+        selectedBackgroundId < 1 ||
+        selectedBackgroundId > 5
+      ) {
         return res.status(400).json({
           success: false,
-          message: "Please select a default background (1-5) or upload a custom background",
+          message:
+            "Please select a default background (1-5) or upload a custom background",
         });
       }
 
       // Fetch the selected background from Settings
       const settings = await Settings.findOne();
-      if (!settings || !settings.defaultBackgrounds || settings.defaultBackgrounds.length === 0) {
+      if (
+        !settings ||
+        !settings.defaultBackgrounds ||
+        settings.defaultBackgrounds.length === 0
+      ) {
         return res.status(400).json({
           success: false,
           message: "No default backgrounds available. Please contact admin.",
         });
       }
 
-      const selectedBg = settings.defaultBackgrounds.find(bg => bg.backgroundId === selectedBackgroundId);
+      const selectedBg = settings.defaultBackgrounds.find(
+        (bg) => bg.backgroundId === selectedBackgroundId,
+      );
       if (!selectedBg || !selectedBg.url) {
         return res.status(400).json({
           success: false,
@@ -1121,49 +1132,44 @@ export const setDefaultBackgrounds = async (req, res) => {
       });
     }
 
-    // Max 5 backgrounds allowed
-    if (req.files.length > 5) {
-      return res.status(400).json({
-        success: false,
-        message: "Maximum 5 backgrounds allowed",
-      });
-    }
-
     // Get or create Settings document
     let settings = await Settings.findOne();
 
-    // Delete old default backgrounds from Cloudinary
-    if (settings && settings.defaultBackgrounds && settings.defaultBackgrounds.length > 0) {
-      for (const bg of settings.defaultBackgrounds) {
-        if (bg.publicId) {
-          try {
-            await deleteFromCloudinary(bg.publicId);
-          } catch (error) {
-            console.error(`Error deleting background ${bg.backgroundId}:`, error);
-            // Continue anyway - don't fail the upload
-          }
-        }
-      }
+    // Get existing backgrounds or empty array
+    let existingBackgrounds = settings?.defaultBackgrounds || [];
+    const currentCount = existingBackgrounds.length;
+    const newFilesCount = req.files.length;
+
+    // Check if total would exceed 5
+    if (currentCount + newFilesCount > 5) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot add ${newFilesCount} background(s). You already have ${currentCount}. Maximum is 5.`,
+      });
     }
 
-    // Process uploaded images and create new defaultBackgrounds array
-    const newDefaultBackgrounds = req.files.map((file, index) => ({
-      backgroundId: index + 1, // 1-5
-      url: file.path, // Cloudinary URL
-      publicId: file.filename, // Cloudinary public_id
-      name: `Background ${index + 1}`,
+    // Process new uploaded images and append to existing
+    const startId = currentCount + 1;
+    const newBackgrounds = req.files.map((file, index) => ({
+      backgroundId: startId + index,
+      url: file.path,
+      publicId: file.filename,
+      name: `Background ${startId + index}`,
     }));
 
+    // Combine existing + new backgrounds
+    const allBackgrounds = [...existingBackgrounds, ...newBackgrounds];
+
     if (!settings) {
-      // Create new Settings document with default backgrounds
+      // Create new Settings document
       settings = await Settings.create({
-        defaultBackgrounds: newDefaultBackgrounds,
+        defaultBackgrounds: allBackgrounds,
         lastUpdatedBy: req.user._id,
         lastUpdatedAt: new Date(),
       });
     } else {
-      // Update existing Settings with new default backgrounds
-      settings.defaultBackgrounds = newDefaultBackgrounds;
+      // Update existing Settings (APPEND, don't delete old ones)
+      settings.defaultBackgrounds = allBackgrounds;
       settings.lastUpdatedBy = req.user._id;
       settings.lastUpdatedAt = new Date();
       await settings.save();
@@ -1171,10 +1177,10 @@ export const setDefaultBackgrounds = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Default backgrounds set successfully",
+      message: `${newFilesCount} background(s) added successfully`,
       data: {
-        defaultBackgrounds: newDefaultBackgrounds,
-        count: newDefaultBackgrounds.length,
+        defaultBackgrounds: allBackgrounds,
+        count: allBackgrounds.length,
       },
     });
   } catch (error) {
@@ -1182,6 +1188,95 @@ export const setDefaultBackgrounds = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to set default backgrounds",
+    });
+  }
+};
+
+// ===== DELETE A SPECIFIC DEFAULT BACKGROUND (Admin only) =====
+export const deleteDefaultBackground = async (req, res) => {
+  try {
+    // Check admin role
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can delete default backgrounds",
+      });
+    }
+
+    const { backgroundId } = req.params;
+    const bgId = parseInt(backgroundId);
+
+    if (isNaN(bgId) || bgId < 1 || bgId > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid background ID (must be 1-5)",
+      });
+    }
+
+    // Get settings
+    let settings = await Settings.findOne();
+    if (
+      !settings ||
+      !settings.defaultBackgrounds ||
+      settings.defaultBackgrounds.length === 0
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: "No default backgrounds found",
+      });
+    }
+
+    // Find the background to delete
+    const bgToDelete = settings.defaultBackgrounds.find(
+      (bg) => bg.backgroundId === bgId,
+    );
+    if (!bgToDelete) {
+      return res.status(404).json({
+        success: false,
+        message: `Background ${bgId} not found`,
+      });
+    }
+
+    // Delete from Cloudinary
+    if (bgToDelete.publicId) {
+      try {
+        await deleteFromCloudinary(bgToDelete.publicId);
+      } catch (error) {
+        console.error(`Error deleting background ${bgId}:`, error);
+        // Continue anyway
+      }
+    }
+
+    // Remove the background from the array
+    const remainingBackgrounds = settings.defaultBackgrounds.filter(
+      (bg) => bg.backgroundId !== bgId,
+    );
+
+    // Re-index remaining backgrounds (1, 2, 3, 4)
+    const reindexedBackgrounds = remainingBackgrounds.map((bg, idx) => ({
+      ...bg,
+      backgroundId: idx + 1,
+      name: `Background ${idx + 1}`,
+    }));
+
+    settings.defaultBackgrounds = reindexedBackgrounds;
+    settings.lastUpdatedBy = req.user._id;
+    settings.lastUpdatedAt = new Date();
+    await settings.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Background ${bgId} deleted successfully`,
+      data: {
+        defaultBackgrounds: reindexedBackgrounds,
+        count: reindexedBackgrounds.length,
+      },
+    });
+  } catch (error) {
+    console.error("Delete Default Background Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete background",
     });
   }
 };
@@ -1676,7 +1771,11 @@ export const getDefaultBackgrounds = async (req, res) => {
   try {
     const settings = await Settings.findOne();
 
-    if (!settings || !settings.defaultBackgrounds || settings.defaultBackgrounds.length === 0) {
+    if (
+      !settings ||
+      !settings.defaultBackgrounds ||
+      settings.defaultBackgrounds.length === 0
+    ) {
       return res.status(200).json({
         success: true,
         message: "No default backgrounds set yet",

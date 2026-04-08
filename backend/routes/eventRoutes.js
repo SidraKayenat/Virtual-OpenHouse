@@ -59,6 +59,12 @@ router.post(
   uploadEventDefaultBackground.array("defaultBackgrounds", 5),
   eventController.setDefaultBackgrounds,
 );
+// Delete a specific default background (admin only)
+router.delete(
+  "/admin/default-backgrounds/:backgroundId",
+  verifyToken,
+  eventController.deleteDefaultBackground,
+);
 
 // Update background type (switch between default and custom)
 router.patch(

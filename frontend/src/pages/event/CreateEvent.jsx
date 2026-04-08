@@ -20,6 +20,7 @@ import {
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { eventAPI } from "@/lib/api";
+import toast from "react-hot-toast";
 
 // ─── Step definitions ─────────────────────────────────────────────────────
 const STEPS = [
@@ -41,14 +42,6 @@ const EVENT_TYPES = [
   "workshop",
   "seminar",
   "other",
-];
-
-const SKYBOX_PRESETS = [
-  { value: "/Environments/AlgerLakessunset.webp", label: "Alger Lakes" },
-  { value: "/Environments/Mountainmeadow.webp", label: "Mountain Meadow" },
-  { value: "/Environments/RetroSpaceSkybox.webp", label: "Retro Space" },
-  { value: "/Environments/RoyalPalaceasi.webp", label: "Royal Palace" },
-  { value: "/Environments/WaimeaCanyon.webp", label: "Waimea Canyon" },
 ];
 
 // ─── Styled form primitives ───────────────────────────────────────────────
@@ -231,172 +224,6 @@ function StepNav({ currentStep, completedSteps, onGoTo }) {
   );
 }
 
-// ─── Skybox Picker ────────────────────────────────────────────────────────
-function SkyboxPicker({
-  value,
-  backgroundType,
-  onChange,
-  onUpload,
-  uploading,
-}) {
-  const fileInputRef = useRef(null);
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) onUpload(file);
-  };
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-3 gap-3">
-        {SKYBOX_PRESETS.map(({ value: presetValue, label }) => {
-          const isSelected =
-            value === presetValue && backgroundType !== "upload";
-          return (
-            <button
-              key={presetValue}
-              type="button"
-              onClick={() =>
-                onChange({
-                  backgroundType: "custom",
-                  customBackground: presetValue,
-                  customBackgroundPublicId: "",
-                })
-              }
-              className="flex flex-col rounded-xl overflow-hidden text-left transition-all"
-              style={{
-                border: isSelected
-                  ? "2px solid rgba(52,211,153,0.7)"
-                  : "2px solid rgba(255,255,255,0.07)",
-                boxShadow: isSelected
-                  ? "0 0 16px rgba(52,211,153,0.15)"
-                  : "none",
-              }}
-            >
-              <div className="relative w-full" style={{ height: 72 }}>
-                <img
-                  src={presetValue}
-                  alt={label}
-                  className="w-full h-full object-cover"
-                />
-                {isSelected && (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ background: "rgba(52,211,153,0.18)" }}
-                  >
-                    <CheckCircle size={20} style={{ color: "#34d399" }} />
-                  </div>
-                )}
-              </div>
-              <div
-                className="px-2 py-1.5"
-                style={{ background: "rgba(255,255,255,0.04)" }}
-              >
-                <p
-                  className="text-[11px] font-medium truncate"
-                  style={{
-                    color: isSelected ? "#6ee7b7" : "rgba(255,255,255,0.45)",
-                  }}
-                >
-                  {label}
-                </p>
-              </div>
-            </button>
-          );
-        })}
-
-        {/* Custom upload tile */}
-        <button
-          type="button"
-          onClick={() => {
-            onChange({
-              backgroundType: "upload",
-              customBackground: "",
-              customBackgroundPublicId: "",
-            });
-            setTimeout(() => fileInputRef.current?.click(), 50);
-          }}
-          className="flex flex-col items-center justify-center gap-2 rounded-xl transition-all"
-          style={{
-            height: 105,
-            border:
-              backgroundType === "upload"
-                ? "2px solid rgba(96,165,250,0.7)"
-                : "2px dashed rgba(255,255,255,0.12)",
-            background:
-              backgroundType === "upload"
-                ? "rgba(96,165,250,0.08)"
-                : "rgba(255,255,255,0.02)",
-          }}
-        >
-          {uploading ? (
-            <div className="w-6 h-6 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
-          ) : (
-            <Upload
-              size={18}
-              style={{
-                color:
-                  backgroundType === "upload"
-                    ? "#60a5fa"
-                    : "rgba(255,255,255,0.3)",
-              }}
-            />
-          )}
-          <span
-            className="text-[11px] font-medium"
-            style={{
-              color:
-                backgroundType === "upload"
-                  ? "#93c5fd"
-                  : "rgba(255,255,255,0.3)",
-            }}
-          >
-            {uploading ? "Uploading…" : "Custom Upload"}
-          </span>
-        </button>
-      </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-
-      {/* Show uploaded preview */}
-      {backgroundType === "upload" && value?.startsWith("http") && (
-        <div
-          className="relative rounded-xl overflow-hidden"
-          style={{ height: 100 }}
-        >
-          <img
-            src={value}
-            alt="Custom skybox"
-            className="w-full h-full object-cover"
-          />
-          <div
-            className="absolute inset-0 flex items-end p-2"
-            style={{
-              background:
-                "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
-            }}
-          >
-            <span className="text-[11px] text-white font-medium">
-              Custom background uploaded ✓
-            </span>
-          </div>
-        </div>
-      )}
-
-      <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.22)" }}>
-        Select a preset skybox or upload your own equirectangular (360°) image ·
-        Max 20MB
-      </p>
-    </div>
-  );
-}
-
 // ─── Tag input ────────────────────────────────────────────────────────────
 function TagInput({ value, onChange }) {
   const [input, setInput] = useState("");
@@ -483,16 +310,15 @@ function TagInput({ value, onChange }) {
 }
 
 // ─── Live preview card ────────────────────────────────────────────────────
-function LivePreview({ form }) {
+function LivePreview({ form, customBackgroundPreview }) {
   const tags = form.tags
     ? form.tags
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean)
     : [];
-  const skyboxLabel =
-    SKYBOX_PRESETS.find((p) => p.value === form.customBackground)?.label ||
-    "Custom";
+
+  const displayBackground = customBackgroundPreview || form.customBackground;
 
   return (
     <div
@@ -506,6 +332,14 @@ function LivePreview({ form }) {
         className="relative h-36 overflow-hidden"
         style={{ background: "linear-gradient(135deg,#1e1b30,#2d1f5e)" }}
       >
+        {displayBackground && (
+          <img
+            src={displayBackground}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={() => {}}
+          />
+        )}
         <div
           className="absolute inset-0"
           style={{
@@ -523,16 +357,6 @@ function LivePreview({ form }) {
         >
           Upcoming
         </span>
-        {!form.customBackground && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p
-              className="text-[11px]"
-              style={{ color: "rgba(255,255,255,0.2)" }}
-            >
-              No skybox selected
-            </p>
-          </div>
-        )}
       </div>
       <div className="p-4 flex flex-col gap-2.5">
         <h3
@@ -580,14 +404,6 @@ function LivePreview({ form }) {
               style={{ color: "rgba(255,255,255,0.38)" }}
             >
               <Users size={11} /> {form.numberOfStalls} stalls available
-            </p>
-          )}
-          {form.customBackground && (
-            <p
-              className="text-[11px]"
-              style={{ color: "rgba(255,255,255,0.28)" }}
-            >
-              🌐 {skyboxLabel}
             </p>
           )}
         </div>
@@ -640,11 +456,18 @@ export default function CreateEvent() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [uploadingBackground, setUploadingBackground] = useState(false);
   const [showArchivePopup, setShowArchivePopup] = useState(false);
   const [pendingEventId, setPendingEventId] = useState(null);
-  const [archiveDecision, setArchiveDecision] = useState(null); // null = undecided, true = yes, false = no
+  const [archiveDecision, setArchiveDecision] = useState(null);
   const [archiveUpdating, setArchiveUpdating] = useState(false);
+
+  // Background states
+  const [backgrounds, setBackgrounds] = useState([]);
+  const [selectedBackgroundId, setSelectedBackgroundId] = useState(null);
+  const [backgroundType, setBackgroundType] = useState("default");
+  const [customBackgroundFile, setCustomBackgroundFile] = useState(null);
+  const [customBackgroundPreview, setCustomBackgroundPreview] = useState("");
+  const [uploadingCustomBg, setUploadingCustomBg] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -653,49 +476,29 @@ export default function CreateEvent() {
     liveDate: "",
     startTime: "",
     endTime: "",
-    backgroundType: "custom",
-    customBackground: "/Environments/RetroSpaceSkybox.webp",
-    customBackgroundPublicId: "",
     eventType: "exhibition",
     tags: "",
   });
+
+  // Fetch default backgrounds from backend
+  useEffect(() => {
+    const fetchDefaultBackgrounds = async () => {
+      try {
+        const res = await eventAPI.getDefaultBackgrounds();
+        if (res.success && res.data.defaultBackgrounds) {
+          setBackgrounds(res.data.defaultBackgrounds);
+        }
+      } catch (err) {
+        console.error("Failed to fetch backgrounds:", err);
+      }
+    };
+    fetchDefaultBackgrounds();
+  }, []);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const handle = (e) => {
     const { name, value, type, checked } = e.target;
     set(name, type === "checkbox" ? checked : value);
-  };
-
-  const handleSkyboxChange = ({
-    backgroundType,
-    customBackground,
-    customBackgroundPublicId,
-  }) => {
-    setForm((f) => ({
-      ...f,
-      backgroundType,
-      customBackground,
-      customBackgroundPublicId,
-    }));
-  };
-
-  const handleBackgroundUpload = async (file) => {
-    if (!file) return;
-    // NOTE: background upload requires an eventId — only possible after event creation
-    // So for CreateEvent we just store the file locally and upload after creation
-    // For now show a preview using FileReader
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setForm((f) => ({
-        ...f,
-        backgroundType: "upload",
-        customBackground: reader.result,
-        customBackgroundPublicId: "",
-      }));
-    };
-    reader.readAsDataURL(file);
-    // Store file ref for post-creation upload
-    setForm((f) => ({ ...f, _pendingBgFile: file }));
   };
 
   const goToStep = (n) => {
@@ -719,58 +522,6 @@ export default function CreateEvent() {
     setStep((s) => Math.max(s - 1, 0));
   };
 
-  const handleArchiveConfirm = async () => {
-    setLoading(true);
-    setSubmitError(null);
-    try {
-      const payload = {
-        name: form.name,
-        description: form.description,
-        numberOfStalls: parseInt(form.numberOfStalls),
-        liveDate: form.liveDate,
-        startTime: form.startTime,
-        endTime: form.endTime,
-        backgroundType:
-          form.backgroundType === "upload" ? "custom" : form.backgroundType,
-        customBackground: form.customBackground?.startsWith("data:")
-          ? ""
-          : form.customBackground,
-        eventType: form.eventType,
-        tags: form.tags
-          ? form.tags
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
-        archive: false, // Default to false, will be updated after popup
-      };
-
-      const res = await eventAPI.create(payload);
-      if (res.success) {
-        // If there's a pending bg file upload (custom upload), do it now
-        if (form._pendingBgFile && res.data?._id) {
-          try {
-            const formData = new FormData();
-            formData.append("background", form._pendingBgFile);
-            await eventAPI.uploadBackground(res.data._id, formData);
-          } catch (bgErr) {
-            console.warn("Background upload failed, can retry in edit:", bgErr);
-          }
-        }
-
-        // Store event ID and show archive popup instead of navigating away
-        setPendingEventId(res.data._id);
-        setShowArchivePopup(true);
-      } else {
-        throw new Error(res.message);
-      }
-    } catch (err) {
-      setSubmitError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmitClick = () => {
     // Validate all steps first
     for (let i = 0; i < STEPS.length; i++) {
@@ -781,6 +532,17 @@ export default function CreateEvent() {
         return;
       }
     }
+    // Validate background selection
+    if (
+      backgroundType === "default" &&
+      !selectedBackgroundId &&
+      backgrounds.length > 0
+    ) {
+      setStep(2);
+      setErrors({ background: "Please select a default background" });
+      toast.error("Please select a default background");
+      return;
+    }
     // Show archive popup BEFORE submitting
     setShowArchivePopup(true);
   };
@@ -788,26 +550,59 @@ export default function CreateEvent() {
   const submitEventWithArchive = async (shouldArchive) => {
     setArchiveUpdating(true);
     setArchiveDecision(shouldArchive);
+    setLoading(true);
+    setSubmitError(null);
 
     try {
-      // Update the event with the archive preference
-      if (pendingEventId) {
-        await eventAPI.update(pendingEventId, { archive: shouldArchive });
+      const payload = {
+        name: form.name,
+        description: form.description,
+        numberOfStalls: parseInt(form.numberOfStalls),
+        liveDate: form.liveDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        backgroundType: backgroundType,
+        selectedBackgroundId:
+          backgroundType === "default" ? selectedBackgroundId : null,
+        eventType: form.eventType,
+        tags: form.tags
+          ? form.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [],
+        archive: shouldArchive,
+      };
+
+      const res = await eventAPI.create(payload);
+
+      if (res.success) {
+        // Upload custom background if there's a pending file
+        if (
+          backgroundType === "custom" &&
+          customBackgroundFile &&
+          res.data?._id
+        ) {
+          try {
+            const formData = new FormData();
+            formData.append("background", customBackgroundFile);
+            await eventAPI.uploadBackground(res.data._id, formData);
+          } catch (bgErr) {
+            console.warn("Background upload failed, can retry in edit:", bgErr);
+          }
+        }
+
+        navigate("/user/events");
+      } else {
+        throw new Error(res.message);
       }
-      // Small delay to show success state
-      setTimeout(() => {
-        setShowArchivePopup(false);
-        navigate("/user/events");
-      }, 800);
     } catch (err) {
-      console.error("Failed to update archive preference:", err);
-      // Still navigate even if archive update fails
-      setTimeout(() => {
-        setShowArchivePopup(false);
-        navigate("/user/events");
-      }, 800);
+      setSubmitError(err.message);
+      toast.error(err.message);
     } finally {
+      setLoading(false);
       setArchiveUpdating(false);
+      setShowArchivePopup(false);
     }
   };
 
@@ -1162,15 +957,256 @@ export default function CreateEvent() {
                           </div>
                         </Field>
 
-                        <Field label="Skybox / Environment">
-                          <SkyboxPicker
-                            value={form.customBackground}
-                            backgroundType={form.backgroundType}
-                            onChange={handleSkyboxChange}
-                            onUpload={handleBackgroundUpload}
-                            uploading={uploadingBackground}
-                          />
+                        {/* Background Type Selection */}
+                        <Field label="Background Type">
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBackgroundType("default");
+                                setCustomBackgroundPreview("");
+                                setCustomBackgroundFile(null);
+                              }}
+                              className="py-3 px-4 rounded-xl text-[13px] font-medium transition-all"
+                              style={
+                                backgroundType === "default"
+                                  ? {
+                                      background: "rgba(124,58,237,0.22)",
+                                      color: "#c4b5fd",
+                                      border: "1px solid rgba(124,58,237,0.4)",
+                                    }
+                                  : {
+                                      background: "rgba(255,255,255,0.03)",
+                                      color: "rgba(255,255,255,0.45)",
+                                      border:
+                                        "1px solid rgba(255,255,255,0.08)",
+                                    }
+                              }
+                            >
+                              Default Backgrounds
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBackgroundType("custom");
+                                setSelectedBackgroundId(null);
+                              }}
+                              className="py-3 px-4 rounded-xl text-[13px] font-medium transition-all"
+                              style={
+                                backgroundType === "custom"
+                                  ? {
+                                      background: "rgba(124,58,237,0.22)",
+                                      color: "#c4b5fd",
+                                      border: "1px solid rgba(124,58,237,0.4)",
+                                    }
+                                  : {
+                                      background: "rgba(255,255,255,0.03)",
+                                      color: "rgba(255,255,255,0.45)",
+                                      border:
+                                        "1px solid rgba(255,255,255,0.08)",
+                                    }
+                              }
+                            >
+                              Custom Background
+                            </button>
+                          </div>
                         </Field>
+
+                        {/* Default Backgrounds Grid */}
+                        {backgroundType === "default" && (
+                          <div>
+                            <p
+                              className="text-[11px] font-medium mb-3"
+                              style={{ color: "rgba(255,255,255,0.35)" }}
+                            >
+                              Select a background for your 3D environment
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {backgrounds.map((bg) => (
+                                <button
+                                  key={bg.backgroundId}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedBackgroundId(bg.backgroundId);
+                                  }}
+                                  className="relative rounded-xl overflow-hidden transition-all group"
+                                  style={{
+                                    border:
+                                      selectedBackgroundId === bg.backgroundId
+                                        ? "2px solid rgba(52,211,153,0.8)"
+                                        : "2px solid rgba(255,255,255,0.1)",
+                                    boxShadow:
+                                      selectedBackgroundId === bg.backgroundId
+                                        ? "0 0 16px rgba(52,211,153,0.2)"
+                                        : "none",
+                                  }}
+                                >
+                                  <div className="aspect-video">
+                                    <img
+                                      src={bg.url}
+                                      alt={bg.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  {selectedBackgroundId === bg.backgroundId && (
+                                    <div
+                                      className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                                      style={{ background: "#34d399" }}
+                                    >
+                                      <CheckCircle
+                                        size={12}
+                                        style={{ color: "white" }}
+                                      />
+                                    </div>
+                                  )}
+                                  <div
+                                    className="p-2 text-center"
+                                    style={{
+                                      background: "rgba(0,0,0,0.6)",
+                                      position: "absolute",
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                    }}
+                                  >
+                                    <p className="text-[10px] font-medium text-white">
+                                      Background {bg.backgroundId}
+                                    </p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            {backgrounds.length === 0 && (
+                              <div
+                                className="p-4 rounded-xl text-center mt-3"
+                                style={{
+                                  background: "rgba(96,165,250,0.06)",
+                                  border: "1px solid rgba(96,165,250,0.15)",
+                                }}
+                              >
+                                <p
+                                  className="text-[12px]"
+                                  style={{ color: "#93c5fd" }}
+                                >
+                                  No default backgrounds available. Please
+                                  contact admin.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Custom Background Upload */}
+                        {backgroundType === "custom" && (
+                          <div>
+                            <p
+                              className="text-[11px] font-medium mb-3"
+                              style={{ color: "rgba(255,255,255,0.35)" }}
+                            >
+                              Upload your own 360° background image
+                            </p>
+                            <div
+                              className="relative w-full rounded-xl overflow-hidden cursor-pointer group"
+                              style={{
+                                minHeight: 150,
+                                background: customBackgroundPreview
+                                  ? "transparent"
+                                  : "rgba(255,255,255,0.03)",
+                                border: customBackgroundPreview
+                                  ? "none"
+                                  : "2px dashed rgba(255,255,255,0.1)",
+                              }}
+                              onClick={() =>
+                                !uploadingCustomBg &&
+                                document
+                                  .getElementById("create-custom-bg-input")
+                                  .click()
+                              }
+                            >
+                              <input
+                                id="create-custom-bg-input"
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      toast.error(
+                                        "File too large. Maximum size is 5MB",
+                                      );
+                                      e.target.value = "";
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setCustomBackgroundPreview(reader.result);
+                                      setCustomBackgroundFile(file);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                              {uploadingCustomBg ? (
+                                <div className="flex flex-col items-center justify-center gap-2 py-8">
+                                  <div className="w-6 h-6 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+                                  <p
+                                    className="text-[11px]"
+                                    style={{ color: "rgba(255,255,255,0.4)" }}
+                                  >
+                                    Uploading...
+                                  </p>
+                                </div>
+                              ) : customBackgroundPreview ? (
+                                <>
+                                  <img
+                                    src={customBackgroundPreview}
+                                    alt="Custom background preview"
+                                    className="w-full h-40 object-cover"
+                                  />
+                                  <div
+                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                    style={{ background: "rgba(0,0,0,0.55)" }}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        setCustomBackgroundPreview("");
+                                        setCustomBackgroundFile(null);
+                                      }}
+                                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-semibold text-white"
+                                      style={{
+                                        background: "rgba(239,68,68,0.4)",
+                                        border: "1px solid rgba(239,68,68,0.5)",
+                                      }}
+                                    >
+                                      <X size={13} /> Remove
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center gap-2 py-8">
+                                  <Upload
+                                    size={24}
+                                    style={{ color: "rgba(255,255,255,0.4)" }}
+                                  />
+                                  <p
+                                    className="text-[12px]"
+                                    style={{ color: "rgba(255,255,255,0.3)" }}
+                                  >
+                                    Click to upload custom background
+                                  </p>
+                                  <p
+                                    className="text-[10px]"
+                                    style={{ color: "rgba(255,255,255,0.2)" }}
+                                  >
+                                    JPG, PNG, WebP · Max 5MB · 360°
+                                    equirectangular recommended
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
 
@@ -1215,13 +1251,14 @@ export default function CreateEvent() {
                               ],
                               ["Stalls", form.numberOfStalls],
                               [
-                                "Skybox",
-                                SKYBOX_PRESETS.find(
-                                  (p) => p.value === form.customBackground,
-                                )?.label ||
-                                  (form.backgroundType === "upload"
+                                "Background",
+                                backgroundType === "default"
+                                  ? selectedBackgroundId
+                                    ? `Default Background ${selectedBackgroundId}`
+                                    : "No background selected"
+                                  : customBackgroundPreview
                                     ? "Custom Upload"
-                                    : "—"),
+                                    : "No background selected",
                               ],
                             ].map(([k, v]) => (
                               <div key={k} className="flex flex-col gap-0.5">
@@ -1342,7 +1379,10 @@ export default function CreateEvent() {
               >
                 Live Preview
               </p>
-              <LivePreview form={form} />
+              <LivePreview
+                form={form}
+                customBackgroundPreview={customBackgroundPreview}
+              />
               <p
                 className="text-[10.5px] text-center mt-3"
                 style={{ color: "rgba(255,255,255,0.18)" }}
@@ -1381,7 +1421,6 @@ export default function CreateEvent() {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header with icon */}
               <div
                 className="relative p-6 pb-4 text-center"
                 style={{
@@ -1402,17 +1441,17 @@ export default function CreateEvent() {
                   className="text-white text-xl font-bold"
                   style={{ fontFamily: "'Syne',sans-serif" }}
                 >
-                  Event Created!
+                  Confirm Archive Preference
                 </h2>
                 <p
                   className="text-[13px] mt-1"
                   style={{ color: "rgba(255,255,255,0.45)" }}
                 >
-                  Your event has been submitted for admin review
+                  Choose whether this event should be publicly visible after
+                  completion
                 </p>
               </div>
 
-              {/* Archive question */}
               <div className="p-6 flex flex-col gap-4">
                 <div
                   className="rounded-xl p-4"
@@ -1446,7 +1485,6 @@ export default function CreateEvent() {
                   </p>
                 </div>
 
-                {/* Decision buttons */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => submitEventWithArchive(false)}
@@ -1475,10 +1513,10 @@ export default function CreateEvent() {
                       opacity: archiveUpdating ? 0.7 : 1,
                     }}
                   >
-                    {archiveUpdating && archiveDecision === true ? (
+                    {archiveUpdating ? (
                       <>
                         <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                        Saving...
+                        Creating...
                       </>
                     ) : (
                       <>
@@ -1487,19 +1525,6 @@ export default function CreateEvent() {
                     )}
                   </button>
                 </div>
-
-                {/* Skip option */}
-                <button
-                  onClick={() => submitEventWithArchive(false)}
-                  disabled={archiveUpdating}
-                  className="text-[11px] py-2 transition-colors"
-                  style={{
-                    color: "rgba(255,255,255,0.3)",
-                    cursor: archiveUpdating ? "not-allowed" : "pointer",
-                  }}
-                >
-                  I'll decide later
-                </button>
               </div>
             </motion.div>
           </motion.div>
