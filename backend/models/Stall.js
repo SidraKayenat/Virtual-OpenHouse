@@ -167,34 +167,15 @@ const stallSchema = new Schema(
         fileSize: {
           type: Number, // in bytes
         },
+        resourceType: {
+          type: String, // "image" for PDFs, "raw" for other documents
+          enum: ["image", "raw"],
+          default: "raw",
+        },
       },
-<<<<<<< HEAD
     ],
-=======
-      publicId: {
-        type: String,
-        required: true,
-      },
-      filename: {
-        type: String,
-        required: true,
-      },
-      fileType: {
-        type: String, // pdf, docx, pptx, etc.
-        required: true,
-      },
-      fileSize: {
-        type: Number, // in bytes
-      },
-      resourceType: {
-        type: String, // "image" for PDFs, "raw" for other documents
-        enum: ["image", "raw"],
-        default: "raw",
-      },
-    }],
->>>>>>> archived-events
 
-     // ===== CHATBOT INGEST STATE =====
+    // ===== CHATBOT INGEST STATE =====
     chatbotDocFingerprint: {
       type: String,
       default: null,
@@ -255,42 +236,6 @@ const stallSchema = new Schema(
     //   default: 1,
     //   min: 0.5,
     //   max: 3,
-    // },
-
-    // // 3D Model customization (optional)
-    // customModel: {
-    //   url: {
-    //     type: String,
-    //     default: null,
-    //   },
-    //   publicId: {
-    //     type: String,
-    //     default: null,
-    //   },
-    // },
-
-    // ===== CONTACT & SOCIAL LINKS =====
-    // contactInfo: {
-    //   email: {
-    //     type: String,
-    //     trim: true,
-    //     lowercase: true,
-    //   },
-    //   phone: {
-    //     type: String,
-    //     trim: true,
-    //   },
-    //   website: {
-    //     type: String,
-    //     trim: true,
-    //   },
-    //   socialLinks: {
-    //     linkedin: String,
-    //     twitter: String,
-    //     facebook: String,
-    //     instagram: String,
-    //     github: String,
-    //   },
     // },
 
     // ===== STATUS & VISIBILITY =====
@@ -372,7 +317,7 @@ stallSchema.virtual("isReadyToPublish").get(function () {
     this.projectTitle &&
     this.projectDescription &&
     this.images.length > 0 &&
-    this.bannerImage.url
+    this.bannerImage?.url
   );
 });
 
@@ -392,7 +337,7 @@ stallSchema.methods.incrementLikes = async function () {
 
 // Check if user owns this stall
 stallSchema.methods.isOwnedBy = function (userId) {
-  return this.owner.toString() === userId.toString();
+  return this.owner?.toString() === userId.toString();
 };
 
 // Publish stall

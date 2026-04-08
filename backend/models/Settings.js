@@ -4,16 +4,27 @@ const { Schema } = mongoose;
 
 const settingsSchema = new Schema(
   {
-    // Default background for events
-    defaultBackgroundUrl: {
-      type: String,
-      default: null,
-    },
-
-    defaultBackgroundPublicId: {
-      type: String,
-      default: null,
-    },
+    // Multiple default backgrounds for events (up to 5)
+    defaultBackgrounds: [
+      {
+        backgroundId: {
+          type: Number, // 1-5
+          required: true,
+        },
+        url: {
+          type: String,
+          default: null,
+        },
+        publicId: {
+          type: String,
+          default: null,
+        },
+        name: {
+          type: String,
+          default: null, // e.g., "Background 1", "Background 2", etc.
+        },
+      },
+    ],
 
     // Can add more settings in the future (email templates, system configs, etc.)
     systemName: {

@@ -12,6 +12,7 @@ import {
   Zap,
   Tag,
   RotateCcw,
+  Archive,
 } from "lucide-react";
 import EventCard from "@/components/event/EventCard";
 import { eventAPI } from "@/lib/api";
@@ -37,6 +38,7 @@ const TABS = [
   { id: "all", label: "All Events", icon: LayoutGrid },
   { id: "live", label: "Live Now", icon: Radio },
   { id: "upcoming", label: "Upcoming", icon: Calendar },
+  { id: "past", label: "Past Events", icon: Archive },
 ];
 
 // ─── Filter sidebar item ──────────────────────────────────────────────────
@@ -124,10 +126,16 @@ export default function PublicBrowseEvents() {
   const [tags, setTags] = useState("");
   const [sort, setSort] = useState("latest");
   const [tab, setTab] = useState("all");
-  const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
+  const [viewMode, setViewMode] = useState("grid");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({
+    all: 0,
+    live: 0,
+    upcoming: 0,
+    past: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [error, setError] = useState(null);
@@ -135,27 +143,37 @@ export default function PublicBrowseEvents() {
 
   const observer = useRef();
 
-  // ── Fetch ──────────────────────────────────────────────────────────
+  // ── Fetch events for current tab ──────────────────────────────────────────
   const fetchEvents = useCallback(
     async (reset = false) => {
       try {
         setLoading(true);
-        const res = await eventAPI.getPublished({
-          search,
-          eventType,
-          tags,
-          sortBy: sort, // CHANGE THIS: map 'sort' to 'sortBy'
+
+        const params = {
           page: reset ? 1 : page,
           limit: 12,
-        });
-        const data = res.data || [];
-        const tot = res.pagination?.total ?? data.length;
+          sortBy: sort,
+        };
+
+        if (search) params.search = search;
+        if (eventType) params.eventType = eventType;
+        if (tags) params.tags = tags;
+
+        const response = await eventAPI.getBrowseEvents(tab, params);
+        const data = response.data || [];
+        const tot = response.pagination?.total ?? data.length;
+
         if (reset) {
           setEvents(data);
           setPage(1);
-        } else setEvents((prev) => [...prev, ...data]);
+        } else {
+          setEvents((prev) => [...prev, ...data]);
+        }
         setTotal(tot);
         setHasMore(data.length === 12);
+
+        // Update count for current tab
+        setCounts((prev) => ({ ...prev, [tab]: tot }));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -163,20 +181,55 @@ export default function PublicBrowseEvents() {
         setInitialLoad(false);
       }
     },
-    [search, eventType, tags, sort, page],
+    [search, eventType, tags, sort, page, tab],
   );
 
   // ── Debounced filter change ────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => fetchEvents(true), 350);
     return () => clearTimeout(t);
-  }, [search, eventType, tags, sort]);
+  }, [search, eventType, tags, sort, tab]);
 
   // ── Paginate ──────────────────────────────────────────────────────
   useEffect(() => {
     if (page === 1) return;
     fetchEvents(false);
   }, [page]);
+
+  // ── Fetch counts for all tabs when filters change ───────────────────────
+  useEffect(() => {
+    const fetchAllCounts = async () => {
+      const params = {};
+      if (search) params.search = search;
+      if (eventType) params.eventType = eventType;
+      if (tags) params.tags = tags;
+      if (sort) params.sortBy = sort;
+
+      try {
+        const [allRes, liveRes, upcomingRes, pastRes] = await Promise.all([
+          eventAPI.getBrowseEvents("all", { ...params, limit: 1, page: 1 }),
+          eventAPI.getBrowseEvents("live", { ...params, limit: 1, page: 1 }),
+          eventAPI.getBrowseEvents("upcoming", {
+            ...params,
+            limit: 1,
+            page: 1,
+          }),
+          eventAPI.getBrowseEvents("past", { ...params, limit: 1, page: 1 }),
+        ]);
+
+        setCounts({
+          all: allRes.pagination?.total || 0,
+          live: liveRes.pagination?.total || 0,
+          upcoming: upcomingRes.pagination?.total || 0,
+          past: pastRes.pagination?.total || 0,
+        });
+      } catch (err) {
+        console.error("Failed to fetch counts:", err);
+      }
+    };
+
+    fetchAllCounts();
+  }, [search, eventType, tags, sort]);
 
   // ── Infinite scroll sentinel ───────────────────────────────────────
   const lastRef = useCallback(
@@ -191,20 +244,14 @@ export default function PublicBrowseEvents() {
     [loading, hasMore],
   );
 
-  // ── Filter by tab ──────────────────────────────────────────────────
-  const displayed = events.filter((e) => {
-    if (tab === "live") return e.status === "live";
-    if (tab === "upcoming") return e.status === "published";
-    return true;
-  });
-
-  const liveCount = events.filter((e) => e.status === "live").length;
-  const upcomingCount = events.filter((e) => e.status === "published").length;
+  // ── No frontend filtering needed - backend already filtered ────────────
+  const displayed = events;
 
   const tabCount = {
-    all: events.length,
-    live: liveCount,
-    upcoming: upcomingCount,
+    all: counts.all,
+    live: counts.live,
+    upcoming: counts.upcoming,
+    past: counts.past,
   };
 
   const clearAll = () => {
@@ -564,7 +611,11 @@ export default function PublicBrowseEvents() {
                       border: "1px solid rgba(124,58,237,0.2)",
                     }}
                   >
-                    {tab}
+                    {tab === "live"
+                      ? "Live Now"
+                      : tab === "upcoming"
+                        ? "Upcoming"
+                        : "Past Events"}
                     <button onClick={() => setTab("all")}>
                       <X size={10} />
                     </button>
@@ -658,16 +709,30 @@ export default function PublicBrowseEvents() {
                     border: "1px solid rgba(255,255,255,0.08)",
                   }}
                 >
-                  <Zap size={24} style={{ color: "rgba(255,255,255,0.15)" }} />
+                  {tab === "past" ? (
+                    <Archive
+                      size={24}
+                      style={{ color: "rgba(255,255,255,0.15)" }}
+                    />
+                  ) : (
+                    <Zap
+                      size={24}
+                      style={{ color: "rgba(255,255,255,0.15)" }}
+                    />
+                  )}
                 </div>
-                <p className="text-white font-semibold">No events found</p>
+                <p className="text-white font-semibold">
+                  {tab === "past" ? "No archived events" : "No events found"}
+                </p>
                 <p
                   className="text-[13px]"
                   style={{ color: "rgba(255,255,255,0.3)" }}
                 >
-                  {search
-                    ? `No results for "${search}"`
-                    : "Try adjusting your filters"}
+                  {tab === "past"
+                    ? "Events that have been archived will appear here"
+                    : search
+                      ? `No results for "${search}"`
+                      : "Try adjusting your filters"}
                 </p>
                 <button
                   onClick={clearAll}
@@ -686,7 +751,7 @@ export default function PublicBrowseEvents() {
                 layout
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-2 xl:grid-cols-3 gap-5"
+                    ? "grid grid-cols-2 xl:grid-cols-5 md:grid-cols-3 gap-5"
                     : "flex flex-col gap-3"
                 }
               >

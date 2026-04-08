@@ -237,17 +237,23 @@ const eventSchema = new Schema(
       default: "default",
     },
 
-    customBackground: {
+    // Background URL (either selected from default backgrounds or custom uploaded)
+    backgroundUrl: {
       type: String,
       default: null,
     },
 
-    customBackgroundPublicId: {
-      type: String,
+    // If backgroundType is "default": which of the 5 backgrounds was selected (1-5)
+    // If backgroundType is "custom": null
+    selectedBackgroundId: {
+      type: Number,
+      min: 1,
+      max: 5,
       default: null,
     },
 
-    defaultBackgroundUrl: {
+    // Cloudinary public ID (only for custom backgrounds for deletion purposes)
+    backgroundPublicId: {
       type: String,
       default: null,
     },

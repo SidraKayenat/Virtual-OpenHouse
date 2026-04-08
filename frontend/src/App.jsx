@@ -35,6 +35,7 @@ import AllUsers from "./pages/users/AllUsers";
 import UserDetails from "./pages/users/UserDetails";
 import AdminEventView from "./pages/event/AdminEventView";
 import TeamsAndManagement from "./pages/TeamsAndManagement";
+import AdminSettings from "./pages/settings/AdminSettings";
 
 function App() {
   return (
@@ -277,6 +278,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <TeamsAndManagement />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* // Admin Settings  */}
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute>
+                <AdminSettings />
               </ProtectedRoute>
             }
           />

@@ -12,6 +12,7 @@ import {
   Building,
   ChevronRight,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 const CATEGORY_COLORS = {
@@ -507,6 +508,8 @@ export default function EventDetails() {
   const [hasReminder, setHasReminder] = useState(false);
   const [reminderLoading, setReminderLoading] = useState(false);
   const [reminderError, setReminderError] = useState(null);
+
+  const { user } = useAuth();
 
   // Fetch event data
   useEffect(() => {
@@ -1130,17 +1133,48 @@ export default function EventDetails() {
               />
             </div>
 
-            <Link to={`/user/register/${eventId}`}>
+            {/* Check if current user is the event creator */}
+            {user?._id === event.createdBy?._id ? (
+              // Event creator / Admin view
               <button
-                className="register-btn text-white"
-                disabled={
-                  event.availableStalls === 0 ||
-                  !["published", "live"].includes(event.status)
-                }
+                className="register-btn"
+                disabled
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  boxShadow: "none",
+                  cursor: "not-allowed",
+                  opacity: 0.6,
+                }}
               >
-                {event.availableStalls === 0 ? "Stalls Full" : "Register Now"}
+                You are the organizer
               </button>
-            </Link>
+            ) : isLive ? (
+              // Live event: Show "Join Now" button that goes to 3D viewer
+              <Link to={`/event/view/${eventId}`}>
+                <button
+                  className="register-btn text-white"
+                  style={{
+                    background: "linear-gradient(135deg,#ef4444,#dc2626)",
+                    boxShadow: "0 4px 24px rgba(239,68,68,0.35)",
+                  }}
+                >
+                  Join Now
+                </button>
+              </Link>
+            ) : (
+              // Non-live event: Show "Register Now" button (if stalls available)
+              <Link to={`/user/register/${eventId}`}>
+                <button
+                  className="register-btn text-white"
+                  disabled={
+                    event.availableStalls === 0 ||
+                    !["published", "live"].includes(event.status)
+                  }
+                >
+                  {event.availableStalls === 0 ? "Stalls Full" : "Register Now"}
+                </button>
+              </Link>
+            )}
 
             <button
               className={`reminder-btn ${

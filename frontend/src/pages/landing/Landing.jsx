@@ -408,7 +408,7 @@ export default function Landing() {
             }}
           >
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />{" "}
-            3 Events Live Now
+            Always-On Experiences
           </div>
         </div>
         <div className="absolute bottom-36 right-[15%] float-2 hidden lg:block">
@@ -421,7 +421,7 @@ export default function Landing() {
               backdropFilter: "blur(12px)",
             }}
           >
-            <Users size={13} /> 12K+ Attendees
+            <Users size={13} /> Global Visitors
           </div>
         </div>
         <div className="absolute top-48 left-[8%] float-3 hidden xl:block">

@@ -52,6 +52,13 @@ export const eventAPI = {
     const queryString = new URLSearchParams(params).toString();
     return api(`/events?${queryString}`, { method: "GET" });
   },
+  getBrowseEvents: (type, params = {}) => {
+    const queryString = new URLSearchParams({
+      type,
+      ...params,
+    }).toString();
+    return api(`/events/browse?${queryString}`, { method: "GET" });
+  },
 
   // Get my events
   getMyEvents: () =>
@@ -64,6 +71,41 @@ export const eventAPI = {
     const queryString = new URLSearchParams(params).toString();
     return api(`/events/published?${queryString}`, { method: "GET" });
   },
+
+  getPublicArchivedEvents: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api(`/events/public/archived?${queryString}`, { method: "GET" });
+  },
+
+  // Add to eventAPI object in api.js
+  getDefaultBackgrounds: () =>
+    api("/events/default-backgrounds", { method: "GET" }),
+
+  setDefaultBackgrounds: (formData) => {
+    return fetch(`${API_BASE_URL}/events/admin/set-default-backgrounds`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to upload backgrounds");
+      }
+      return res.json();
+    });
+  },
+
+  // Delete a specific default background
+  deleteDefaultBackground: (backgroundId) =>
+    api(`/events/admin/default-backgrounds/${backgroundId}`, {
+      method: "DELETE",
+    }),
+
+  // Delete custom background
+  deleteCustomBackground: (eventId) =>
+    api(`/events/${eventId}/background`, {
+      method: "DELETE",
+    }),
 
   // Get single event  -Auth required
   getById: (eventId) =>
