@@ -42,6 +42,7 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
     if (!canvasRef.current || !eventData) return;
 
     console.log("🚀 ThreeScene initializing...");
+    console.log("📦 FULL EVENT DATA:", eventData);
 
     let animationId;
     const clock = new THREE.Clock();
@@ -92,12 +93,7 @@ const ThreeScene = ({ eventData, onStallClick, isUIOpen }) => {
     const initializeScene = async () => {
       try {
         console.log("🌍 Loading environment...");
-        await environmentLoader.loadEnvironment(
-          eventData.environmentType || "plain_ground",
-          ["custom", "upload"].includes(eventData.backgroundType)
-            ? eventData.customBackground
-            : null,
-        );
+        await environmentLoader.loadFromEvent(eventData);
 
         console.log("🏗️ Creating stalls...");
         await stallManager.createStalls(
