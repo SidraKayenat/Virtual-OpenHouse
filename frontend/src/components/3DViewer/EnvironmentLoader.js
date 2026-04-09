@@ -9,10 +9,45 @@ export class EnvironmentLoader {
     this.currentEnvironment = null;
   }
 
+  // Call this with the raw event object from fetchPublicEventData / fetchEventData
+  async loadFromEvent(eventData) {
+    console.log("🎨 loadFromEvent received:", {
+      backgroundType: eventData.backgroundType,
+      backgroundUrl: eventData.backgroundUrl,
+      rawEvent: eventData.rawEvent,
+    });
+
+    const backgroundType =
+      eventData.backgroundType || eventData.rawEvent?.backgroundType;
+
+    const resolvedUrl =
+      eventData.backgroundUrl || eventData.rawEvent?.backgroundUrl || null;
+
+    console.log("🎯 FINAL DECISION:", {
+      backgroundType,
+      resolvedUrl,
+    });
+
+    // ✅ CUSTOM BACKGROUND (priority)
+    if (backgroundType === "custom" && resolvedUrl) {
+      console.log("✅ USING CUSTOM BACKGROUND:", resolvedUrl);
+      return this.loadEnvironment(null, resolvedUrl);
+    }
+
+    // ✅ DEFAULT BACKGROUND
+    if (backgroundType === "default" && resolvedUrl) {
+      console.log("✅ USING DEFAULT BACKGROUND:", resolvedUrl);
+      return this.loadEnvironment(null, resolvedUrl);
+    }
+
+    // ✅ FALLBACK
+    console.log("⚠️ FALLBACK ENVIRONMENT");
+    return this.loadEnvironment(eventData.environmentType || "indoor");
+  }
+
   async loadEnvironment(environmentType, customBackgroundUrl = null) {
     this.clearEnvironment();
 
-    // If custom URL provided, use it directly as skybox
     if (customBackgroundUrl) {
       try {
         return await this.load360Image(customBackgroundUrl);
@@ -47,8 +82,6 @@ export class EnvironmentLoader {
     }
   }
 
-  /* ================= 360 IMAGE ================= */
-
   load360Image(path) {
     return new Promise((resolve, reject) => {
       this.textureLoader.load(
@@ -56,10 +89,8 @@ export class EnvironmentLoader {
         (texture) => {
           texture.mapping = THREE.EquirectangularReflectionMapping;
           texture.colorSpace = THREE.SRGBColorSpace;
-
           this.scene.environment = texture;
           this.scene.background = texture;
-
           this.currentEnvironment = texture;
           console.log("✅ 360 environment loaded:", path);
           resolve(texture);
@@ -70,16 +101,11 @@ export class EnvironmentLoader {
     });
   }
 
-  /* ================= CLEANUP ================= */
-
   clearEnvironment() {
     if (!this.currentEnvironment) return;
-
     this.scene.environment = null;
     this.scene.background = null;
     this.currentEnvironment.dispose?.();
     this.currentEnvironment = null;
   }
-
-  /* ================= FALLBACK ================= */
 }
