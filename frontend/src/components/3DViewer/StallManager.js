@@ -38,7 +38,7 @@ export class StallManager {
       {
         name: "top",
         fixedAxis: "z",
-        fixedVal: -maxZ + 150,
+        fixedVal: -maxZ + 400,
         spreadAxis: "x",
         spreadMax: maxX,
         rotation: Math.PI,
@@ -47,7 +47,7 @@ export class StallManager {
       {
         name: "bottom",
         fixedAxis: "z",
-        fixedVal: maxZ - 150,
+        fixedVal: maxZ - 400,
         spreadAxis: "x",
         spreadMax: maxX,
         rotation: 0,
@@ -56,7 +56,7 @@ export class StallManager {
       {
         name: "left",
         fixedAxis: "x",
-        fixedVal: -maxX,
+        fixedVal: -maxX + 400,
         spreadAxis: "z",
         spreadMax: maxZ,
         rotation: -Math.PI / 2,
@@ -65,11 +65,11 @@ export class StallManager {
       {
         name: "right",
         fixedAxis: "x",
-        fixedVal: maxX,
+        fixedVal: maxX - 400,
         spreadAxis: "z",
         spreadMax: maxZ,
         rotation: Math.PI / 2,
-        spacing: 40,
+        spacing: 60,
       },
     ];
 
