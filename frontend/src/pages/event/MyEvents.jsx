@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
+import toast from "react-hot-toast";
+
 import {
   Calendar,
   Clock,
@@ -684,8 +686,9 @@ export default function MyEvents() {
       setPublishing(eventId);
       await eventAPI.publish(eventId);
       await loadData();
+      toast.success("Event published successfully");
     } catch (err) {
-      alert(err.message || "Failed to publish");
+      toast.error(err.message || "Failed to publish");
     } finally {
       setPublishing(null);
     }

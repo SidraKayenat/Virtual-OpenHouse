@@ -34,6 +34,7 @@ import {
   stallAPI,
   notificationAPI,
 } from "@/lib/api";
+import toast from "react-hot-toast";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 const fmt = (d) =>
@@ -160,43 +161,6 @@ function FocusInput({ locked, icon: Icon, ...props }) {
         onBlur={() => setFocused(false)}
       />
     </div>
-  );
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────
-function Toast({ message, type, onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3200);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ duration: 0.22 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
-      style={
-        type === "success"
-          ? {
-              background: "#1a1728",
-              border: "1px solid rgba(52,211,153,0.35)",
-              color: "#6ee7b7",
-            }
-          : {
-              background: "#1a1728",
-              border: "1px solid rgba(248,113,113,0.35)",
-              color: "#fca5a5",
-            }
-      }
-    >
-      {type === "success" ? (
-        <CheckCircle size={15} />
-      ) : (
-        <AlertCircle size={15} />
-      )}
-      <span className="text-[13px] font-medium">{message}</span>
-    </motion.div>
   );
 }
 
@@ -463,7 +427,7 @@ export default function UserDetails() {
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [toast, setToast] = useState(null);
+  // const [toast, setToast] = useState(null);
   const [showDelete, setShowDelete] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -484,8 +448,6 @@ export default function UserDetails() {
     phoneNumber: "",
   });
   const [original, setOriginal] = useState(null);
-
-  const showToast = (msg, type = "success") => setToast({ message: msg, type });
 
   // ── Load user ─────────────────────────────────────────────────────────
   // Update loadUser to refresh after activation/deactivation
@@ -563,9 +525,9 @@ export default function UserDetails() {
       setUser(res.data);
       setOriginal(JSON.parse(JSON.stringify(form)));
       setEditing(false);
-      showToast("User updated successfully");
+      toast.success("User updated successfully");
     } catch (err) {
-      showToast(err.message || "Failed to update", "error");
+      toast.error(err.message || "Failed to update");
     } finally {
       setSaving(false);
     }
@@ -579,9 +541,11 @@ export default function UserDetails() {
       setToggling(true);
       const res = await userAPI.update(userId, { isActive: !user.isActive });
       setUser(res.data);
-      showToast(`Account ${res.data.isActive ? "activated" : "deactivated"}`);
+      toast.success(
+        `Account ${res.data.isActive ? "activated" : "deactivated"}`,
+      );
     } catch (err) {
-      showToast(err.message || "Failed to update status", "error");
+      toast.error(err.message || "Failed to update status");
     } finally {
       setToggling(false);
     }
@@ -592,9 +556,9 @@ export default function UserDetails() {
       setToggling(true);
       const res = await userAPI.activateUser(userId);
       setUser(res.data);
-      showToast("Account activated successfully");
+      toast.success("Account activated successfully");
     } catch (err) {
-      showToast(err.message || "Failed to activate account", "error");
+      toast.error(err.message || "Failed to activate account");
     } finally {
       setToggling(false);
     }
@@ -605,9 +569,9 @@ export default function UserDetails() {
       setToggling(true);
       const res = await userAPI.deactivateUser(userId);
       setUser(res.data);
-      showToast("Account deactivated successfully");
+      toast.success("Account deactivated successfully");
     } catch (err) {
-      showToast(err.message || "Failed to deactivate account", "error");
+      toast.error(err.message || "Failed to deactivate account");
     } finally {
       setToggling(false);
     }
@@ -620,7 +584,7 @@ export default function UserDetails() {
       await userAPI.delete(userId);
       navigate("/admin/users");
     } catch (err) {
-      showToast(err.message || "Failed to delete", "error");
+      toast.error(err.message || "Failed to delete");
       setDeleting(false);
     }
   };
@@ -1353,11 +1317,6 @@ export default function UserDetails() {
             onCancel={() => setShowDelete(false)}
             loading={deleting}
           />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {toast && (
-          <Toast key={Date.now()} {...toast} onDone={() => setToast(null)} />
         )}
       </AnimatePresence>
     </div>

@@ -105,11 +105,11 @@ const adminGroups = [
         path: "/admin/teams",
         icon: ShieldCheck,
       },
-      {
-        name: "Logs / Activity",
-        path: "/admin/logs",
-        icon: BarChart2,
-      },
+      // {
+      //   name: "Logs / Activity",
+      //   path: "/admin/logs",
+      //   icon: BarChart2,
+      // },
     ],
   },
 ];

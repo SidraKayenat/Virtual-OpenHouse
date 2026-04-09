@@ -15,6 +15,7 @@ import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { userAPI } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 // ─── Styled Input ─────────────────────────────
 const inputBase = {
@@ -132,8 +133,10 @@ export default function AllUsers() {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, isActive: true } : u)),
       );
+      toast.success("User activated successfully");
     } catch (err) {
       console.error(err);
+      toast.error(err.message || "Failed to activate user");
     }
   };
 
@@ -143,8 +146,10 @@ export default function AllUsers() {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, isActive: false } : u)),
       );
+      toast.success("User deactivated successfully");
     } catch (err) {
       console.error(err);
+      toast.error(err.message || "Failed to deactivate user");
     }
   };
 

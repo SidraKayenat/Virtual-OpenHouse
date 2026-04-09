@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
+import toast from "react-hot-toast";
 import {
   User,
   Lock,
@@ -222,43 +223,6 @@ function Toggle({ checked, onChange, label, desc }) {
         />
       </button>
     </div>
-  );
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────
-function Toast({ message, type, onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3200);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ duration: 0.22 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
-      style={
-        type === "success"
-          ? {
-              background: "#1a1728",
-              border: "1px solid rgba(52,211,153,0.35)",
-              color: "#6ee7b7",
-            }
-          : {
-              background: "#1a1728",
-              border: "1px solid rgba(248,113,113,0.35)",
-              color: "#fca5a5",
-            }
-      }
-    >
-      {type === "success" ? (
-        <CheckCircle size={15} />
-      ) : (
-        <AlertCircle size={15} />
-      )}
-      <span className="text-[13px] font-medium">{message}</span>
-    </motion.div>
   );
 }
 
@@ -498,10 +462,6 @@ export default function UserSettings() {
   // Active section for nav highlight
   const [activeSection, setActiveSection] = useState("profile");
 
-  // Toast
-  const [toast, setToast] = useState(null); // { message, type }
-  const showToast = (message, type = "success") => setToast({ message, type });
-
   // ── Profile ──────────────────────────────────────────────────────────
   const [profile, setProfile] = useState({
     name: user?.name || "",
@@ -524,7 +484,7 @@ export default function UserSettings() {
 
   const handleSaveProfile = async () => {
     if (!profile.name.trim()) {
-      showToast("Name is required", "error");
+      toast.error("Name is required", "error");
       return;
     }
     try {
@@ -535,9 +495,9 @@ export default function UserSettings() {
       });
       originalProfile.current = { ...profile };
       setProfileDirty(false);
-      showToast("Profile updated successfully");
+      toast.success("Profile updated successfully");
     } catch (err) {
-      showToast(err.message || "Failed to update profile", "error");
+      toast.error(err.message || "Failed to update profile", "error");
     } finally {
       setProfileLoading(false);
     }
@@ -580,9 +540,9 @@ export default function UserSettings() {
       });
       setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setPwErrors({});
-      showToast("Password changed successfully");
+      toast.success("Password changed successfully");
     } catch (err) {
-      showToast(err.message || "Failed to change password", "error");
+      toast.error(err.message || "Failed to change password", "error");
     } finally {
       setPwLoading(false);
     }
@@ -603,7 +563,7 @@ export default function UserSettings() {
     const next = { ...prefs, [k]: v };
     setPrefs(next);
     savePrefs(next);
-    showToast("Preference saved");
+    toast.success("Preference saved");
   };
 
   // ── Danger zone ───────────────────────────────────────────────────────
@@ -1453,7 +1413,7 @@ export default function UserSettings() {
               // No backend endpoint — show info toast
               setShowDeleteModal(false);
               setDeleteConfirmText("");
-              showToast("Contact support to delete your account", "error");
+              toast.error("Contact support to delete your account", "error");
             }}
             onCancel={() => {
               setShowDeleteModal(false);
@@ -1497,17 +1457,6 @@ export default function UserSettings() {
               </div>
             </div>
           </ConfirmModal>
-        )}
-      </AnimatePresence>
-
-      {/* ── Toast ── */}
-      <AnimatePresence>
-        {toast && (
-          <Toast
-            key={toast.message + Date.now()}
-            {...toast}
-            onDone={() => setToast(null)}
-          />
         )}
       </AnimatePresence>
     </div>

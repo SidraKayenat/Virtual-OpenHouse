@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
+import toast from "react-hot-toast";
 import {
   ArrowLeft,
   Calendar,
@@ -131,43 +132,6 @@ const REG_STATUS_META = {
     bg: "rgba(148,163,184,0.08)",
   },
 };
-
-// ─── Toast ────────────────────────────────────────────────────────────────
-function Toast({ message, type, onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3200);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ duration: 0.22 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
-      style={
-        type === "success"
-          ? {
-              background: "#1a1728",
-              border: "1px solid rgba(52,211,153,0.35)",
-              color: "#6ee7b7",
-            }
-          : {
-              background: "#1a1728",
-              border: "1px solid rgba(248,113,113,0.35)",
-              color: "#fca5a5",
-            }
-      }
-    >
-      {type === "success" ? (
-        <CheckCircle size={15} />
-      ) : (
-        <AlertCircle size={15} />
-      )}
-      <span className="text-[13px] font-medium">{message}</span>
-    </motion.div>
-  );
-}
 
 // ─── Reject modal ─────────────────────────────────────────────────────────
 function RejectModal({ eventName, onConfirm, onCancel, loading }) {
@@ -599,7 +563,7 @@ export default function AdminEventView() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
+  // const [toast, setToast] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
   // Sub-data
@@ -615,7 +579,7 @@ export default function AdminEventView() {
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const showToast = (msg, type = "success") => setToast({ message: msg, type });
+  // const showToast = (msg, type = "success") => setToast({ message: msg, type });
 
   // ── Load event ────────────────────────────────────────────────────────
   const loadEvent = useCallback(async () => {
@@ -672,9 +636,9 @@ export default function AdminEventView() {
       setActionLoading("approve");
       await eventAPI.approve(eventId);
       setEvent((e) => ({ ...e, status: "approved" }));
-      showToast("Event approved successfully");
+      toast.success("Event approved successfully");
     } catch (err) {
-      showToast(err.message || "Failed to approve", "error");
+      toast.error(err.message || "Failed to approve");
     } finally {
       setActionLoading(null);
     }
@@ -686,9 +650,9 @@ export default function AdminEventView() {
       await eventAPI.reject(eventId, reason);
       setEvent((e) => ({ ...e, status: "rejected", rejectionReason: reason }));
       setShowReject(false);
-      showToast("Event rejected");
+      toast.error("Event rejected");
     } catch (err) {
-      showToast(err.message || "Failed to reject", "error");
+      toast.error(err.message || "Failed to reject");
     } finally {
       setActionLoading(null);
     }
@@ -700,7 +664,7 @@ export default function AdminEventView() {
       await eventAPI.delete(eventId);
       navigate("/admin/events");
     } catch (err) {
-      showToast(err.message || "Failed to delete", "error");
+      toast.error(err.message || "Failed to delete");
       setDeleting(false);
     }
   };
@@ -1635,11 +1599,6 @@ export default function AdminEventView() {
             onCancel={() => setShowDelete(false)}
             loading={deleting}
           />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {toast && (
-          <Toast key={Date.now()} {...toast} onDone={() => setToast(null)} />
         )}
       </AnimatePresence>
     </div>

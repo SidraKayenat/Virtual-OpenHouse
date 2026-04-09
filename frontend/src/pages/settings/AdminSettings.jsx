@@ -125,7 +125,7 @@ export default function AdminSettings() {
 
   // Remove a background
   const handleRemoveBackground = async (backgroundId) => {
-    if (!confirm("Are you sure you want to remove this background?")) {
+    if (!window.confirm("Are you sure you want to remove this background?")) {
       return;
     }
 

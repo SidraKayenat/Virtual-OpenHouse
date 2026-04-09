@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-hot-toast";
 import {
   CheckCircle,
   XCircle,
@@ -892,43 +893,6 @@ function Skeleton({ viewMode }) {
   );
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────
-function Toast({ message, type, onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3200);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ duration: 0.22 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
-      style={
-        type === "success"
-          ? {
-              background: "#1a1728",
-              border: "1px solid rgba(52,211,153,0.35)",
-              color: "#6ee7b7",
-            }
-          : {
-              background: "#1a1728",
-              border: "1px solid rgba(248,113,113,0.35)",
-              color: "#fca5a5",
-            }
-      }
-    >
-      {type === "success" ? (
-        <CheckCircle size={15} />
-      ) : (
-        <AlertCircle size={15} />
-      )}
-      <span className="text-[13px] font-medium">{message}</span>
-    </motion.div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────
 export default function EventRequests() {
   const [events, setEvents] = useState([]);
@@ -937,14 +901,11 @@ export default function EventRequests() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [toast, setToast] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
   // Modal state
   const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
-
-  const showToast = (message, type = "success") => setToast({ message, type });
 
   const load = useCallback(async () => {
     try {
@@ -970,9 +931,9 @@ export default function EventRequests() {
       await eventAPI.approve(approveTarget._id);
       setEvents((prev) => prev.filter((e) => e._id !== approveTarget._id));
       setApproveTarget(null);
-      showToast(`"${approveTarget.name}" approved successfully`);
+      toast.success(`"${approveTarget.name}" approved successfully`);
     } catch (err) {
-      showToast(err.message || "Failed to approve event", "error");
+      toast.error(err.message || "Failed to approve event", "error");
     } finally {
       setActionLoading(null);
     }
@@ -986,9 +947,9 @@ export default function EventRequests() {
       await eventAPI.reject(rejectTarget._id, reason);
       setEvents((prev) => prev.filter((e) => e._id !== rejectTarget._id));
       setRejectTarget(null);
-      showToast(`"${rejectTarget.name}" rejected`);
+      toast.success(`"${rejectTarget.name}" rejected`);
     } catch (err) {
-      showToast(err.message || "Failed to reject event", "error");
+      toast.error(err.message || "Failed to reject event", "error");
     } finally {
       setActionLoading(null);
     }
@@ -1482,13 +1443,6 @@ export default function EventRequests() {
             onCancel={() => setRejectTarget(null)}
             loading={actionLoading === rejectTarget._id}
           />
-        )}
-      </AnimatePresence>
-
-      {/* ── Toast ── */}
-      <AnimatePresence>
-        {toast && (
-          <Toast key={Date.now()} {...toast} onDone={() => setToast(null)} />
         )}
       </AnimatePresence>
     </div>
