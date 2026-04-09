@@ -6,8 +6,8 @@ export const SCENE_CONFIG = {
 };
 
 export const HALL_DIMENSIONS = {
-  WIDTH: 230,
-  DEPTH: 340,
+  WIDTH: 630,
+  DEPTH: 640,
 };
 
 export const PLAYER_CONFIG = {

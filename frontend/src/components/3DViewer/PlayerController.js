@@ -165,8 +165,8 @@ export class PlayerController {
       }
     }
 
-    const hw = 330;
-    const hd = 340;
+    const hw = 420;
+    const hd = 500;
     this.player.position.x = this.clamp(this.player.position.x, -hw, hw);
     this.player.position.z = this.clamp(this.player.position.z, -hd, hd);
   }
