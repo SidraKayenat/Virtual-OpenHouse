@@ -379,16 +379,26 @@ export const stallAPI = {
     }).then((res) => res.json());
   },
 
-  // Upload banner
   uploadBanner: (stallId, file) => {
     const formData = new FormData();
     formData.append("banner", file);
+    const token = localStorage.getItem("token");
 
     return fetch(`${API_BASE_URL}/stalls/${stallId}/upload-banner`, {
       method: "POST",
       credentials: "include",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       body: formData,
-    }).then((res) => res.json());
+    }).then(async (res) => {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Server error during banner upload");
+      }
+    });
   },
 
   // Delete image
