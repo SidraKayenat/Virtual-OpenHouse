@@ -108,6 +108,14 @@ stallRoutes.post(
   },
   uploadStallDocuments,
 );
+
+stallRoutes.post(
+  "/:stallId/upload-banner",
+  verifyToken,
+  uploadBanner.single("banner"),
+  uploadStallBanner,
+);
+
 stallRoutes.patch(
   "/:stallId/images/:publicId/caption",
   verifyToken,
