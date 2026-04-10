@@ -516,7 +516,7 @@ export const cancelRegistration = async (req, res) => {
     }
 
     // Only registration owner can cancel
-    if (registration.user.toString() !== req.user._id.toString()) {
+    if (registration.user._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: "You can only cancel your own registrations",

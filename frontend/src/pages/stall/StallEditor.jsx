@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CheckCircle,
   AlertCircle,
+  ShieldAlert,
   Image,
   Mail,
   Phone,
@@ -534,6 +535,10 @@ export default function StallEditor() {
   const [publishing, setPublishing] = useState(false);
   const [errors, setErrors] = useState({});
 
+  //delete
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // Upload states
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -891,6 +896,19 @@ export default function StallEditor() {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      await stallAPI.delete(stallId);
+      navigate(-1);
+    } catch (e) {
+      setError(e.message);
+      setDeleteModal(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // ── Readiness ──────────────────────────────────────────────────────────
   const checks = stall
     ? {
@@ -926,7 +944,7 @@ export default function StallEditor() {
   // ── Loading ────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -948,7 +966,7 @@ export default function StallEditor() {
 
   if (!stall) {
     return (
-      <div className="min-h-screen flex" style={{ background: "#0c0c0f" }}>
+      <div className="h-screen flex" style={{ background: "#0c0c0f" }}>
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <DashboardNavbar />
@@ -979,7 +997,7 @@ export default function StallEditor() {
 
   return (
     <div
-      className="min-h-screen flex"
+      className="h-screen flex"
       style={{
         background: "#0c0c0f",
         fontFamily: "'DM Sans','Segoe UI',sans-serif",
@@ -996,7 +1014,7 @@ export default function StallEditor() {
 
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardNavbar />
 
         <main className="flex-1 overflow-y-auto px-6 md:px-8 py-7">
@@ -1148,6 +1166,27 @@ export default function StallEditor() {
                   )}
                 </button>
               )}
+
+              {/* Delete stall */}
+              <button
+                onClick={() => setDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12.5px] font-medium transition-all"
+                style={{
+                  background: "rgba(248,113,113,0.08)",
+                  color: "rgba(248,113,113,0.7)",
+                  border: "1px solid rgba(248,113,113,0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(248,113,113,0.16)";
+                  e.currentTarget.style.color = "#fca5a5";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(248,113,113,0.08)";
+                  e.currentTarget.style.color = "rgba(248,113,113,0.7)";
+                }}
+              >
+                <Trash2 size={13} /> Delete
+              </button>
             </div>
           </motion.div>
 
@@ -1632,6 +1671,26 @@ export default function StallEditor() {
                                 >
                                   View
                                 </a>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteDocument(doc.publicId)
+                                  }
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0"
+                                  style={{ color: "rgba(248,113,113,0.5)" }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background =
+                                      "rgba(248,113,113,0.12)";
+                                    e.currentTarget.style.color = "#f87171";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background =
+                                      "transparent";
+                                    e.currentTarget.style.color =
+                                      "rgba(248,113,113,0.5)";
+                                  }}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -2489,6 +2548,109 @@ export default function StallEditor() {
           </div>
         </main>
       </div>
+
+      {/* ── Delete modal ── */}
+      <AnimatePresence>
+        {deleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{
+              background: "rgba(0,0,0,0.75)",
+              backdropFilter: "blur(6px)",
+            }}
+            onClick={() => setDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-4"
+              style={{
+                background: "#1a1728",
+                border: "1px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 32px 64px rgba(0,0,0,0.6)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: "rgba(239,68,68,0.12)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                  }}
+                >
+                  <ShieldAlert size={18} style={{ color: "#f87171" }} />
+                </div>
+                <div>
+                  <h3
+                    className="text-white font-bold text-[15px]"
+                    style={{ fontFamily: "'Syne',sans-serif" }}
+                  >
+                    Delete Stall
+                  </h3>
+                  <p
+                    className="text-[12px]"
+                    style={{ color: "rgba(255,255,255,0.35)" }}
+                  >
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className="p-3.5 rounded-xl text-[12.5px]"
+                style={{
+                  background: "rgba(248,113,113,0.07)",
+                  border: "1px solid rgba(248,113,113,0.15)",
+                  color: "#fca5a5",
+                }}
+              >
+                You are about to permanently delete{" "}
+                <strong>{stall.projectTitle || "this stall"}</strong> and all
+                its content — images, videos, documents and team members. This
+                cannot be recovered.
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteModal(false)}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-medium"
+                  style={{
+                    color: "rgba(255,255,255,0.5)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  Go back
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+                  style={{
+                    background: "rgba(239,68,68,0.25)",
+                    border: "1px solid rgba(239,68,68,0.4)",
+                    cursor: deleting ? "not-allowed" : "pointer",
+                    opacity: deleting ? 0.7 : 1,
+                  }}
+                >
+                  {deleting ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                  {deleting ? "Deleting…" : "Delete Stall"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

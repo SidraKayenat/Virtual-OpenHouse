@@ -28,7 +28,7 @@ import {
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { userAPI } from "@/lib/api";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 
 export default function TeamsAndManagement() {
   const [users, setUsers] = useState([]);

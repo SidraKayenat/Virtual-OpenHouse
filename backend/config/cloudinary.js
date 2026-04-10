@@ -58,14 +58,15 @@ const documentStorage = new CloudinaryStorage({
       folder: "virtual-openhouse/stalls/documents",
       resource_type: "raw",
       public_id: `${stallId}/${sanitizedBaseName || "document"}_${uniqueSuffix}`,
-      use_filename: true,
+      use_filename: false,
       unique_filename: false,
       overwrite: false,
       format: extension,
+      // ↓ This tells multer-storage-cloudinary not to touch originalname
+      allowedFormats: ["pdf", "doc", "docx", "ppt", "pptx", "txt"],
     };
   },
 });
-
 // Banner/Profile Images
 const bannerStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
