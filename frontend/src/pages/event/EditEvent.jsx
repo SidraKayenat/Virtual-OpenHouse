@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { eventAPI } from "@/lib/api";
+import { utcToLocalDatetimeString, localDatetimeToUtc } from "@/utils/timezoneUtils";
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { motion } from "framer-motion";
@@ -656,7 +657,7 @@ export default function EditEvent() {
     name: e.name || "",
     description: e.description || "",
     numberOfStalls: e.numberOfStalls || 1,
-    liveDate: e.liveDate ? e.liveDate.slice(0, 16) : "",
+    liveDate: e.liveDate ? utcToLocalDatetimeString(e.liveDate) : "", // Convert UTC to Pakistan time
     startTime: e.startTime || "",
     endTime: e.endTime || "",
     eventType: e.eventType || "exhibition",
@@ -1206,7 +1207,7 @@ export default function EditEvent() {
                     />
                   </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Start Time">
+                    <Field label="Start Time" hint="Pakistan Time (UTC+5)">
                       <StyledInput
                         icon={Clock}
                         type="time"
@@ -1215,7 +1216,7 @@ export default function EditEvent() {
                         onChange={handle}
                       />
                     </Field>
-                    <Field label="End Time">
+                    <Field label="End Time" hint="Pakistan Time (UTC+5)">
                       <StyledInput
                         icon={Clock}
                         type="time"

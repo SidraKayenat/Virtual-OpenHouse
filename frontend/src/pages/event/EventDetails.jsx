@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { eventAPI, stallAPI } from "@/lib/api";
+import { convertUtcTimeToLocal } from "@/utils/timezoneUtils";
 import {
   Search,
   Heart,
@@ -117,7 +118,11 @@ function useCountdown(targetDate) {
   useEffect(() => {
     if (!targetDate) return;
     const calc = () => {
-      const diff = new Date(targetDate).getTime() - Date.now();
+      // Ensure both times are in UTC for accurate comparison
+      const targetTime = new Date(targetDate).getTime();
+      const currentTime = new Date().getTime();
+      const diff = targetTime - currentTime;
+      
       if (diff <= 0) {
         setT({ h: "00", m: "00", s: "00", total: 0 });
         return;
@@ -679,7 +684,7 @@ export default function EventDetails() {
     month: "long",
     day: "numeric",
   });
-  const timeRange = `${event.startTime || "TBD"} – ${event.endTime || "TBD"}`;
+  const timeRange = `${convertUtcTimeToLocal(event.startTime) || "TBD"} – ${convertUtcTimeToLocal(event.endTime) || "TBD"}`;
   const shareUrl = encodeURIComponent(window.location.href);
   const shareTitle = encodeURIComponent(event.name);
 
@@ -1001,7 +1006,7 @@ export default function EventDetails() {
               <div>
                 <div className="section-label">Duration</div>
                 <div className="text-violet-300 font-medium text-sm">
-                  {event.startTime} – {event.endTime}
+                  {convertUtcTimeToLocal(event.startTime)} – {convertUtcTimeToLocal(event.endTime)}
                 </div>
               </div>
               {event.venue && (
@@ -1213,6 +1218,7 @@ export default function EventDetails() {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
+                    timeZone: "Asia/Karachi",
                   }),
                 ],
                 ["Time", timeRange],

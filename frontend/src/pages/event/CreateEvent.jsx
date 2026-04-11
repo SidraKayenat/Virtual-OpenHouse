@@ -20,6 +20,7 @@ import {
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { eventAPI } from "@/lib/api";
+import { localDatetimeToUtc } from "@/utils/timezoneUtils";
 import toast from "react-hot-toast";
 
 // ─── Step definitions ─────────────────────────────────────────────────────
@@ -395,6 +396,8 @@ function LivePreview({ form, customBackgroundPreview }) {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
               })}
             </p>
           )}
@@ -571,7 +574,7 @@ export default function CreateEvent() {
         name: form.name,
         description: form.description,
         numberOfStalls: parseInt(form.numberOfStalls),
-        liveDate: form.liveDate,
+        liveDate: localDatetimeToUtc(form.liveDate), // Convert Pakistan time to UTC
         startTime: form.startTime,
         endTime: form.endTime,
         backgroundType: backgroundType,
@@ -897,6 +900,7 @@ export default function CreateEvent() {
                           label="Live Date & Time"
                           required
                           error={errors.liveDate}
+                          hint="Pakistan Time (UTC+5)"
                         >
                           <StyledInput
                             icon={Calendar}
@@ -907,7 +911,7 @@ export default function CreateEvent() {
                           />
                         </Field>
                         <div className="grid grid-cols-2 gap-4">
-                          <Field label="Start Time" hint="Auto-set from live date">
+                          <Field label="Start Time" hint="Pakistan Time (UTC+5)">
                             <div className="relative">
                               <input
                                 type="time"
@@ -935,7 +939,7 @@ export default function CreateEvent() {
                               />
                             </div>
                           </Field>
-                          <Field label="End Time" error={errors.endTime}>
+                          <Field label="End Time" error={errors.endTime} hint="Pakistan Time (UTC+5)">
                             <StyledInput
                               icon={Clock}
                               type="time"
