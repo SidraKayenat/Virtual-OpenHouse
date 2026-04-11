@@ -437,8 +437,9 @@ function validateStep(step, form) {
     if (!form.liveDate) errs.liveDate = "Live date is required";
     else if (new Date(form.liveDate) <= new Date())
       errs.liveDate = "Must be in the future";
-    if (form.startTime && form.endTime && form.startTime >= form.endTime)
-      errs.endTime = "End time must be after start time";
+    // Validate that endTime is not before the liveDate time
+    if (form.endTime && form.startTime && form.endTime <= form.startTime)
+      errs.endTime = "End time must be after the event start time";
   }
   if (step === 2) {
     if (!form.numberOfStalls || form.numberOfStalls < 1)
@@ -498,7 +499,19 @@ export default function CreateEvent() {
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const handle = (e) => {
     const { name, value, type, checked } = e.target;
-    set(name, type === "checkbox" ? checked : value);
+    if (type === "checkbox") {
+      set(name, checked);
+    } else if (name === "liveDate") {
+      // Auto-populate startTime from liveDate
+      set(name, value);
+      if (value) {
+        // Extract time from datetime-local format (HH:mm)
+        const timeFromLiveDate = value.slice(11, 16);
+        set("startTime", timeFromLiveDate);
+      }
+    } else {
+      set(name, value);
+    }
   };
 
   const goToStep = (n) => {
@@ -894,14 +907,33 @@ export default function CreateEvent() {
                           />
                         </Field>
                         <div className="grid grid-cols-2 gap-4">
-                          <Field label="Start Time" error={errors.startTime}>
-                            <StyledInput
-                              icon={Clock}
-                              type="time"
-                              name="startTime"
-                              value={form.startTime}
-                              onChange={handle}
-                            />
+                          <Field label="Start Time" hint="Auto-set from live date">
+                            <div className="relative">
+                              <input
+                                type="time"
+                                name="startTime"
+                                value={form.startTime}
+                                disabled
+                                style={{
+                                  ...inputBase,
+                                  backgroundColor: "rgba(255,255,255,0.02)",
+                                  borderColor: "rgba(255,255,255,0.08)",
+                                  color: "rgba(255,255,255,0.5)",
+                                  cursor: "not-allowed",
+                                }}
+                              />
+                              <Clock
+                                size={16}
+                                style={{
+                                  position: "absolute",
+                                  right: 12,
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  color: "rgba(255,255,255,0.3)",
+                                  pointerEvents: "none",
+                                }}
+                              />
+                            </div>
                           </Field>
                           <Field label="End Time" error={errors.endTime}>
                             <StyledInput
@@ -910,6 +942,7 @@ export default function CreateEvent() {
                               name="endTime"
                               value={form.endTime}
                               onChange={handle}
+                              min={form.startTime}
                             />
                           </Field>
                         </div>

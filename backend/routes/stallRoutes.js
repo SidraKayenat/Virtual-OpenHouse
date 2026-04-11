@@ -99,7 +99,7 @@ stallRoutes.post(
           success: false,
           message:
             err.code === "LIMIT_FILE_SIZE"
-              ? "File too large (max 10MB)"
+              ? "File too large (max 20MB per file)"
               : err.message || "Upload error",
         });
       }

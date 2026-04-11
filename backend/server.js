@@ -46,20 +46,10 @@ app.use(
   }),
 );
 
-// app.use("/uploads/profiles", express.static("uploads/profiles"));
-// app.use("/uploads/files", express.static("uploads/files"))
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
-//app.use(
-//  cors({
-//    origin: [process.env.ORIGIN],
-//    credentials: true,
-//  }),
-//);
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(cookieParser());
-app.use(express.json());
 // app.use("/api/contacts",contactsRoutes);
 // app.use("/api/messages",messagesRoutes);
 // app.use("/api/channel",channelRoutes);

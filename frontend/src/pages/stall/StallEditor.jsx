@@ -683,6 +683,18 @@ export default function StallEditor() {
 
   const handleDocuments = async (files) => {
     try {
+      // Validate file sizes (max 20MB per file)
+      const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+      const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
+
+      if (oversizedFiles.length > 0) {
+        const fileNames = oversizedFiles.map((f) => f.name).join(", ");
+        setError(
+          `File(s) too large: ${fileNames}. Maximum size is 20MB per file.`,
+        );
+        return;
+      }
+
       setUploadingDocuments(true);
       await stallAPI.uploadDocuments(stallId, files);
       await loadStall();
@@ -1618,8 +1630,8 @@ export default function StallEditor() {
                           }}
                         >
                           <Info size={13} className="inline mr-1.5 mb-0.5" />
-                          Upload brochures, pitch decks, or any relevant PDFs
-                          for visitors to download.
+                          Upload brochures and pitch decks for visitors to
+                          download.
                         </div>
                         {docs.length > 0 && (
                           <div className="flex flex-col gap-2 mb-2">
@@ -1645,7 +1657,8 @@ export default function StallEditor() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-[13px] font-medium truncate">
-                                    {doc.originalName ||
+                                    {doc.filename ||
+                                      doc.originalName ||
                                       doc.url?.split("/").pop() ||
                                       `Document ${i + 1}`}
                                   </p>
@@ -1702,7 +1715,7 @@ export default function StallEditor() {
                           uploading={uploadingDocuments}
                           label="Upload documents"
                           icon={File}
-                          hint="PDF, DOC, PPT · Multiple files allowed"
+                          hint="DOC, PPT · Multiple files allowed"
                         />
                       </>
                     )}

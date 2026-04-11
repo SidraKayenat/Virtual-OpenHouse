@@ -65,9 +65,8 @@ export const getPublicEventById = async (req, res) => {
         message: "Event not found",
       });
     }
-
-    // Only return published or live events
-    if (!["published", "live"].includes(event.status)) {
+    // Only return published, live, or completed events
+    if (!["published", "live", "completed"].includes(event.status)) {
       return res.status(404).json({
         success: false,
         message: "Event not available for public viewing",
@@ -689,6 +688,28 @@ export const getPublishedEvents = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch published events",
+    });
+  }
+};
+
+// ===== GET LIVE EVENTS ONLY (for dashboard banner) =====
+export const getLiveEvents = async (req, res) => {
+  try {
+    // Get only events that are currently live
+    const events = await Event.find({ status: "live" })
+      .populate("createdBy", "name organization")
+      .select("-reviewedBy -rejectionReason")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: events,
+    });
+  } catch (error) {
+    console.error("Get Live Events Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch live events",
     });
   }
 };

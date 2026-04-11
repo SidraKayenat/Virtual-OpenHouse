@@ -14,6 +14,7 @@ const router = express.Router();
 router.get("/public/archived", eventController.getPublicArchivedEvents);
 router.get("/browse", eventController.getBrowseEvents);
 router.get("/published", eventController.getPublishedEvents);
+router.get("/live", eventController.getLiveEvents); // Get only live events for dashboard
 router.get("/default-backgrounds", eventController.getDefaultBackgrounds);
 router.get("/public/:eventId", eventController.getPublicEventById); // ADD THIS - Public event vie
 

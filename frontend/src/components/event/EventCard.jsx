@@ -4,6 +4,7 @@ import { Users, Calendar, ArrowRight, Radio, Eye } from "lucide-react";
 const EventCard = ({ event, viewMode = "grid" }) => {
   console.log("Check Event Status:", event.status);
   const isLive = event.status === "live";
+  const isEnded = event.status === "completed";
   const isFull = event.availableStalls === 0;
   const image = event.thumbnailUrl || event.thumbnail || "/thumbnail.png";
   const registered = (event.numberOfStalls ?? 0) - (event.availableStalls ?? 0);
@@ -66,10 +67,12 @@ const EventCard = ({ event, viewMode = "grid" }) => {
                 style={
                   isLive
                     ? { background: "rgba(239,68,68,0.15)", color: "#f87171" }
-                    : { background: "rgba(96,165,250,0.12)", color: "#60a5fa" }
+                    : isEnded
+                      ? { background: "rgba(107,114,128,0.15)", color: "#9ca3af" }
+                      : { background: "rgba(96,165,250,0.12)", color: "#60a5fa" }
                 }
               >
-                {isLive ? "Live" : "Upcoming"}
+                {isLive ? "Live" : isEnded ? "Archived" : "Upcoming"}
               </span>
               {isFull && (
                 <span
@@ -109,23 +112,31 @@ const EventCard = ({ event, viewMode = "grid" }) => {
             style={{
               background: isLive
                 ? "rgba(239,68,68,0.15)"
-                : "rgba(167,139,250,0.12)",
+                : isEnded
+                  ? "rgba(107,114,128,0.12)"
+                  : "rgba(167,139,250,0.12)",
               border: isLive
                 ? "1px solid rgba(239,68,68,0.25)"
-                : "1px solid rgba(167,139,250,0.2)",
+                : isEnded
+                  ? "1px solid rgba(107,114,128,0.2)"
+                  : "1px solid rgba(167,139,250,0.2)",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = isLive
                 ? "rgba(239,68,68,0.25)"
-                : "rgba(167,139,250,0.22)";
+                : isEnded
+                  ? "rgba(107,114,128,0.22)"
+                  : "rgba(167,139,250,0.22)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = isLive
                 ? "rgba(239,68,68,0.15)"
-                : "rgba(167,139,250,0.12)";
+                : isEnded
+                  ? "rgba(107,114,128,0.12)"
+                  : "rgba(167,139,250,0.12)";
             }}
           >
-            <Eye size={14} style={{ color: isLive ? "#f87171" : "#a78bfa" }} />
+            <Eye size={14} style={{ color: isLive ? "#f87171" : isEnded ? "#9ca3af" : "#a78bfa" }} />
           </Link>
         </div>
       </div>
@@ -169,17 +180,23 @@ const EventCard = ({ event, viewMode = "grid" }) => {
                   color: "#fecaca",
                   border: "1px solid rgba(239,68,68,0.4)",
                 }
-              : {
-                  background: "rgba(10,10,20,0.55)",
-                  color: "#93c5fd",
-                  border: "1px solid rgba(96,165,250,0.2)",
-                }),
+              : isEnded
+                ? {
+                    background: "rgba(107,114,128,0.35)",
+                    color: "#d1d5db",
+                    border: "1px solid rgba(107,114,128,0.4)",
+                  }
+                : {
+                    background: "rgba(10,10,20,0.55)",
+                    color: "#93c5fd",
+                    border: "1px solid rgba(96,165,250,0.2)",
+                  }),
           }}
         >
           {isLive && (
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
           )}
-          {isLive ? "Live" : "Upcoming"}
+          {isLive ? "Live" : isEnded ? "Archived" : "Upcoming"}
         </span>
 
         {/* Eye button - opens event details page */}
@@ -191,15 +208,19 @@ const EventCard = ({ event, viewMode = "grid" }) => {
             WebkitBackdropFilter: "blur(12px)",
             background: "rgba(0,0,0,0.55)",
             border: "1px solid rgba(255,255,255,0.15)",
-            color: isLive ? "#f87171" : "rgba(255,255,255,0.7)",
+            color: isLive ? "#f87171" : isEnded ? "#9ca3af" : "rgba(255,255,255,0.7)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = isLive
               ? "rgba(239,68,68,0.3)"
-              : "rgba(124,58,237,0.3)";
+              : isEnded
+                ? "rgba(107,114,128,0.3)"
+                : "rgba(124,58,237,0.3)";
             e.currentTarget.style.borderColor = isLive
               ? "rgba(239,68,68,0.4)"
-              : "rgba(167,139,250,0.4)";
+              : isEnded
+                ? "rgba(107,114,128,0.4)"
+                : "rgba(167,139,250,0.4)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "rgba(0,0,0,0.55)";
@@ -336,7 +357,7 @@ const EventCard = ({ event, viewMode = "grid" }) => {
           </div>
         </div>
 
-        {/* CTA Button - Different routes for live vs upcoming */}
+        {/* CTA Button - Different routes for live vs upcoming vs ended */}
         {isLive ? (
           // Live event: "Join Now" goes to 3D viewer
           <Link to={viewerLink}>
@@ -351,6 +372,22 @@ const EventCard = ({ event, viewMode = "grid" }) => {
               }}
             >
               Join Now <ArrowRight size={13} />
+            </button>
+          </Link>
+        ) : isEnded ? (
+          // Archived event: "View Stalls" goes to 3D viewer (read-only)
+          <Link to={viewerLink}>
+            <button
+              className="w-full py-2.5 rounded-xl text-[12.5px] font-semibold flex items-center justify-center gap-2 transition-all duration-200 group-hover:gap-3 mt-0.5"
+              style={{
+                background: "rgba(107,114,128,0.28)",
+                color: "#d1d5db",
+                border: "1px solid rgba(107,114,128,0.35)",
+                backdropFilter: "blur(8px)",
+                cursor: "pointer",
+              }}
+            >
+              View <ArrowRight size={13} />
             </button>
           </Link>
         ) : isFull ? (

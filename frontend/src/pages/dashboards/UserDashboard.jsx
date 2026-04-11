@@ -268,7 +268,7 @@ export default function UserDashboard() {
         setLoading(true);
         const [eventsRes, liveRes, regsRes] = await Promise.all([
           eventAPI.getMyEvents(),
-          eventAPI.getPublished(),
+          eventAPI.getLiveEvents(),
           registrationAPI.getMyRegistrations(),
         ]);
         setMyEvents(eventsRes.data || []);

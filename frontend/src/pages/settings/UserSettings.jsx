@@ -1383,17 +1383,6 @@ export default function UserSettings() {
                     </button>
                   </div>
 
-                  <div
-                    className="p-3.5 rounded-xl text-[12px]"
-                    style={{
-                      background: "rgba(251,191,36,0.06)",
-                      border: "1px solid rgba(251,191,36,0.15)",
-                      color: "#fde68a",
-                    }}
-                  >
-                    ⚠️ Account deletion is not yet available via API. Please
-                    contact support to request account removal.
-                  </div>
                 </div>
               </div>
             </motion.div>

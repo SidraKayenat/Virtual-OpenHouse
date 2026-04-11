@@ -72,6 +72,12 @@ export const eventAPI = {
     return api(`/events/published?${queryString}`, { method: "GET" });
   },
 
+  // Get only live events
+  getLiveEvents: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api(`/events/live?${queryString}`, { method: "GET" });
+  },
+
   getPublicArchivedEvents: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return api(`/events/public/archived?${queryString}`, { method: "GET" });
@@ -437,19 +443,27 @@ export const stallAPI = {
   uploadDocuments: (stallId, files) => {
     const formData = new FormData();
     files.forEach((file) => formData.append("documents", file));
+    const token = localStorage.getItem("token");
 
     return fetch(`${API_BASE_URL}/stalls/${stallId}/upload-documents`, {
       method: "POST",
       credentials: "include",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
       body: formData,
     }).then(async (res) => {
       const text = await res.text();
 
       try {
-        return JSON.parse(text);
+        const data = JSON.parse(text);
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to upload documents");
+        }
+        return data;
       } catch (e) {
         console.error("Non-JSON response:", text);
-        throw new Error("Server error (not JSON)");
+        throw new Error("Server error: " + (e.message || "Invalid response"));
       }
     });
   },
